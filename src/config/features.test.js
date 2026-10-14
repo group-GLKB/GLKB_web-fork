@@ -1,7 +1,6 @@
 /**
- * The production switch for Literature Review is a rule, not a value someone must remember to
- * flip: `production` has no line for the flag, so a master -> production merge brings master's
- * line in without a conflict, and a plain `true` would open the feature on glkb.org.
+ * `production` has no line for the Literature Review flag, so a master -> production merge brings
+ * master's line in without a conflict: what master says is what glkb.org gets.
  */
 import { isProductionSite, LITERATURE_REVIEW_ENABLED, PRODUCTION_HOSTS } from './features';
 
@@ -18,10 +17,8 @@ describe('isProductionSite', () => {
     });
 });
 
-// On for dev and localhost again since 2026-10-10 (the redesigned review pages); off on glkb.org
-// by construction. Hidden 10-03 to 10-06 and 10-09 to 10-10 — that is `false` in features.js.
-it('Literature Review is on everywhere but the public site', () => {
-    // jsdom's host is localhost, so the flag evaluated there is on.
-    expect(LITERATURE_REVIEW_ENABLED).toBe(!isProductionSite(window.location.hostname));
+// Launched on glkb.org 2026-10-14. Before that: on for dev and localhost only from 10-10 (the
+// redesigned review pages), hidden 10-03 to 10-06 and 10-09 to 10-10.
+it('Literature Review is on everywhere, the public site included', () => {
     expect(LITERATURE_REVIEW_ENABLED).toBe(true);
 });
