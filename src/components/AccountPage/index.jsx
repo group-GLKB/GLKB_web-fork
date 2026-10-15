@@ -11,10 +11,8 @@ import {
   useNavigate,
 } from 'react-router-dom';
 
-import {
-  Close as CloseIcon,
-  Person as PersonIcon,
-} from '@mui/icons-material';
+import CloseIcon from '@mui/icons-material/Close';
+import PersonIcon from '@mui/icons-material/Person';
 import {
   Tab,
   Tabs,
@@ -23,7 +21,6 @@ import {
 import { Switch } from '../Units/Switch';
 
 import {
-  getMyTier,
   upgradeToPro,
 } from '../../service/Tier';
 import { CHAT_HOME_PATH } from '../../config/entryRoutes';
@@ -42,6 +39,7 @@ import {
 } from '../../service/notifications';
 import { AVATARS, avatarById } from './avatars';
 import { parseServerTime } from '../../utils/serverTime';
+import useAccountTier from '../../hooks/useAccountTier';
 
 const getSessionValue = (key) => {
     if (typeof window === 'undefined') return '';
@@ -73,7 +71,7 @@ const formatResetTime = (value) => {
 };
 
 const formatTierLabel = (tier) => {
-    if (!tier) return 'Free';
+    if (!tier) return 'Unavailable';
     return `${tier}`.charAt(0).toUpperCase() + `${tier}`.slice(1);
 };
 
@@ -110,7 +108,7 @@ const AccountPage = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showSignoutModal, setShowSignoutModal] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
-    const [tierInfo, setTierInfo] = useState(null);
+    const { tierInfo, refreshTierInfo } = useAccountTier(user);
     const [activeTab, setActiveTab] = useState(
         () => (location.state?.tab === 'testing' ? 'testing' : 'account')
     );
@@ -230,24 +228,6 @@ const AccountPage = () => {
         };
     }, []);
 
-    useEffect(() => {
-        let isMounted = true;
-
-        getMyTier()
-            .then((result) => {
-                if (!isMounted) return;
-                if (result.success) {
-                    setTierInfo(result.data || null);
-                } else {
-                    setTierInfo(null);
-                }
-            });
-
-        return () => {
-            isMounted = false;
-        };
-    }, []);
-
     const creditsLoading = !credits;
     const monthlyAllowance = Math.max(0, credits?.monthlyAllowance || 0);
     const monthlyRemaining = Math.max(0, Math.min(monthlyAllowance, credits?.monthlyRemaining ?? monthlyAllowance));
@@ -291,13 +271,6 @@ const AccountPage = () => {
     const handleBackdropClick = (event, onClose) => {
         if (event.target === event.currentTarget) {
             onClose();
-        }
-    };
-
-    const refreshTierInfo = async () => {
-        const result = await getMyTier();
-        if (result.success) {
-            setTierInfo(result.data || null);
         }
     };
 
