@@ -62,29 +62,31 @@ test('AI Chat returns a non-empty response', { timeout: 150000 }, async ({ page 
   // Per-message actions: copy, regenerate (present only — see cost note below), download, feedback
   // Reads the clipboard directly rather than racing the confirmation toast, which auto-dismisses
   // in a few seconds and can be gone before this assertion gets a chance to poll for it.
+  // These icon buttons hint via a styled tooltip now (HintIconButton), not a native title
+  // attribute, so getByRole on their accessible name (same text) is what finds them.
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
-  await page.getByTitle('Copy response').click();
+  await page.getByRole('button', { name: 'Copy response' }).click();
   const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
   expect(clipboardText.length).toBeGreaterThan(0);
 
   // Not actually clicked: it would spend a second real LLM turn on every hourly run.
-  await expect(page.getByTitle('Regenerate response')).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Regenerate response' })).toBeEnabled();
 
   const qaDownload = page.waitForEvent('download');
-  await page.getByTitle('Download this Q&A').click();
+  await page.getByRole('button', { name: 'Download this Q&A' }).click();
   expect((await qaDownload).suggestedFilename()).toBeTruthy();
 
-  await page.getByTitle('Share feedback').click();
+  await page.getByRole('button', { name: 'Share feedback' }).click();
   await expect(page.getByText('Share your feedback')).toBeVisible({ timeout: 5000 });
   await page.getByRole('button', { name: 'Cancel' }).click(); // no fake rating gets submitted
 
   // Bookmarking this chat toggles the header icon, then undoes it — leaves no residue
   const chatHeader = page.locator('.llm-header');
-  const wasBookmarked = await chatHeader.getByTitle('Remove bookmark').count() > 0;
-  await chatHeader.getByTitle(wasBookmarked ? 'Remove bookmark' : 'Bookmark this chat').click();
-  await expect(chatHeader.getByTitle(wasBookmarked ? 'Bookmark this chat' : 'Remove bookmark')).toBeVisible({ timeout: 5000 });
-  await chatHeader.getByTitle(wasBookmarked ? 'Bookmark this chat' : 'Remove bookmark').click();
-  await expect(chatHeader.getByTitle(wasBookmarked ? 'Remove bookmark' : 'Bookmark this chat')).toBeVisible({ timeout: 5000 });
+  const wasBookmarked = await chatHeader.getByRole('button', { name: 'Remove bookmark' }).count() > 0;
+  await chatHeader.getByRole('button', { name: wasBookmarked ? 'Remove bookmark' : 'Bookmark this chat' }).click();
+  await expect(chatHeader.getByRole('button', { name: wasBookmarked ? 'Bookmark this chat' : 'Remove bookmark' })).toBeVisible({ timeout: 5000 });
+  await chatHeader.getByRole('button', { name: wasBookmarked ? 'Bookmark this chat' : 'Remove bookmark' }).click();
+  await expect(chatHeader.getByRole('button', { name: wasBookmarked ? 'Remove bookmark' : 'Bookmark this chat' })).toBeVisible({ timeout: 5000 });
 
   // A reference card can be bookmarked and cited
   const firstCard = page.locator('.references-list .reference-card').first();
@@ -107,6 +109,6 @@ test('AI Chat returns a non-empty response', { timeout: 150000 }, async ({ page 
 
   // Downloading all references produces a BibTeX file
   const exportDownload = page.waitForEvent('download');
-  await page.getByTitle('Export all references').first().click();
+  await page.getByRole('button', { name: 'Export all references' }).first().click();
   expect((await exportDownload).suggestedFilename()).toMatch(/\.bib$/);
 });

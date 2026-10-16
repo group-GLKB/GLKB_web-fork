@@ -28,12 +28,13 @@ test('Library: bookmarked chat and reference surface there, and group into a fol
   // a bare /chat — a plain "**/chat" glob never lands here.
   await page.waitForURL(/\/chat\//);
 
-  // Bookmark the chat from the header.
+  // Bookmark the chat from the header. The button's hint is a styled tooltip now (HintIconButton),
+  // not a native title attribute, so its accessible name — same text — is what to match on.
   const chatHeader = page.locator('.llm-header');
-  if (await chatHeader.getByTitle('Remove bookmark').count() === 0) {
-    await chatHeader.getByTitle('Bookmark this chat').click();
+  if (await chatHeader.getByRole('button', { name: 'Remove bookmark' }).count() === 0) {
+    await chatHeader.getByRole('button', { name: 'Bookmark this chat' }).click();
   }
-  await expect(chatHeader.getByTitle('Remove bookmark')).toBeVisible({ timeout: 5000 });
+  await expect(chatHeader.getByRole('button', { name: 'Remove bookmark' })).toBeVisible({ timeout: 5000 });
 
   /* Bookmark its first reference. Matched into Library by PMID, not by the title shown here —
      the chat page's reference panel can carry a placeholder title ("PMID 41597354") for a
