@@ -1,7 +1,7 @@
 import './index.css';
 import './utils/axiosConfig'; // Import axios interceptor configuration
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense } from 'react';
 
 import { createRoot } from 'react-dom/client';
 import {
@@ -18,15 +18,13 @@ import {
 
 // import SignupPage from './components/Auth/SignupPage';
 // import ProtectedRoute from './components/Auth/ProtectedRoute';
-import { AuthProvider, useAuth } from './components/Auth/AuthContext';
+import { AuthProvider } from './components/Auth/AuthContext';
 import HomePage from './components/HomePage';
 import AppLayout from './components/Layout';
 import ErrorBoundary from './components/Units/ErrorBoundary';
 import {
   CHAT_HOME_PATH,
   CHAT_NEW_PATH,
-  hasSeenAbout,
-  shouldEnterChat,
 } from './config/entryRoutes';
 import { LITERATURE_REVIEW_ENABLED, SHOW_API_DOCS } from './config/features';
 import { canonicalUrlFor, isIndexablePath, normalizeSeoPath } from './config/publicSeo';
@@ -137,29 +135,6 @@ function RouteSeoControl() {
     );
 }
 
-/* `/` is About, the landing page. A signed-in reader who has seen it once and is ENTERING the
-   site here goes straight on to the chat instead (config/entryRoutes.js). "Entering" is the
-   router's first location: React Router keys it `default` when the page was loaded from outside
-   rather than navigated to inside the app — so the sidebar's About still shows About.
-
-   Whether About was seen is read once, when this mounts: About marks it on its own mount, and
-   reading it on every render would send a reader who is looking at About on to the chat the
-   next time anything re-rendered this. */
-function RootRoute() {
-    const location = useLocation();
-    const { isAuthenticated, loading } = useAuth();
-    const [seenAtEntry] = useState(hasSeenAbout);
-    const isEntry = location.key === 'default';
-    if (isEntry && seenAtEntry && !location.hash) {
-        // Only this case depends on the session, so only it waits for the check.
-        if (loading) return null;
-        if (shouldEnterChat({ isAuthenticated, seenAbout: seenAtEntry, isEntry })) {
-            return <Navigate to={`${CHAT_HOME_PATH}${location.search}`} state={location.state} replace />;
-        }
-    }
-    return <AboutPage />;
-}
-
 /* About's old address. The hash rides along: /about#from-the-lab is linked from outside. */
 function AboutRedirect() {
     const location = useLocation();
@@ -202,7 +177,7 @@ function AppWithRoutes() {
                     <Route path='/search' element={<ResultPage />} />
                     <Route path='/graph-viewer' element={<GraphViewer />} />
                     <Route path='/demo/answer-graph' element={<AnswerGraphDemo />} />
-                    <Route path="/" element={<RootRoute />} />
+                    <Route path="/" element={<AboutPage />} />
                     <Route path={CHAT_HOME_PATH} element={<HomePage />} />
                     <Route path="/about" element={<AboutRedirect />} />
                     {/* The article list lives on About under "From the Lab". */}
