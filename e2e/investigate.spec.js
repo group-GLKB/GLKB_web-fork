@@ -87,4 +87,18 @@ test('Investigate mode reaches an answer, clicking through any clarifying questi
   // Same shape of check as ai-chat.spec.js from here — the response and its citations.
   const citationLinks = response.locator('a[href*="pubmed.ncbi.nlm.nih.gov"]');
   await expect(citationLinks.first()).toBeVisible({ timeout: 30000 });
+
+  // The graph belongs to a completed Investigate answer, not to an ordinary answer.
+  // Reuse this run rather than spending another research query just to check the card.
+  await expect(page.getByRole('button', { name: 'Copy response', exact: true })).toBeVisible({ timeout: 60000 });
+  const card = page.locator('.ag-card');
+  // Text-derived graphs are fetched only when their placeholder enters the viewport.
+  const placeholder = response.locator(':scope > span[aria-hidden="true"]').first();
+  if (await placeholder.count()) await placeholder.evaluate(el => el.scrollIntoView({ block: 'center' }));
+  await expect(card).toBeAttached({ timeout: 60000 });
+  await card.scrollIntoViewIfNeeded();
+  await expect(card).toBeVisible({ timeout: 60000 });
+  await expect(card.getByTestId('answer-graph-canvas').locator('canvas').first()).toBeVisible();
+  await expect(card.getByText('Entities', { exact: true })).toBeVisible();
+  await expect(card.getByText('Relationships', { exact: true })).toBeVisible();
 });

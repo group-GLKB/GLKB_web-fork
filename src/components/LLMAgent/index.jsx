@@ -1395,8 +1395,10 @@ const MessageCard = React.memo(function MessageCard({
                 citationsByMarker,
             ),
         );
-    // With no list, an answer that cites papers still gets a graph, built from its text.
-    const showAnswerGraph = isAssistant && !isLoading
+    // Investigate answers only: an ordinary chat answer has no graph (2026-10-22), so it never
+    // asks the backend for one. With no list, an answer that cites papers still gets a graph,
+    // built from its text.
+    const showAnswerGraph = isAssistant && !isLoading && isInvestigateMessage
         && (message.kgQueryList?.length > 0 || message.references?.length > 0);
     const answerParts = showAnswerGraph ? splitAnswerForGraph(answerMarkdown) : [answerMarkdown];
     if (showAnswerGraph && answerParts.length === 1) answerParts.push('');

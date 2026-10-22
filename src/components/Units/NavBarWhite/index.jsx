@@ -89,6 +89,7 @@ import {
 import { trackGtagEvent } from '../../../utils/gtag';
 import { prioritizeRunningConversations } from '../../../utils/recentConversations';
 import { useAuth } from '../../Auth/AuthContext';
+import useAccountTier from '../../../hooks/useAccountTier';
 import { avatarById } from '../../AccountPage/avatars';
 
 const drawerWidth = 240;
@@ -498,8 +499,11 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const userDisplayName = storedProfile.name || user?.username || user?.email || 'Account';
     const userAvatarPreset = avatarById(user?.avatar_id);
-    const normalizedUserTier = `${user?.tier || 'free'}`.trim().toLowerCase();
-    const userPlanLabel = `${normalizedUserTier.charAt(0).toUpperCase()}${normalizedUserTier.slice(1)} plan`;
+    const { tierInfo } = useAccountTier(user);
+    const normalizedUserTier = `${tierInfo?.tier || ''}`.trim().toLowerCase();
+    const userPlanLabel = normalizedUserTier
+        ? `${normalizedUserTier.charAt(0).toUpperCase()}${normalizedUserTier.slice(1)} plan`
+        : 'Plan unavailable';
     const isUserMenuOpen = Boolean(userMenuAnchorEl);
     const isRecentMenuOpen = Boolean(recentMenuAnchorEl);
     const bookmarkedConversationIds = useMemo(

@@ -10,6 +10,7 @@ import React, {
 
 import Mark from 'mark.js';
 import ReactMarkdown from 'react-markdown';
+import PublicPageSeo from '../Units/PublicPageSeo';
 import {
   Link,
   useNavigate,
@@ -274,7 +275,7 @@ const markdownComponents = {
     pre: CodeBlockRenderer,
 };
 
-const ApiDocsPage = () => {
+const ApiDocsPage = ({ initialMarkdown = '' }) => {
     const navigate = useNavigate();
     const { slug } = useParams();
     const contentPaneRef = useRef(null);
@@ -298,7 +299,7 @@ const ApiDocsPage = () => {
     const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
     const [searchOverlayOpen, setSearchOverlayOpen] = useState(false);
     const [pendingSearchJump, setPendingSearchJump] = useState(null);
-    const [markdownContent, setMarkdownContent] = useState('');
+    const [markdownContent, setMarkdownContent] = useState(initialMarkdown);
     const [activeHeadingId, setActiveHeadingId] = useState('');
     const [indexMenuOpen, setIndexMenuOpen] = useState(false);
     const indexMenuTimersRef = useRef({ open: null, close: null });
@@ -789,6 +790,7 @@ const ApiDocsPage = () => {
 
     return (
         <div className="api-docs-page-root">
+            <PublicPageSeo title={`${activePage.title} | API Docs | GLKB`} description={activePage.description || `${activePage.title}: GLKB biomedical literature API documentation and examples.`} />
             <header className="api-docs-header">
                 <div className="api-docs-header-brand">
                     <Link to="/" className="api-docs-logo-link" aria-label="GLKB Home">

@@ -29,6 +29,7 @@ import {
   shouldEnterChat,
 } from './config/entryRoutes';
 import { LITERATURE_REVIEW_ENABLED, SHOW_API_DOCS } from './config/features';
+import { canonicalUrlFor, isIndexablePath, normalizeSeoPath } from './config/publicSeo';
 
 /* Everything past the landing page and the chat is fetched when it is asked for.
  *
@@ -118,19 +119,12 @@ const initState = {
     searchType: ''
 }
 
-const INDEXABLE_PATHS = new Set(['/', '/blog', '/chat', '/search', '/api-page', '/privacy', '/terms']);
 const MAINTENANCE_MODE = false;
-
-const normalizePathname = (pathname) => {
-    const normalized = pathname.replace(/\/+$/, '');
-    return normalized || '/';
-};
 
 function RouteSeoControl() {
     const location = useLocation();
-    const pathname = normalizePathname(location.pathname);
-    const isIndexable = INDEXABLE_PATHS.has(pathname);
-    const canonicalPath = pathname === '/' ? '' : pathname;
+    const pathname = normalizeSeoPath(location.pathname);
+    const isIndexable = isIndexablePath(pathname, SHOW_API_DOCS);
 
     return (
         <Helmet>
@@ -138,7 +132,7 @@ function RouteSeoControl() {
                 name="robots"
                 content={isIndexable ? 'index, follow' : 'noindex, nofollow'}
             />
-            <link rel="canonical" href={`https://glkb.org${canonicalPath}`} />
+            <link rel="canonical" href={canonicalUrlFor(pathname)} />
         </Helmet>
     );
 }
@@ -277,7 +271,9 @@ const rootFallback = (
     </div>
 );
 
-const root = createRoot(document.getElementById('root'));
+const rootElement = document.getElementById('root');
+rootElement.removeAttribute('data-public-html');
+const root = createRoot(rootElement);
 root.render(
     <Router>
         <AuthProvider>
