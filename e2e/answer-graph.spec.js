@@ -14,7 +14,7 @@ const withCacheBuster = (text) => `${text} (ignore the trailing digits: ${Math.f
 test('an ordinary answer does not request or draw a knowledge graph', { timeout: 150000 }, async ({ page }) => {
   const graphRequests = [];
   page.on('request', request => {
-    if (new URL(request.url()).pathname === '/api/v1/search/answer-graph') graphRequests.push(request.url());
+    if (new URL(request.url()).pathname.endsWith('/api/v1/search/answer-graph')) graphRequests.push(request.url());
   });
   await page.goto('/chat');
 

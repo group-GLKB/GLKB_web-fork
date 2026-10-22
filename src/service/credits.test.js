@@ -37,7 +37,12 @@ describe('a signed-in reader', () => {
         expect(applyStreamCredits({ charged: 1, remaining: null })).toBe(false);
         expect(applyStreamCredits({ refunded: 1, remaining: 0 })).toBe(true);
         expect(getUsageSnapshot().limitReached).toBe(true);
-        expect(limitReachedText(getUsageSnapshot())).toMatch(/out of credits.*Nov 1/);
+        const text = limitReachedText(getUsageSnapshot());
+        expect(text).toContain('out of credits');
+        // Reset dates follow the reader's locale; the test must also work on non-English hosts.
+        const resetLabel = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' })
+            .format(new Date('2026-11-01T00:00:00Z'));
+        expect(text).toContain(resetLabel);
     });
 });
 

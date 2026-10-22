@@ -52,6 +52,58 @@ async function main() {
             await context.close();
             console.log(`Public routes verified with JavaScript ${javaScriptEnabled ? 'enabled' : 'disabled'}.`);
         }
+        // Replay saved answers locally to cover the release's graph-mode and plan changes.
+        // All API responses are fixtures; no login, model query or production API is used.
+        const fixture = require('../src/components/AnswerGraph/demoFixture.json');
+        for (const investigate of [false, true]) {
+            const context = await browser.newContext({ viewport: { width: 1600, height: 900 } });
+            await context.addInitScript(() => {
+                localStorage.setItem('access_token', 'local-smoke-test');
+                localStorage.setItem('user', JSON.stringify({ id: 999999, email: 'local-smoke@example.invalid', tier: 'free' }));
+            });
+            const publicId = '00000000-0000-4000-8000-000000000001';
+            const detail = {
+                hid: 999999, public_id: publicId, leading_title: 'Local release smoke test',
+                created_at: '2026-10-22T12:00:00Z', last_accessed_time: '2026-10-22T12:00:00Z',
+                is_investigate: investigate, is_answering: false, message_count: 2,
+                messages: [
+                    { role: 'user', content: fixture.question, created_at: '2026-10-22T12:00:00Z' },
+                    { role: 'assistant', content: fixture.answer, references: [{ title: 'Local reference fixture', url: 'https://pubmed.ncbi.nlm.nih.gov/9482880/', year: 1998 }],
+                        trace: { v: 1, mode: investigate ? 'investigate' : 'chat', complete: true, duration_ms: 1000,
+                            frames: [{ step: 'Complete', kg_query_list: fixture.kg_query_list }] },
+                        created_at: '2026-10-22T12:00:01Z' },
+                ],
+            };
+            let graphRequests = 0;
+            await context.route('**/*', route => {
+                const url = new URL(route.request().url());
+                const json = body => route.fulfill({ json: body });
+                if (url.pathname.endsWith('/api/v1/search/answer-graph')) {
+                    graphRequests += 1;
+                    return json({ rows: fixture.rows });
+                }
+                if (url.pathname.includes('/api/v1/new-llm-agent/history')) {
+                    return json(url.pathname.endsWith('/history') ? { histories: [detail], total: 1 } : detail);
+                }
+                if (url.pathname.endsWith('/api/v1/tier/me')) return json({ tier: 'pro' });
+                if (url.origin !== origin || url.pathname.startsWith('/api/')) return route.fulfill({ status: 403, body: '{}' });
+                return route.continue();
+            });
+            const page = await context.newPage();
+            await page.goto(`${origin}/chat/${publicId}`, { waitUntil: 'networkidle' });
+            await page.getByRole('button', { name: 'Copy response', exact: true }).waitFor();
+            await page.getByText('Pro plan', { exact: true }).first().waitFor();
+            if (investigate) {
+                await page.locator('.ag-card').waitFor();
+                await page.getByTestId('answer-graph-canvas').locator('canvas').first().waitFor();
+                assert.equal(graphRequests, 1);
+            } else {
+                assert.equal(await page.locator('.ag-card').count(), 0);
+                assert.equal(graphRequests, 0);
+            }
+            await context.close();
+            console.log(`Saved ${investigate ? 'Investigate' : 'ordinary chat'} answer and live account plan verified with mocked APIs.`);
+        }
     } finally {
         if (browser) await browser.close();
         await new Promise(resolve => server.close(resolve));

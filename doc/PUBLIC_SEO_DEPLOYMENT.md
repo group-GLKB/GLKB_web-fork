@@ -11,10 +11,18 @@ metadata, schema, links, assets, sitemap and the private application fallback.
 ## Amplify action required
 
 Repository files cannot change Amplify's saved **Rewrites and redirects** settings.
-After building, import `build/amplify-redirects.json` into the dev app's redirect editor.
-Replace the old catch-all rewrite to `/index.html` with the generated rules. Keep any existing
-domain-level/HTTPS redirects before these rules, and preserve unrelated intentional redirects.
-Do not overwrite the production app's rules until dev is reviewed.
+Build settings saved in the console and rewrite rules are app-wide. Our dev and production
+branches share one Amplify app, so changing rewrites also changes routing on glkb.org.
+First deploy this code to every branch that uses the shared rules, including production,
+and confirm their builds finish with `Validated 17 public pages`. Only then import
+`build/amplify-redirects.json` in the app's redirect editor. Back up the existing JSON first.
+Replace the old catch-all rewrite to `/index.html` with the generated rules. Keep existing
+API reverse proxies, domain-level/HTTPS redirects and other intentional rules before the
+extensionless fallback. Do not discard them when importing the generated rules.
+
+Before changing shared rules, check `/app.html` on each deployed branch: it must contain
+the new app shell with `noindex, nofollow` and the current build's JS assets. HTTP 200 alone
+is insufficient: the old SPA catch-all may serve the old home-page shell for that URL.
 
 The order matters: legacy addresses get 301 redirects, each public route gets its own HTML,
 and extensionless application routes fall back to `/app.html` (noindex). Requests for missing
