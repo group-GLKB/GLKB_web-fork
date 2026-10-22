@@ -9,7 +9,7 @@
 import './scoped.css';
 
 import React, { useEffect } from 'react';
-import { Helmet } from 'react-helmet-async';
+import PublicPageSeo from '../Units/PublicPageSeo';
 
 import { SiteFooter, SiteNav } from '../SiteChrome';
 
@@ -93,10 +93,7 @@ const LegalPage = ({ title, subtitle, updated, blocks, description }) => {
 
     return (
         <div className="legal-page">
-            <Helmet>
-                <title>{`${title} | GLKB`}</title>
-                <meta name="description" content={description} />
-            </Helmet>
+            <PublicPageSeo title={`${title} | GLKB`} description={description} />
 
             <SiteNav />
 

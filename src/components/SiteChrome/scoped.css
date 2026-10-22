@@ -12,6 +12,9 @@
     box-sizing: border-box;
 }
 
+.site-nav a, .site-footer-links a, a.site-card { text-decoration: none; }
+.site-footer-links a { color: inherit; font: inherit; }
+
 .site-nav-logo {
     display: inline-flex;
     align-items: center;
@@ -180,7 +183,7 @@
     gap: 32px;
 }
 
-.site-footer-links button {
+.site-footer-links button, .site-footer-links a {
     border: none;
     background: none;
     padding: 0;
@@ -191,7 +194,7 @@
     cursor: pointer;
 }
 
-.site-footer-links button:hover {
+.site-footer-links button:hover, .site-footer-links a:hover {
     color: var(--color-brand-primary);
 }
 

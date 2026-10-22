@@ -8,7 +8,7 @@
 import './scoped.css';
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { ABOUT_PATH, CHAT_HOME_PATH } from '../../config/entryRoutes';
 
@@ -33,32 +33,30 @@ export const SiteNav = ({ active, onGetStarted }) => {
 
     return (
         <header className="site-nav">
-            <button
-                type="button"
+            <Link
+                to={ABOUT_PATH}
                 className="site-nav-logo"
-                onClick={() => navigate(ABOUT_PATH)}
                 aria-label="GLKB"
             >
                 <img className="site-logo-mark" src={siteMark} alt="" />
                 <img className="site-logo-wordmark" src={siteWordmark} alt="GLKB" />
-            </button>
+            </Link>
             <nav className="site-nav-actions">
                 {active === 'home' ? null : (
-                    <button type="button" className="site-nav-link" onClick={() => navigate(ABOUT_PATH)}>
+                    <Link to={ABOUT_PATH} className="site-nav-link">
                         Home
-                    </button>
+                    </Link>
                 )}
                 {/* Our Blog is hidden from the bar. The articles are a section of About
                     rather than a page of their own, so the link pointed at an anchor on
                     the page the reader was most likely already on. They are still reached
                     from "From the Lab", and BLOG_LIST_PATH still routes. */}
-                <button
-                    type="button"
+                <a
+                    href={DATASET_URL} target="_blank" rel="noopener noreferrer"
                     className="site-nav-link"
-                    onClick={() => window.open(DATASET_URL, '_blank', 'noopener,noreferrer')}
                 >
                     License the Dataset
-                </button>
+                </a>
                 <button
                     type="button"
                     className="site-nav-cta"
@@ -97,8 +95,10 @@ export const SiteFooter = ({ withCta = true }) => {
                 </span>
                 <div className="site-footer-row">
                     <div className="site-footer-links">
-                        <button type="button" onClick={() => navigate('/terms')}>Terms of Use</button>
-                        <button type="button" onClick={() => navigate('/privacy')}>Privacy Policy</button>
+                        <Link to={CHAT_HOME_PATH}>Chat</Link>
+                        <Link to="/api-docs">API Docs</Link>
+                        <Link to="/terms">Terms of Use</Link>
+                        <Link to="/privacy">Privacy Policy</Link>
                         <button type="button">Refund &amp; Cancellation</button>
                         <button type="button">Contact Us</button>
                     </div>
@@ -113,8 +113,8 @@ export const SiteFooter = ({ withCta = true }) => {
  * Figma 604:7276 — a 17px-padded card: muted thumbnail, date, one-line title
  * and an excerpt clamped to two lines.
  */
-export const PostCard = ({ post, onOpen }) => (
-    <button type="button" className="site-card" onClick={() => onOpen(post.slug)}>
+export const PostCard = ({ post }) => (
+    <Link to={`/blog/${post.slug}`} className="site-card">
         <span className="site-card-thumb">
             {post.thumb ? <img src={post.thumb} alt="" /> : null}
         </span>
@@ -123,7 +123,7 @@ export const PostCard = ({ post, onOpen }) => (
             {post.cardTitle || post.title}
         </span>
         <span className="site-card-excerpt">{post.lede}</span>
-    </button>
+    </Link>
 );
 
 export default SiteNav;
