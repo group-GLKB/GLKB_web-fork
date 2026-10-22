@@ -1,6 +1,6 @@
 import {
     compareByCitationsDescending,
-    compareByYearAscending,
+    compareByYearDescending,
     getCitationSortValue,
     getReferenceYear,
     sortReferences,
@@ -35,18 +35,18 @@ describe('getReferenceYear', () => {
 });
 
 describe('sorting by year', () => {
-    /* Fixtures start newest-first, so a sort that quietly does nothing fails these rather
+    /* Fixtures are unsorted, so a sort that quietly does nothing fails these rather
        than passing by accident. */
-    it('puts the oldest paper first', () => {
+    it('puts the newest paper first', () => {
         expect(years(sortReferences(wrap([
-            { year: 2021 }, { year: 2019 }, { year: 2015 },
-        ]), 'Year'))).toEqual([2015, 2019, 2021]);
+            { year: 2015 }, { year: 2021 }, { year: 2019 },
+        ]), 'Year'))).toEqual([2021, 2019, 2015]);
     });
 
     it('does the same when the years are strings', () => {
         expect(years(sortReferences(wrap([
-            { year: '2021' }, { year: '2019' }, { year: '2015' },
-        ]), 'Year'))).toEqual(['2015', '2019', '2021']);
+            { year: '2015' }, { year: '2021' }, { year: '2019' },
+        ]), 'Year'))).toEqual(['2021', '2019', '2015']);
     });
 
     it('does the same when the years are full dates', () => {
@@ -55,21 +55,21 @@ describe('sorting by year', () => {
            panel then showed whatever order the references arrived in, under a control that
            still said Year. */
         expect(years(sortReferences(wrap([
-            { year: '2021 Mar 15' }, { year: '2019 Jan' }, { year: '2015 Dec 1' },
-        ]), 'Year'))).toEqual(['2015 Dec 1', '2019 Jan', '2021 Mar 15']);
+            { year: '2015 Dec 1' }, { year: '2021 Mar 15' }, { year: '2019 Jan' },
+        ]), 'Year'))).toEqual(['2021 Mar 15', '2019 Jan', '2015 Dec 1']);
     });
 
     it('does the same with the shapes mixed, which is the normal case', () => {
         expect(years(sortReferences(wrap([
-            { year: 2021 }, { year: '2019-01-02' }, { year: '2015' },
-        ]), 'Year'))).toEqual(['2015', '2019-01-02', 2021]);
+            { year: '2015' }, { year: 2021 }, { year: '2019-01-02' },
+        ]), 'Year'))).toEqual([2021, '2019-01-02', '2015']);
     });
 
     it('sends a reference with no year to the end', () => {
         // An unresolved paper carries `date: null`. It is not a paper from the year 0.
         expect(years(sortReferences(wrap([
             { year: null }, { year: 2021 }, { year: '' }, { year: 2015 },
-        ]), 'Year'))).toEqual([2015, 2021, null, '']);
+        ]), 'Year'))).toEqual([2021, 2015, null, '']);
     });
 
     it('keeps the agent\'s order within a single year', () => {
@@ -79,19 +79,20 @@ describe('sorting by year', () => {
             { year: 2019, title: 'second' },
         ]), 'Year');
         expect(sorted.map(({ reference }) => reference.title))
-            .toEqual(['first', 'second', 'newer']);
+            .toEqual(['newer', 'first', 'second']);
     });
 
-    it('carries the citation number through the reordering', () => {
+    it('preserves reference identities and assigns ascending numbers after reordering', () => {
         const sorted = sortReferences(wrap([
-            { year: 2021 }, { year: 2015 },
+            { year: 2015 }, { year: 2021 },
         ]), 'Year');
         expect(sorted.map(({ originalIndex }) => originalIndex)).toEqual([1, 0]);
+        expect(sorted.map(({ displayNumber }) => displayNumber)).toEqual([1, 2]);
     });
 
-    it('is the default, so an untouched panel is already oldest-first', () => {
+    it('is the default, so an untouched panel is already newest-first', () => {
         expect(years(sortReferences(wrap([{ year: 2021 }, { year: 2015 }]), undefined)))
-            .toEqual([2015, 2021]);
+            .toEqual([2021, 2015]);
     });
 });
 
@@ -107,7 +108,7 @@ describe('sorting by citations', () => {
             .toEqual([['paper-b', 1], ['paper-c', 2], ['paper-a', 3]]);
         const yearOrder = sortReferences(refs, 'Year');
         expect(yearOrder.map(({ reference, displayNumber }) => [reference.url, displayNumber]))
-            .toEqual([['paper-c', 1], ['paper-a', 2], ['paper-b', 3]]);
+            .toEqual([['paper-b', 1], ['paper-a', 2], ['paper-c', 3]]);
         expect(refs.map(({ originalIndex }) => originalIndex)).toEqual([0, 1, 2]);
         expect(refs.every((item) => item.displayNumber === undefined)).toBe(true);
     });
@@ -144,7 +145,7 @@ describe('sorting by citations', () => {
             { year: 2010, citation_count: 90 },
         ]);
         const chronological = sortReferences(entries, 'Year');
-        expect(chronological.map((item) => item.originalIndex)).toEqual([1, 2, 0]);
+        expect(chronological.map((item) => item.originalIndex)).toEqual([0, 2, 1]);
         expect(sortReferences(chronological, 'Citations').map((item) => item.originalIndex))
             .toEqual([2, 0, 1]);
         expect(sortReferences(chronological, 'Citation').map((item) => item.originalIndex))
@@ -169,7 +170,7 @@ describe('the comparators on their own', () => {
     it('never return NaN, whatever they are handed', () => {
         const nasty = [undefined, null, {}, { year: {} }, { year: 'in press' }, { year: NaN }];
         nasty.forEach((a) => nasty.forEach((b) => {
-            expect(Number.isNaN(compareByYearAscending(a, b))).toBe(false);
+            expect(Number.isNaN(compareByYearDescending(a, b))).toBe(false);
             expect(Number.isNaN(compareByCitationsDescending(a, b))).toBe(false);
         }));
     });

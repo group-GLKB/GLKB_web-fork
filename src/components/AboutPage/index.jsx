@@ -42,7 +42,7 @@ import browserActions from '../../img/about/v2/browser/toolbar-actions.svg';
 import useCaseBookmark from '../../img/about/v2/use-cases/bookmark.svg';
 import useCaseQuote from '../../img/about/v2/use-cases/quote.svg';
 import browserFavicon from '../../img/GLKB_logo_icon.png';
-import { CHAT_HOME_PATH, markAboutSeen } from '../../config/entryRoutes';
+import { CHAT_HOME_PATH } from '../../config/entryRoutes';
 import { useAuth } from '../Auth/AuthContext';
 import { posts } from '../Blog/posts';
 import { DEMO_VIDEO_URL, PostCard, SiteFooter, SiteNav } from '../SiteChrome';
@@ -107,11 +107,6 @@ const AboutPage = () => {
     const handleGetStarted = () => {
         navigate(CHAT_HOME_PATH);
     };
-
-    // Once seen, `/` stops sending this browser here (config/entryRoutes.js).
-    useEffect(() => {
-        markAboutSeen();
-    }, []);
 
     // The design draws the row mid-scroll, with the next card half off the edge
     // and an arrow over it. With few enough posts to fit there is nothing to
