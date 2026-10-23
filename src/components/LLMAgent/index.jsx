@@ -104,10 +104,12 @@ import { submitChatFeedback } from '../../service/Feedback';
 import {
   LLMAgentService,
   PHASE_PERCENT_FLOOR,
+  answerOptionsOf,
   extractProgress,
   inferInvestigatePhase,
 } from '../../service/LLMAgent';
 import { getCurrentUser } from '../../service/Auth';
+import { answerOptionsForTurn } from './answerOptions';
 import {
   applyStreamCredits,
   fetchUsage,
@@ -1395,10 +1397,11 @@ const MessageCard = React.memo(function MessageCard({
                 citationsByMarker,
             ),
         );
-    // Investigate answers only: an ordinary chat answer has no graph (2026-10-22), so it never
-    // asks the backend for one. With no list, an answer that cites papers still gets a graph,
-    // built from its text.
-    const showAnswerGraph = isAssistant && !isLoading && isInvestigateMessage
+    // Investigate answers, and an AI Chat answer whose turn asked for its graph (Options →
+    // Include in the answer); any other chat answer has none and never asks the backend for one.
+    // With no list, an answer that cites papers still gets a graph, built from its text.
+    const showAnswerGraph = isAssistant && !isLoading
+        && (isInvestigateMessage || Boolean(message.answerOptions?.graph))
         && (message.kgQueryList?.length > 0 || message.references?.length > 0);
     const answerParts = showAnswerGraph ? splitAnswerForGraph(answerMarkdown) : [answerMarkdown];
     if (showAnswerGraph && answerParts.length === 1) answerParts.push('');
@@ -4367,6 +4370,7 @@ function LLMAgent({ isRouteActive = true }) {
         const turnAttachments = investigateEnabled
             ? []
             : normalizeAttachmentList(options.attachments ?? requestSearchOptions?.attachments);
+        const turnAnswerOptions = answerOptionsForTurn(requestSearchOptions, baseHistory, investigateEnabled);
 
         // Create new user message
         const newMessage = {
@@ -4610,6 +4614,7 @@ function LLMAgent({ isRouteActive = true }) {
                     update.directCitations ?? update.direct_citations,
                 ),
                 kgQueryList: update.kgQueryList ?? update.kg_query_list ?? [],
+                answerOptions: update.answerOptions ?? answerOptionsOf(update.answer_options),
                 timestamp,
                 thinkingSteps: existing.thinkingSteps || [],
                 thoughtDurationMs: Date.now() - requestStartedAt,
@@ -5133,6 +5138,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 references: parseReferences(update.references),
                                 directCitations: parseDirectCitations(update.directCitations),
                                 kgQueryList: update.kgQueryList || [],
+                                answerOptions: update.answerOptions || {},
                                 timestamp: timestamp,
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,
@@ -5327,6 +5333,8 @@ function LLMAgent({ isRouteActive = true }) {
                 // is always Standard — the backend refuses anything else.
                 serviceTier: effectiveTier(requestSearchOptions?.serviceTier, { isGuest }) || undefined,
                 attachments: turnAttachments.length ? attachmentIdsOf(turnAttachments) : undefined,
+                figures: turnAnswerOptions.figures,
+                graph: turnAnswerOptions.graph,
                 notifyEmail: (investigateEnabled && notifyEmailEnabled)
                     ? (getUserNotifyEmail() || undefined)
                     : undefined,
@@ -6731,6 +6739,7 @@ function LLMAgent({ isRouteActive = true }) {
             const turnAttachments = investigateEnabled
                 ? []
                 : normalizeAttachmentList(requestSearchOptions?.attachments);
+            const turnAnswerOptions = answerOptionsForTurn(requestSearchOptions, base, investigateEnabled);
             const userMessage = {
                 role: 'user',
                 content: entry.text,
@@ -6797,6 +6806,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 references: parseReferences(update.references),
                                 directCitations: parseDirectCitations(update.directCitations),
                                 kgQueryList: update.kgQueryList || [],
+                                answerOptions: update.answerOptions || {},
                                 timestamp,
                                 thinkingSteps: [...localThinkingSteps],
                                 thoughtDurationMs: Date.now() - requestStartedAt,
@@ -6849,6 +6859,8 @@ function LLMAgent({ isRouteActive = true }) {
                     // send, not whatever the picker moved to while it waited in the queue.
                     serviceTier: effectiveTier(requestSearchOptions?.serviceTier, { isGuest }) || undefined,
                     attachments: turnAttachments.length ? attachmentIdsOf(turnAttachments) : undefined,
+                    figures: turnAnswerOptions.figures,
+                    graph: turnAnswerOptions.graph,
                     messagesOverride: [...base, userMessage].map((msg) => ({
                         role: msg?.role,
                         content: msg?.content,

@@ -70,7 +70,7 @@ const setup = (props = {}) => render(
 // Matched outside the drawers on purpose: the option chips inside them carry the very same
 // labels once the drawer has been opened, so a plain by-role query finds several elements.
 // The trigger's accessible name is the current selection, hence the alternation.
-const OPTIONS_LABEL = /Options|Reviews only|High impact|Most recent/;
+const OPTIONS_LABEL = /Options|Reviews only|High impact|Most recent|Figures|Graph/;
 const optionsTrigger = () => {
     const drawers = Array.from(document.querySelectorAll('.MuiDrawer-root'));
     return Array.from(document.querySelectorAll('button')).find((node) => (
@@ -473,4 +473,33 @@ describe('with nothing typed', () => {
             expect(mockNavigate.mock.calls[0][0]).toBe(review ? '/literature-review' : '/chat/new');
         },
     );
+});
+
+describe('Include in the answer (AI Chat options)', () => {
+    it('sends figures and graph only when switched on, and Reset turns them off', () => {
+        setup();
+        fireEvent.click(optionsTrigger());
+        fireEvent.click(screen.getAllByRole('checkbox', { name: 'Figures', hidden: true })[0]);
+        fireEvent.click(screen.getAllByRole('checkbox', { name: 'Knowledge graph', hidden: true })[0]);
+        fireEvent.click(screen.getAllByText('Done')[0]);
+        expect(submit()).toEqual({
+            filters: [], rankingMode: 'default', investigateEnabled: false, serviceTier: '',
+            figures: true, graph: true,
+        });
+
+        mockNavigate.mockClear();
+        fireEvent.click(optionsTrigger());
+        fireEvent.click(screen.getAllByText('Reset')[0]);
+        fireEvent.click(screen.getAllByText('Done')[0]);
+        expect(submit()).toEqual({
+            filters: [], rankingMode: 'default', investigateEnabled: false, serviceTier: '',
+        });
+    });
+
+    it('is not offered in Investigate, which does both on its own', () => {
+        setup();
+        fireEvent.click(investigateButton());
+        expect(screen.queryAllByRole('checkbox', { name: 'Figures', hidden: true })).toHaveLength(0);
+        expect(submit()).not.toHaveProperty('figures');
+    });
 });

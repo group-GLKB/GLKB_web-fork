@@ -13,6 +13,7 @@ import {
   Drawer,
   Paper,
   Popper,
+  Switch,
   TextField,
   useMediaQuery,
 } from '@mui/material';
@@ -88,6 +89,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const [serviceTier, setServiceTier] = useState(() => getTierPref());
     const [sortBy, setSortBy] = useState('Default');
     const [paperType, setPaperType] = useState('All types');
+    /* AI Chat's answer options: figures from the cited papers, and the answer's knowledge
+       graph, each as an Investigate answer carries them. Off by default; chat mode only. */
+    const [includeFigures, setIncludeFigures] = useState(false);
+    const [includeGraph, setIncludeGraph] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false);
     const [desktopOptionsOpen, setDesktopOptionsOpen] = useState(false);
@@ -277,6 +282,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             rankingMode,
             investigateEnabled,
             serviceTier: effectiveTier(serviceTier, { isGuest }),
+            // Only when on, so a request that asks for neither is the request it always was.
+            ...(includeFigures && { figures: true }),
+            ...(includeGraph && { graph: true }),
         };
     };
 
@@ -367,6 +375,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const mobileSelectedOptions = [];
     if (paperType !== defaultPaperType) mobileSelectedOptions.push(paperType);
     if (sortBy !== defaultSortBy) mobileSelectedOptions.push(sortBy);
+    if (includeFigures) mobileSelectedOptions.push('Figures');
+    if (includeGraph) mobileSelectedOptions.push('Graph');
     // Deep Research runs its own hybrid retrieval instead of the agent's search tools, and drops
     // `filters` / `ranking_mode` on the floor (see harness_runner.py's warning). Offering the
     // control while Investigate is on promises filtering that never happens, so it is locked.
@@ -435,6 +445,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         });
         setPaperType(defaultPaperType);
         setSortBy(defaultSortBy);
+        setIncludeFigures(false);
+        setIncludeGraph(false);
     };
 
     const tierPicker = (variant) => (
@@ -534,6 +546,34 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     ))}
                 </div>
                 <p>Best matches for your query</p>
+            </section>
+
+            <div className="home-search-options-divider" />
+
+            <section className="home-search-options-section is-include">
+                <div className="home-search-options-section-heading">
+                    <h3>Include in the answer</h3>
+                </div>
+                {[
+                    ['figures', 'Figures', 'From the papers the answer cites', includeFigures, setIncludeFigures],
+                    ['graph', 'Knowledge graph', 'How GLKB connects the answer\'s entities', includeGraph, setIncludeGraph],
+                ].map(([key, label, hint, on, setOn]) => (
+                    <label key={key} className="home-search-options-switch">
+                        <span>
+                            <strong>{label}</strong>
+                            <small>{hint}</small>
+                        </span>
+                        <Switch
+                            size="small"
+                            checked={on}
+                            onChange={(event) => {
+                                trackGtagEvent('home_answer_option_toggle', { option: key, on: event.target.checked });
+                                setOn(event.target.checked);
+                            }}
+                            inputProps={{ 'aria-label': label }}
+                        />
+                    </label>
+                ))}
             </section>
             </>)}
 
