@@ -133,3 +133,35 @@ export const reviewRefusal = (error) => {
     }
     return { status, code: null, message: typeof detail === 'string' ? detail : '' };
 };
+
+/**
+ * A saved review's paragraph actions (backend POST /history/{public_id}/paragraph): one paragraph as
+ * the review stores it, citations as [n]. Resolves to the suggestion — `{action, paragraph?,
+ * new_references?, answer?, message?}` — and saves nothing.
+ */
+export const runParagraphAction = async (publicId, { action, paragraph, question = '' }) => {
+    const { data } = await axios.post(`${BASE}/history/${encodeURIComponent(publicId)}/paragraph`,
+        { action, paragraph, question });
+    return data;
+};
+
+/** Store the reader's edited review (PUT /history/{public_id}/review): `{sha, revisions}`. A 409 means
+ *  the saved review moved since `baseSha` (another tab). */
+export const saveReview = async (publicId, { markdown, references, baseSha }) => {
+    const { data } = await axios.put(`${BASE}/history/${encodeURIComponent(publicId)}/review`,
+        { markdown, references, ...(baseSha ? { base_sha: baseSha } : {}) });
+    return data;
+};
+
+/** sha256 of a text, hex — the review version an edit was made on; null where the browser has no
+ *  crypto.subtle (the save then goes through without the conflict check). */
+export const sha256Hex = async (text) => {
+    const subtle = typeof window !== 'undefined' ? window.crypto?.subtle : undefined;
+    if (!subtle || typeof TextEncoder === 'undefined') return null;
+    try {
+        const digest = await subtle.digest('SHA-256', new TextEncoder().encode(String(text || '')));
+        return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+    } catch (err) {
+        return null;
+    }
+};

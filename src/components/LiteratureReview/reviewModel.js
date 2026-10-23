@@ -134,3 +134,82 @@ export const expandCitation = (inner) => String(inner).split(/\s*,\s*/).flatMap(
     const [a, b] = [Number(range[1]), Number(range[2])];
     return b >= a && b - a < 50 ? Array.from({ length: b - a + 1 }, (_, i) => a + i) : [a, b];
 });
+
+// ── Editing a saved review: the paragraph actions (Ask, Rewrite, Shorten, Add evidence) ──────
+
+const CITE_RE = /\[(\d+(?:\s*[,–-]\s*\d+)*)\](?!\()/g;
+
+/**
+ * The top-level blocks of a markdown string (separated by blank lines): each one's own text, and
+ * where it lies once `linkCitations` has rewritten the string — the string ReactMarkdown parses, so
+ * a rendered paragraph's `node.position` finds the block it came from, citations as stored.
+ */
+export const markdownBlocks = (markdown) => {
+    const text = String(markdown || '');
+    const blocks = [];
+    const separator = /\n[ \t]*\n/g;
+    let start = 0;
+    let at = 0;
+    let match;
+    const push = (end, sepLength) => {
+        const block = text.slice(start, end);
+        const linked = linkCitations(block).length;
+        blocks.push({ text: block, tStart: at, tEnd: at + linked });
+        at += linked + sepLength;
+    };
+    while ((match = separator.exec(text))) {
+        push(match.index, match[0].length);
+        start = match.index + match[0].length;
+    }
+    push(text.length, 0);
+    return blocks;
+};
+
+/** Whether a block is a paragraph of prose (not a heading, list, quote, table or code). */
+export const isProseBlock = (block) => {
+    const t = String(block || '').trimStart();
+    return t.length > 0 && !/^(#|[-*+]\s|\d+[.)]\s|>|\||```|<)/.test(t) && /[A-Za-z]/.test(t);
+};
+
+/** The review with one paragraph replaced, or null when that paragraph is no longer in it. */
+export const replaceParagraph = (markdown, oldText, newText) => {
+    const md = String(markdown || '');
+    const at = oldText ? md.indexOf(oldText) : -1;
+    if (at < 0) return null;
+    return md.slice(0, at) + newText + md.slice(at + oldText.length);
+};
+
+/**
+ * The review numbered again by first appearance (Vancouver: [1] is the first paper the text cites),
+ * after an edit added or dropped citations: every `[n]` rewritten, the references renumbered and
+ * those no longer cited dropped, the `## References` list and the audit comment's counts rebuilt.
+ * `references` may hold new papers numbered past the old list (Add evidence).
+ */
+export const renumberReview = (markdown, references) => {
+    const md = String(markdown || '');
+    const audit = reviewAudit(md);
+    const cut = md.search(/^##\s+References\s*$/im);
+    const body = (cut >= 0 ? md.slice(0, cut) : md.replace(/<!--[\s\S]*?-->/g, '')).trimEnd();
+    const byOld = new Map((references || []).map((r) => [Number(r.number), r]));
+    const renumber = new Map();
+    for (const m of body.matchAll(CITE_RE)) {
+        for (const n of expandCitation(m[1])) {
+            if (byOld.has(n) && !renumber.has(n)) renumber.set(n, renumber.size + 1);
+        }
+    }
+    const newBody = body.replace(CITE_RE, (whole, inner) => {
+        const nums = [...new Set(expandCitation(inner).map((n) => renumber.get(n)).filter(Boolean))]
+            .sort((a, b) => a - b);
+        return nums.length ? `[${nums.join(', ')}]` : '';
+    });
+    const refs = [...renumber.entries()].map(([old, number]) => ({ ...byOld.get(old), number }));
+    const lines = refs.map((r) => `${r.number}. ${r.title || 'Untitled'}${r.year ? ` (${r.year})` : ''}.`
+        + (r.pmid && r.source !== 'upload' ? ` PMID ${r.pmid}.` : ''));
+    let out = `${newBody}\n\n## References\n\n${lines.join('\n')}\n`;
+    if (audit) {
+        const words = countWords(parseReview(out, refs));
+        out += `\n<!-- words ${words} / target ${audit.target}; cited papers ${refs.length}; `
+            + `fabricated citations ${audit.fabricated} -->\n`;
+    }
+    return { markdown: out, references: refs };
+};

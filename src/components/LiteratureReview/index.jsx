@@ -32,12 +32,13 @@ import { useAuth } from '../Auth/AuthContext';
 import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
 import {
     approveOutline, cancelReview, getReviewRun, reviewRefusal, streamReview,
+    runParagraphAction, saveReview, sha256Hex,
 } from '../../service/LiteratureReview';
 import { applyStreamCredits, fetchUsage } from '../../service/credits';
 import { refusalText } from '../../utils/refusals';
 import { fetchCitations } from '../../service/Citation';
 import { getTierPref, setTierPref } from '../../service/serviceTiers';
-import { CHAT_HOME_PATH, CHAT_NEW_PATH } from '../../config/entryRoutes';
+import { CHAT_HOME_PATH } from '../../config/entryRoutes';
 import { LR_OUTLINE_APPROVAL_ENABLED } from '../../config/features';
 import { latexFilename, reviewToLatex } from '../../utils/reviewToLatex';
 import { exportFilename, reviewTitle, reviewToPrintable, reviewToWord } from '../../utils/reviewExport';
@@ -52,6 +53,7 @@ import OutlineStep from './OutlineStep';
 import ScopeStep from './ScopeStep';
 import WritingStep from './WritingStep';
 import ReviewDocument from './ReviewDocument';
+import { renumberReview, replaceParagraph } from './reviewModel';
 
 const PENDING_RECHECK_MS = 15000;
 
@@ -382,12 +384,22 @@ export default function LiteratureReview() {
         setStatus('idle'); setReview(null); setError(''); setTopic(''); navigate('/literature-review');
     };
 
-    /* A paragraph action opens a new chat on that passage (design: Ask / Rewrite / Shorten /
-       Add evidence). The chat answers it like any question, citations included. */
-    const paragraphAction = useCallback((action, text) => {
-        trackGtagEvent('literature_review_paragraph_action', { action: action.id });
-        navigate(CHAT_NEW_PATH, { state: { initialQuery: action.prompt(text, savedQuestion || topic) } });
-    }, [navigate, savedQuestion, topic]);
+    /* The paragraph actions (Ask / Rewrite / Shorten / Add evidence) of a saved review: the review
+       service suggests, the reader accepts or not. Accepting replaces the paragraph, numbers the
+       citations again by first appearance (new evidence included), and saves the whole review;
+       the backend keeps the version it replaced. */
+    const paragraphAction = useCallback((action, paragraph, question) => {
+        trackGtagEvent('literature_review_paragraph_action', { action });
+        return runParagraphAction(publicId, { action, paragraph, question });
+    }, [publicId]);
+    const acceptParagraph = useCallback(async (paragraph, result) => {
+        const replaced = replaceParagraph(review.markdown, paragraph, result.paragraph);
+        if (replaced == null) throw new Error('This paragraph changed. Reload the review and try again.');
+        const next = renumberReview(replaced, [...(review.references || []), ...(result.new_references || [])]);
+        await saveReview(publicId, { ...next, baseSha: await sha256Hex(review.markdown) });
+        trackGtagEvent('literature_review_paragraph_accept', { action: result.action });
+        setReview((r) => ({ ...r, markdown: next.markdown, references: next.references }));
+    }, [publicId, review]);
 
     const share = async () => {
         try {
@@ -533,7 +545,8 @@ export default function LiteratureReview() {
                             minutes,
                             papers: savedPapers.length,
                         }}
-                        onAction={paragraphAction}
+                        onParagraph={publicId ? paragraphAction : undefined}
+                        onAccept={publicId ? acceptParagraph : undefined}
                         phone={isPhone}
                     />
                 </>
