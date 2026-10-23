@@ -388,9 +388,9 @@ export default function LiteratureReview() {
        service suggests, the reader accepts or not. Accepting replaces the paragraph, numbers the
        citations again by first appearance (new evidence included), and saves the whole review;
        the backend keeps the version it replaced. */
-    const paragraphAction = useCallback((action, paragraph, question) => {
-        trackGtagEvent('literature_review_paragraph_action', { action });
-        return runParagraphAction(publicId, { action, paragraph, question });
+    const paragraphAction = useCallback((action, paragraph, question, history) => {
+        trackGtagEvent('literature_review_paragraph_action', { action, directed: Boolean(question), turn: (history?.length || 0) + 1 });
+        return runParagraphAction(publicId, { action, paragraph, question, history });
     }, [publicId]);
     const acceptParagraph = useCallback(async (paragraph, result) => {
         const replaced = replaceParagraph(review.markdown, paragraph, result.paragraph);

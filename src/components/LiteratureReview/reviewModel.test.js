@@ -87,41 +87,94 @@ describe('ReviewDocument', () => {
         expect(screen.queryByRole('button', { name: 'Rewrite' })).toBeNull();
     });
 
-    it('rewrites a paragraph from its stored markdown, and replaces it only when accepted', async () => {
-        const rewritten = 'Disrupting p53 raises resistance to some agents in selected models [1, 2], and a CRISPR screen in AML cell lines found TP53 loss among its hits [1].';
-        const onParagraph = jest.fn(() => Promise.resolve({ action: 'rewrite', paragraph: rewritten }));
+    const box = (name) => screen.getByRole('textbox', { name });
+    const send = (el, value) => {
+        if (value != null) fireEvent.change(el, { target: { value } });
+        fireEvent.submit(el.closest('form'));
+    };
+
+    it('rewrites a paragraph the way the reader says, revises it, and replaces it only when accepted', async () => {
+        const first = 'Disrupting p53 raises resistance to some agents in selected models [1, 2], and a CRISPR screen in AML cell lines found TP53 loss among its hits [1].';
+        const second = 'A CRISPR screen in AML cell lines found TP53 loss among its hits [1], and disrupting p53 raises resistance in selected models [1, 2].';
+        const onParagraph = jest.fn()
+            .mockResolvedValueOnce({ action: 'rewrite', paragraph: first })
+            .mockResolvedValueOnce({ action: 'rewrite', paragraph: second });
         const onAccept = jest.fn(() => Promise.resolve());
         render(<ReviewDocument markdown={REVIEW} onParagraph={onParagraph} onAccept={onAccept} />);
 
         fireEvent.click(screen.getAllByRole('button', { name: 'Rewrite' })[0]);
-        expect(onParagraph).toHaveBeenCalledWith('rewrite', FIRST, '');
+        expect(onParagraph).not.toHaveBeenCalled();
+        send(box(/How should it change\?/), 'more concise');
+        expect(onParagraph).toHaveBeenLastCalledWith('rewrite', FIRST, 'more concise', []);
         expect(await screen.findByText('Suggested rewrite')).toBeInTheDocument();
-        expect(screen.getByRole('region', { name: 'Rewrite' })).toHaveTextContent('Disrupting p53 raises resistance');
+        const panel = screen.getByRole('region', { name: 'Rewrite' });
+        expect(panel).toHaveTextContent('“more concise”');
+        expect(panel).toHaveTextContent('Disrupting p53 raises resistance');
+
+        // Not quite: a revision sends the earlier direction and the suggestion it produced.
+        expect(screen.getByRole('button', { name: 'Revise' })).toBeDisabled();
+        send(box(/Not quite\?/), 'lead with the screen');
+        expect(onParagraph).toHaveBeenLastCalledWith('rewrite', FIRST, 'lead with the screen',
+            [{ question: 'more concise', answer: first }]);
+        expect(await screen.findByText('Suggested rewrite · revision 2')).toBeInTheDocument();
+        expect(panel).toHaveTextContent('“more concise” → “lead with the screen”');
         expect(onAccept).not.toHaveBeenCalled();
 
         fireEvent.click(screen.getByRole('button', { name: 'Replace paragraph' }));
-        expect(onAccept).toHaveBeenCalledWith(FIRST, { action: 'rewrite', paragraph: rewritten });
+        expect(onAccept).toHaveBeenCalledWith(FIRST, { action: 'rewrite', paragraph: second });
         await waitFor(() => expect(screen.queryByRole('region', { name: 'Rewrite' })).toBeNull());
     });
 
-    it('answers a question about a paragraph in place', async () => {
-        const onParagraph = jest.fn(() => Promise.resolve({ action: 'ask', answer: 'Only in selected models [1].' }));
+    it('runs an edit with no direction when the box is left empty', async () => {
+        const onParagraph = jest.fn(() => Promise.resolve({ action: 'evidence', paragraph: FIRST, new_references: [], message: 'None of the papers in reach clearly supports this paragraph.' }));
         render(<ReviewDocument markdown={REVIEW} onParagraph={onParagraph} onAccept={jest.fn()} />);
-        fireEvent.click(screen.getAllByRole('button', { name: 'Ask' })[1]);
-        const box = screen.getByPlaceholderText('Ask about this paragraph…');
-        fireEvent.change(box, { target: { value: 'Is it uniform?' } });
-        fireEvent.submit(box.closest('form'));
-        expect(onParagraph).toHaveBeenCalledWith('ask', expect.stringContaining('sensitization instead [3–4]'), 'Is it uniform?');
-        await waitFor(() => expect(screen.getByRole('region', { name: 'Ask' })).toHaveTextContent('Only in selected models'));
-        expect(screen.getByRole('region', { name: 'Ask' })).toHaveTextContent('Is it uniform?');
+        fireEvent.click(screen.getAllByRole('button', { name: 'Add evidence' })[0]);
+        fireEvent.click(screen.getByRole('button', { name: 'Find evidence' }));
+        expect(onParagraph).toHaveBeenCalledWith('evidence', FIRST, '', []);
+        expect(await screen.findByText('None of the papers in reach clearly supports this paragraph.')).toBeInTheDocument();
+        expect(box(/Look for something else/)).toBeInTheDocument();
     });
 
-    it("says why an action failed, in the service's words", async () => {
+    it('answers a question about a paragraph in place, and follow-ups see the earlier answers', async () => {
+        const onParagraph = jest.fn()
+            .mockResolvedValueOnce({ action: 'ask', answer: 'Only in selected models [1].' })
+            .mockResolvedValueOnce({ action: 'ask', answer: 'Cisplatin [2].' });
+        render(<ReviewDocument markdown={REVIEW} onParagraph={onParagraph} onAccept={jest.fn()} />);
+        fireEvent.click(screen.getAllByRole('button', { name: 'Ask' })[1]);
+        expect(screen.getByRole('button', { name: 'Ask', pressed: true })).toBeInTheDocument();
+        const ask = box('Ask anything about this paragraph…');
+        send(ask, 'Is it uniform?');
+        expect(onParagraph).toHaveBeenCalledWith('ask', expect.stringContaining('sensitization instead [3–4]'), 'Is it uniform?', []);
+        const panel = screen.getByRole('region', { name: 'Ask' });
+        await waitFor(() => expect(panel).toHaveTextContent('Only in selected models'));
+        expect(panel).toHaveTextContent('Is it uniform?');
+
+        send(box('Ask a follow-up…'), 'Which drug?');
+        expect(onParagraph).toHaveBeenLastCalledWith('ask', expect.any(String), 'Which drug?',
+            [{ question: 'Is it uniform?', answer: 'Only in selected models [1].' }]);
+        await waitFor(() => expect(panel).toHaveTextContent('Cisplatin'));
+        expect(panel).toHaveTextContent('Only in selected models');
+    });
+
+    it('does not send while an input method is composing', () => {
+        const onParagraph = jest.fn(() => new Promise(() => {}));
+        render(<ReviewDocument markdown={REVIEW} onParagraph={onParagraph} onAccept={jest.fn()} />);
+        fireEvent.click(screen.getAllByRole('button', { name: 'Shorten' })[0]);
+        const el = box(/What should stay/);
+        fireEvent.change(el, { target: { value: '保留 AML' } });
+        fireEvent.keyDown(el, { key: 'Enter', isComposing: true });
+        expect(onParagraph).not.toHaveBeenCalled();
+        fireEvent.keyDown(el, { key: 'Enter' });
+        expect(onParagraph).toHaveBeenCalledWith('shorten', FIRST, '保留 AML', []);
+    });
+
+    it("says why an action failed, in the service's words, and keeps what was typed", async () => {
         const onParagraph = jest.fn(() => Promise.reject({ response: { data: { detail: 'Could not rewrite this paragraph.' } } }));
         render(<ReviewDocument markdown={REVIEW} onParagraph={onParagraph} onAccept={jest.fn()} />);
         fireEvent.click(screen.getAllByRole('button', { name: 'Shorten' })[0]);
+        send(box(/What should stay/), 'about 20 words');
         expect(await screen.findByText('Could not rewrite this paragraph.')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+        expect(box(/What should stay/)).toHaveValue('about 20 words');
     });
 });
 

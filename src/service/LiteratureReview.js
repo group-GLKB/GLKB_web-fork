@@ -136,12 +136,13 @@ export const reviewRefusal = (error) => {
 
 /**
  * A saved review's paragraph actions (backend POST /history/{public_id}/paragraph): one paragraph as
- * the review stores it, citations as [n]. Resolves to the suggestion — `{action, paragraph?,
- * new_references?, answer?, message?}` — and saves nothing.
+ * the review stores it, citations as [n]; `question` is the reader's question (Ask) or direction
+ * (the others, optional) and `history` the panel's earlier [{question, answer}]. Resolves to the
+ * suggestion — `{action, paragraph?, new_references?, answer?, message?}` — and saves nothing.
  */
-export const runParagraphAction = async (publicId, { action, paragraph, question = '' }) => {
+export const runParagraphAction = async (publicId, { action, paragraph, question = '', history = [] }) => {
     const { data } = await axios.post(`${BASE}/history/${encodeURIComponent(publicId)}/paragraph`,
-        { action, paragraph, question });
+        { action, paragraph, question, ...(history.length ? { history } : {}) });
     return data;
 };
 
