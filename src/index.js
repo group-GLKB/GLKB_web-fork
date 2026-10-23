@@ -1,7 +1,7 @@
 import './index.css';
 import './utils/axiosConfig'; // Import axios interceptor configuration
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 
 import { createRoot } from 'react-dom/client';
 import {
@@ -271,16 +271,28 @@ const rootFallback = (
     </div>
 );
 
+/* A prerendered public page keeps its root invisible while the app is about to send the visit
+   elsewhere (scripts/prerender.cjs, `data-app-boot`): shown here, once the app has rendered — after
+   its children's effects, so a redirect to the chat has already been taken. */
+function ShowWhenRendered({ children }) {
+    useEffect(() => {
+        document.documentElement.removeAttribute('data-app-boot');
+    }, []);
+    return children;
+}
+
 const rootElement = document.getElementById('root');
 rootElement.removeAttribute('data-public-html');
 const root = createRoot(rootElement);
 root.render(
-    <Router>
-        <AuthProvider>
-            <ErrorBoundary label="app root" fallback={rootFallback}>
-                <AppWithRoutes />
-            </ErrorBoundary>
-        </AuthProvider>
-    </Router>
+    <ShowWhenRendered>
+        <Router>
+            <AuthProvider>
+                <ErrorBoundary label="app root" fallback={rootFallback}>
+                    <AppWithRoutes />
+                </ErrorBoundary>
+            </AuthProvider>
+        </Router>
+    </ShowWhenRendered>
 );
 

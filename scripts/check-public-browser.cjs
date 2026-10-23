@@ -116,6 +116,23 @@ async function main() {
             await context.close();
         }
         console.log('Entry: About first for everyone, then a signed-in reader entering at / goes to the chat; guests, the in-app logo link and #sections stay on About.');
+
+        // Before the app has run (its bundle held back), what is painted: a signed-in reader the app
+        // will send to the chat sees nothing of About; a guest sees About.
+        const paintedBeforeTheApp = async ({ signedIn, path = '/' }) => {
+            const { context, page } = await reader({ signedIn, seenAbout: true });
+            await context.route(/\/static\/js\//, route => route.abort());
+            await page.goto(origin + path, { waitUntil: 'domcontentloaded' });
+            const visibility = await page.locator('#root').evaluate(el => getComputedStyle(el).visibility);
+            const hasAbout = await page.locator('#root h1').count() > 0;
+            await context.close();
+            return { visibility, hasAbout };
+        };
+        assert.deepEqual(await paintedBeforeTheApp({ signedIn: true }), { visibility: 'hidden', hasAbout: true },
+            'About must not flash for a signed-in reader entering at /');
+        assert.deepEqual(await paintedBeforeTheApp({ signedIn: false }), { visibility: 'visible', hasAbout: true });
+        assert.equal((await paintedBeforeTheApp({ signedIn: true, path: '/#faq' })).visibility, 'visible');
+        console.log('Nothing of About is painted for a visit the app sends to the chat; guests see it at once.');
     } finally {
         if (browser) await browser.close();
         await new Promise(resolve => server.close(resolve));

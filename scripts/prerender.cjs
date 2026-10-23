@@ -59,10 +59,20 @@ async function main() {
         await esbuild.build({ stdin: { contents: css, loader: 'css', resolveDir: root }, bundle: true,
             outfile: path.join(output, 'static/public/content.css'), minify: true, logLevel: 'warning',
             loader: { '.svg': 'file', '.png': 'file', '.jpg': 'file', '.woff2': 'file' } });
+        /* A visit the app will send elsewhere must not paint this page first. Before the page was
+           prerendered, / was an empty shell and a signed-in reader entering there went straight on to
+           the chat (src/index.js RootRoute); with the About HTML in it, About flashed first. So,
+           before anything is painted: when the app is about to leave this page -- a signed-in reader
+           who has seen About entering at / without a #section (config/entryRoutes.js shouldEnterChat),
+           or a URL this page was not rendered for (hosting that still sends app routes to
+           index.html) -- the root stays invisible until the app has rendered (src/index.js removes
+           data-app-boot), or 5 s if the app never loads. Crawlers, guests and no-JS visits see the
+           page as before. Keys: config/entryRoutes.js ABOUT_SEEN_KEY, service/Auth.jsx. */
+        const bootGuard = (own) => `<script>(function(){var d=document.documentElement,p=location.pathname.replace(/\\/+$/,'')||'/',own=${JSON.stringify(own)},boot=p!==own;if(!boot&&own==='/'&&!location.hash){try{var s=window.localStorage;boot=s.getItem('glkb-about-seen-v1')==='1'&&!!s.getItem('access_token')&&!!s.getItem('user');}catch(e){}}if(boot){d.setAttribute('data-app-boot','');setTimeout(function(){d.removeAttribute('data-app-boot');},5000);}})();</script><style>html[data-app-boot] #root{visibility:hidden}</style>`;
         for (const page of publicPages) {
             const rendered = renderPublic(page);
             if (rendered.body.length < 200 || !/<(?:h1|h2|article)\b/.test(rendered.body)) throw new Error(`Empty public page: ${page.path}`);
-            const head = `${rendered.head}<meta data-rh="true" name="robots" content="index, follow"><link data-rh="true" rel="canonical" href="${rendered.canonical}"><link id="public-content-css" rel="stylesheet" href="/static/public/content.css"><style>#root[data-public-html]{overflow:auto}</style>`;
+            const head = `${bootGuard(page.path)}${rendered.head}<meta data-rh="true" name="robots" content="index, follow"><link data-rh="true" rel="canonical" href="${rendered.canonical}"><link id="public-content-css" rel="stylesheet" href="/static/public/content.css"><style>#root[data-public-html]{overflow:auto}</style>`;
             const html = cleanTemplate.replace('</head>', `${head}</head>`)
                 .replace(/(<div\b[^>]*id="root"[^>]*>)[\s\S]*?(<\/div>)/, (_, open, close) => open.replace('id="root"', 'id="root" data-public-html="true"') + rendered.body + close);
             const filename = page.path === '/' ? 'index.html' : `${page.path.slice(1)}/index.html`;
