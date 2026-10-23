@@ -906,9 +906,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 <Box
                                     role="button"
                                     aria-label="Start chat"
-                                    aria-disabled={isInputLocked || (attachments.hasItems && !canStart)}
+                                    // Nothing typed (and, in chat, nothing attached): nothing to start, in every mode.
+                                    aria-disabled={!canStart}
                                     className={`search-button-big${modeAction ? ' has-label' : ''}`}
-                                    onClick={() => { if (!isInputLocked) navigateToLLMAgent(llmQuery.trim(), 'button'); }}
+                                    onClick={() => { if (canStart) navigateToLLMAgent(llmQuery.trim(), 'button'); }}
                                     sx={{
                                         height: isMobileLayout ? '40px' : (modeAction ? '36px' : '32px'),
                                         width: modeAction ? 'auto' : (isMobileLayout ? '40px' : '32px'),
@@ -925,11 +926,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        cursor: isInputLocked ? 'not-allowed' : 'pointer',
+                                        cursor: canStart ? 'pointer' : 'not-allowed',
                                         transition: 'transform 120ms ease',
                                         boxShadow: 'none',
                                         '&:hover': {
-                                            transform: 'translateY(-1px)',
+                                            transform: canStart ? 'translateY(-1px)' : 'none',
                                         },
                                         pointerEvents: 'auto',
                                     }}
@@ -1045,9 +1046,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         e.preventDefault();
                         return;
                     }
-                    if (e.key === 'Enter' && !e.shiftKey
-                        && (llmQuery.trim() !== "" || readyAttachments.length > 0)) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        // Enter never adds a line; it sends only what the arrow would send.
                         e.preventDefault();
+                        if (!canStart) return;
                         trackGtagEvent('home_search_submit_enter', {
                             ranking_mode: buildSearchOptionsPayload().rankingMode,
                         });

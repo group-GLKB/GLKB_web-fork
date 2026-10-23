@@ -92,7 +92,9 @@ const chooseReviewsOnly = () => {
     fireEvent.click(screen.getAllByText('Done')[0]);
 };
 
+// A question first: with an empty box the arrow starts nothing (see the tests at the end).
 const submit = () => {
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'What does TP53 do?' } });
     fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
     return mockNavigate.mock.calls[0][1].state.initialSearchOptions;
 };
@@ -446,4 +448,29 @@ describe('when the quota is gone', () => {
         fireEvent.click(start);
         expect(mockNavigate).not.toHaveBeenCalled();
     });
+});
+
+describe('with nothing typed', () => {
+    const start = () => screen.getByRole('button', { name: /start chat/i, hidden: true });
+
+    it.each([['Chat', false], ['Investigate', false], ['Literature Review', true]])(
+        'the arrow starts nothing in %s mode, and starts once there is a question',
+        (mode, review) => {
+            mockReviewFlag = review;
+            setup();
+            if (mode !== 'Chat') fireEvent.click(screen.getByRole('tab', { name: new RegExp(mode), hidden: true }));
+            expect(start()).toHaveAttribute('aria-disabled', 'true');
+            fireEvent.click(start());
+            fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
+            fireEvent.change(screen.getByRole('combobox'), { target: { value: '   ' } });
+            fireEvent.click(start());
+            expect(mockNavigate).not.toHaveBeenCalled();
+
+            fireEvent.change(screen.getByRole('combobox'), { target: { value: 'EGFR resistance' } });
+            expect(start()).toHaveAttribute('aria-disabled', 'false');
+            fireEvent.click(start());
+            expect(mockNavigate).toHaveBeenCalledTimes(1);
+            expect(mockNavigate.mock.calls[0][0]).toBe(review ? '/literature-review' : '/chat/new');
+        },
+    );
 });
