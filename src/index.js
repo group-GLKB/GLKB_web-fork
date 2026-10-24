@@ -44,6 +44,7 @@ import { canonicalUrlFor, isIndexablePath, normalizeSeoPath } from './config/pub
  * one place this is trying to make faster.
  */
 const AboutPage = React.lazy(() => import('./components/AboutPage'));
+const ContactPage = React.lazy(() => import('./components/ContactPage'));
 const BlogPost = React.lazy(() => import('./components/Blog/BlogPost'));
 const PrivacyPolicy = React.lazy(() => import('./components/PrivacyPolicy'));
 const TermsOfService = React.lazy(() => import('./components/TermsOfService'));
@@ -205,6 +206,7 @@ function AppWithRoutes() {
                     <Route path="/" element={<RootRoute />} />
                     <Route path={CHAT_HOME_PATH} element={<HomePage />} />
                     <Route path="/about" element={<AboutRedirect />} />
+                    <Route path="/contact" element={<ContactPage />} />
                     {/* The article list lives on About under "From the Lab". */}
                     <Route path="/blog" element={<Navigate to="/#from-the-lab" replace />} />
                     <Route path="/blog/:slug" element={<BlogPost />} />

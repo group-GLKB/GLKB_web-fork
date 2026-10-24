@@ -1,7 +1,7 @@
 import { isIndexablePath, canonicalUrlFor, BLOG_SLUGS, DOC_SLUGS } from './publicSeo';
 
 test('indexes only named public pages, including articles and documentation', () => {
-    ['/', '/privacy', '/terms', '/api-docs', ...BLOG_SLUGS.map(slug => `/blog/${slug}`), ...DOC_SLUGS.map(slug => `/api-docs/${slug}`)]
+    ['/', '/privacy', '/terms', '/contact', '/api-docs', ...BLOG_SLUGS.map(slug => `/blog/${slug}`), ...DOC_SLUGS.map(slug => `/api-docs/${slug}`)]
         .forEach(path => expect(isIndexablePath(path)).toBe(true));
     ['/chat', '/chat/private-id', '/history', '/library', '/account', '/api-page', '/search', '/literature-review/private', '/blog/missing', '/api-docs/missing']
         .forEach(path => expect(isIndexablePath(path)).toBe(false));

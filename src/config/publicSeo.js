@@ -13,7 +13,7 @@ export const canonicalPathFor = path => {
 };
 export const isIndexablePath = (path, docsEnabled = true) => {
     const normalized = normalizeSeoPath(path);
-    return ['/', '/privacy', '/terms'].includes(normalized)
+    return ['/', '/privacy', '/terms', '/contact'].includes(normalized)
         || BLOG_SLUGS.some(slug => normalized === `/blog/${slug}`)
         || (docsEnabled && (normalized === '/api-docs' || DOC_SLUGS.some(slug => normalized === `/api-docs/${slug}`)));
 };

@@ -10,11 +10,17 @@ metadata, schema, links, assets, sitemap and the private application fallback.
 
 ## Amplify action required
 
+New public routes need their own rules before the SPA fallback. The Contact Us page uses
+`/contact` → `/contact/index.html` (200 rewrite) and `/contact/` → `/contact` (301).
+These are included in the generated `build/amplify-redirects.json`.
+
 Repository files cannot change Amplify's saved **Rewrites and redirects** settings.
-After building, import `build/amplify-redirects.json` into the dev app's redirect editor.
-Replace the old catch-all rewrite to `/index.html` with the generated rules. Keep any existing
-domain-level/HTTPS redirects before these rules, and preserve unrelated intentional redirects.
-Do not overwrite the production app's rules until dev is reviewed.
+Dev and production share an Amplify app: its rewrite rules affect both branches. Deploy the
+new route to both before adding these two Contact rules, ahead of the existing SPA fallback.
+The generated `build/amplify-redirects.json` is the complete reference. Preserve existing API
+proxies, domain/HTTPS redirects and unrelated rules rather than replacing the saved JSON.
+On an app that still rewrites all routes to `/index.html`, replace that old SPA fallback with
+the generated public-page rules and `/app.html` fallback after all branches have those files.
 
 The order matters: legacy addresses get 301 redirects, each public route gets its own HTML,
 and extensionless application routes fall back to `/app.html` (noindex). Requests for missing
