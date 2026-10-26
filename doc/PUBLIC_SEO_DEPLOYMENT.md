@@ -35,6 +35,9 @@ Verify actual hosting, not only the browser UI:
 - `/about` returns HTTP 301 to `/`; `/blog` to `/#from-the-lab`.
 - `/chat/<id>` still boots the application, with no public conversation HTML or index permission.
 - `/sitemap.xml` contains canonical content URLs, not app dashboards or redirect aliases.
+- API Docs and its subpages remain accessible and prerendered, but carry `noindex, nofollow`
+  in both initial HTML and the client app, and are excluded from the sitemap. Keep their
+  hosting rewrites; do not block crawling in robots.txt, so crawlers can read the noindex.
 
 Canonical URLs deliberately remain `https://glkb.org`, including on dev. Do not submit the
 dev hostname to Search Console. Consider hosting-level noindex/access protection for the dev
@@ -44,10 +47,11 @@ by prerendering. Text claims and pricing policy were not changed in this technic
 ## Search Console (after production deployment, not after dev push)
 
 1. Submit/resubmit `https://glkb.org/sitemap.xml` in Sitemaps.
-2. URL Inspection → Test live URL for `/`, both blog URLs, `/api-docs` and a document.
+2. URL Inspection → Test live URL for `/` and both blog URLs.
    Check fetched HTML, index permission, declared canonical and rendered content.
 3. Request indexing for those representative pages after the live checks pass.
-4. If a noindex exclusion issue is listed, use Validate fix after deployment.
+4. API Docs should be excluded by noindex; do not request indexing for those pages.
+   Verify `/api-docs` and a document report noindex after production deployment.
 5. Review indexing/crawl reports later. Submission is not a guarantee of indexing/ranking.
 
 No new Search Console property, robots permission, GPTBot permission or special AI schema is

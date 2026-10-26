@@ -125,7 +125,7 @@ const MAINTENANCE_MODE = false;
 function RouteSeoControl() {
     const location = useLocation();
     const pathname = normalizeSeoPath(location.pathname);
-    const isIndexable = isIndexablePath(pathname, SHOW_API_DOCS);
+    const isIndexable = isIndexablePath(pathname);
 
     return (
         <Helmet>

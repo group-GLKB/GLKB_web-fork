@@ -1,11 +1,10 @@
 import { isIndexablePath, canonicalUrlFor, BLOG_SLUGS, DOC_SLUGS } from './publicSeo';
 
-test('indexes only named public pages, including articles and documentation', () => {
-    ['/', '/privacy', '/terms', '/contact', '/api-docs', ...BLOG_SLUGS.map(slug => `/blog/${slug}`), ...DOC_SLUGS.map(slug => `/api-docs/${slug}`)]
+test('indexes named public pages and articles, excluding all API documentation', () => {
+    ['/', '/privacy', '/terms', '/contact', ...BLOG_SLUGS.map(slug => `/blog/${slug}`)]
         .forEach(path => expect(isIndexablePath(path)).toBe(true));
-    ['/chat', '/chat/private-id', '/history', '/library', '/account', '/api-page', '/search', '/literature-review/private', '/blog/missing', '/api-docs/missing']
+    ['/chat', '/chat/private-id', '/history', '/library', '/account', '/api-page', '/search', '/literature-review/private', '/blog/missing', '/api-docs/missing', '/api-docs', '/api-docs/', ...DOC_SLUGS.flatMap(slug => [`/api-docs/${slug}`, `/api-docs/${slug}/`])]
         .forEach(path => expect(isIndexablePath(path)).toBe(false));
-    expect(isIndexablePath('/api-docs', false)).toBe(false);
 });
 test('normalizes legacy aliases and trailing slashes to the canonical content', () => {
     expect(canonicalUrlFor('/about/')).toBe('https://glkb.org/');

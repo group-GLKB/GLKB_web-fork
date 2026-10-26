@@ -36,7 +36,7 @@ async function main() {
             for (const pathname of ['/', ...BLOG_PATHS, '/api-docs/quickstart']) {
                 await page.goto(origin + pathname, { waitUntil: 'networkidle' });
                 await page.locator('h1').first().waitFor();
-                assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'index, follow');
+                assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), pathname.startsWith('/api-docs') ? 'noindex, nofollow' : 'index, follow');
                 assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), `https://glkb.org${pathname}`);
                 assert.ok((await page.locator('body').innerText()).length > 300);
                 if (BLOG_PATHS.includes(pathname)) {

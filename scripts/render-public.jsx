@@ -13,7 +13,7 @@ import Terms from '../src/components/TermsOfService';
 import { posts } from '../src/components/Blog/posts';
 import { DOCS_CATEGORIES, flattenDocsPages } from '../src/components/ApiDocs/docsConfig';
 import { SHOW_API_DOCS } from '../src/config/features';
-import { BLOG_SLUGS, DOC_SLUGS, canonicalUrlFor } from '../src/config/publicSeo';
+import { BLOG_SLUGS, DOC_SLUGS, canonicalUrlFor, isIndexablePath } from '../src/config/publicSeo';
 
 const docs = flattenDocsPages(DOCS_CATEGORIES);
 export const publicPages = [
@@ -24,6 +24,8 @@ export const publicPages = [
     { path: '/privacy', title: 'Privacy Policy | GLKB', description: 'GLKB privacy policy: information collection, use, and your choices.' },
     { path: '/terms', title: 'Terms of Service | GLKB', description: 'Terms and conditions for accessing GLKB.' },
 ];
+export const indexablePages = publicPages.filter(page => isIndexablePath(page.path));
+export { isIndexablePath };
 // Fail the build if a new article or document is forgotten in the client SEO whitelist.
 if (posts.some(post => !BLOG_SLUGS.includes(post.slug)) || docs.some(page => !DOC_SLUGS.includes(page.slug))) {
     throw new Error('Public route list has drifted. Update config/publicSeo.js.');

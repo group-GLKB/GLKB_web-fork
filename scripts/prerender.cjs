@@ -54,7 +54,7 @@ async function main() {
                 });
             } }],
         });
-        const { publicPages, renderPublic } = require(path.join(temp, 'render.cjs'));
+        const { publicPages, indexablePages, isIndexablePath, renderPublic } = require(path.join(temp, 'render.cjs'));
         const css = [path.join(root, 'src/index.css'), ...cssFiles].map(file => `@import ${JSON.stringify(file.replace(/\\/g, '/'))};`).join('\n');
         await esbuild.build({ stdin: { contents: css, loader: 'css', resolveDir: root }, bundle: true,
             outfile: path.join(output, 'static/public/content.css'), minify: true, logLevel: 'warning',
@@ -72,14 +72,15 @@ async function main() {
         for (const page of publicPages) {
             const rendered = renderPublic(page);
             if (rendered.body.length < 200 || !/<(?:h1|h2|article)\b/.test(rendered.body)) throw new Error(`Empty public page: ${page.path}`);
-            const head = `${bootGuard(page.path)}${rendered.head}<meta data-rh="true" name="robots" content="index, follow"><link data-rh="true" rel="canonical" href="${rendered.canonical}"><link id="public-content-css" rel="stylesheet" href="/static/public/content.css"><style>#root[data-public-html]{overflow:auto}</style>`;
+            const robots = isIndexablePath(page.path) ? 'index, follow' : 'noindex, nofollow';
+            const head = `${bootGuard(page.path)}${rendered.head}<meta data-rh="true" name="robots" content="${robots}"><link data-rh="true" rel="canonical" href="${rendered.canonical}"><link id="public-content-css" rel="stylesheet" href="/static/public/content.css"><style>#root[data-public-html]{overflow:auto}</style>`;
             const html = cleanTemplate.replace('</head>', `${head}</head>`)
                 .replace(/(<div\b[^>]*id="root"[^>]*>)[\s\S]*?(<\/div>)/, (_, open, close) => open.replace('id="root"', 'id="root" data-public-html="true"') + rendered.body + close);
             const filename = page.path === '/' ? 'index.html' : `${page.path.slice(1)}/index.html`;
             write(path.join(output, filename), html);
             console.log(`Prerendered ${page.path}`);
         }
-        write(path.join(output, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${publicPages.map(page => `<url><loc>https://glkb.org${page.path}</loc></url>`).join('')}</urlset>\n`);
+        write(path.join(output, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${indexablePages.map(page => `<url><loc>https://glkb.org${page.path}</loc></url>`).join('')}</urlset>\n`);
         // Import these ahead of Amplify's current catch-all SPA rule. This file contains no secrets.
         const redirects = [
             { source: '/', target: '/index.html', status: '200' },
