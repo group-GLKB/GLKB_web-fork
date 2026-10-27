@@ -66,13 +66,13 @@ const STEPS = [
     ['Ask', 'Type any biomedical query: a gene, variant, drug target, or disease.'],
     ['Retrieve', 'GLKB searches 3.17M biomedical terms and 149,168 relationships, surfacing the most relevant PubMed papers.'],
     ['Reason', 'The AI synthesizes retrieved evidence into a structured, concise, cited answer.'],
-    ['Verify', 'Every claim links to a PubMed ID. Gaps are labeled "none found" and never fabricated.'],
+    ['Verify', 'Review the cited sources to check the supporting evidence and identify where further investigation is needed.'],
 ];
 
 /* Figma 604:7399 — the three cards under the wide one. */
 const DIFFERENTIATORS = [
     ['Biomedical-native', 'Built on the full PubMed corpus: 3.17M biomedical terms and 149,168 relationships across gene-disease associations, pathways, and ontology hierarchies.'],
-    ['Reproducible by design', 'Same query, same results. Outputs are structured, machine-readable, and consistent across, making them suitable for publication-grade workflows.'],
+    ['Built for verification', 'Answers include literature references so you can review the supporting evidence and assess how it relates to your research question.'],
     ['Built for scale', 'Analyze hundreds of targets, variants, or genes in parallel. Structured, cited outputs feed directly into your downstream pipeline.'],
 ];
 
@@ -273,13 +273,12 @@ const AboutPage = () => {
                         <h2 className="about-heading">What Makes GLKB Different</h2>
                         <article className="about-evidence">
                             <div className="about-evidence-text">
-                                <h3 className="about-card-title">Evidence, not estimates</h3>
+                                <h3 className="about-card-title">Explore the supporting evidence</h3>
                                 <p className="about-card-body">
-                                    General LLMs can&apos;t tell you when they&apos;re guessing. GLKB grounds every
-                                    answer in retrieved literature: your synthesis only reflects what the
-                                    evidence actually says. Where support is missing, GLKB labels it &quot;none
-                                    found&quot; rather than filling it in with plausible-sounding fabrications. That
-                                    transparency is the feature.
+                                    GLKB uses retrieved literature to help synthesize answers to biomedical
+                                    research questions. References and source excerpts let you review the
+                                    supporting evidence, assess its relevance, and identify questions that
+                                    need further investigation.
                                 </p>
                             </div>
                             <div className="about-evidence-media">
