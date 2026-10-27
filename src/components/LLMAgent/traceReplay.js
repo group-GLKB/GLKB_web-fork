@@ -132,6 +132,7 @@ export const replayTrace = (rawTrace) => {
     let keywords = [];
     let papers = [];
     let kgQueryList = [];
+    let answerOptions = {};
 
     const foldProgress = (update, rawContent = '') => {
         phase = mergePhaseMonotonic(
@@ -202,6 +203,9 @@ export const replayTrace = (rawTrace) => {
                 // The backend keeps the answer's kg_query_list on the Complete stub, so a
                 // reloaded answer draws the same in-text graph the live one did.
                 if (update.kgQueryList?.length) kgQueryList = update.kgQueryList;
+                // And what an AI Chat turn asked for (figures, graph): the graph under a chat
+                // answer is drawn only when its turn asked for one.
+                if (Object.keys(update.answerOptions || {}).length) answerOptions = update.answerOptions;
                 break;
             default:
                 break;
@@ -225,6 +229,7 @@ export const replayTrace = (rawTrace) => {
         out.trajectory = trace.trajectory;
     }
     if (kgQueryList.length) out.kgQueryList = kgQueryList;
+    if (Object.keys(answerOptions).length) out.answerOptions = answerOptions;
     if (investigate) {
         const complete = trace.complete !== false;
         Object.assign(out, {

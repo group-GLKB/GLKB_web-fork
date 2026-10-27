@@ -51,6 +51,8 @@
   "scripts": {
     "start": "craco start",
     "build": "craco build",
+    "postbuild": "node scripts/prerender.cjs && node scripts/check-public.cjs",
+    "prerender": "node scripts/prerender.cjs",
     "test": "craco test",
     "eject": "react-scripts eject"
   },
@@ -72,6 +74,7 @@
   "devDependencies": {
     "@babel/core": "^7.29.7",
     "@playwright/test": "^1.58.2",
+    "esbuild": "^0.25.12",
     "imapflow": "^2.0.5"
   },
   "eslintConfig": {

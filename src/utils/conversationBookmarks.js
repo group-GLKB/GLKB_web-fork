@@ -19,6 +19,7 @@ const normalizeSession = (session) => {
         createdAt: toIsoUtc(session.created_at || session.createdAt),
         updatedAt: toIsoUtc(session.last_accessed_time || session.updatedAt),
         messageCount: session.message_count ?? messages.length,
+        mode: session.mode || null,
         messages,
     };
 };
@@ -74,6 +75,7 @@ export const toggleConversationBookmark = async (entry) => {
             leading_title: entry.title || entry.leadingTitle || 'New Chat',
             last_accessed_time: entry.updatedAt || new Date().toISOString(),
             message_count: entry.messageCount ?? 0,
+            mode: entry.mode || null,
         });
         next = [normalized, ...bookmarks.filter((item) => String(item.id) !== normalized.id)];
     }

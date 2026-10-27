@@ -13,7 +13,7 @@ import React, {
   useState,
 } from 'react';
 
-import { Helmet } from 'react-helmet-async';
+import PublicPageSeo from '../Units/PublicPageSeo';
 import {
   useLocation,
   useNavigate,
@@ -151,12 +151,7 @@ const AboutPage = () => {
 
     return (
         <>
-            <Helmet>
-                <title>GLKB: Genomic Literature Knowledge Base</title>
-                <meta name="description" content="GLKB synthesizes biomedical literature into structured, evidence-backed answers. Every claim links directly to its source paper." />
-                <meta property="og:title" content="GLKB — AI-Powered Biomedical Research Engine" />
-                <meta property="og:description" content="Weeks of research, done in minutes." />
-            </Helmet>
+            <PublicPageSeo title="GLKB: Genomic Literature Knowledge Base" description="GLKB synthesizes biomedical literature into structured, evidence-backed answers. Every claim links directly to its source paper." />
 
             <div className="about-page">
                 <SiteNav active="home" onGetStarted={handleGetStarted} />
@@ -428,23 +423,20 @@ const AboutPage = () => {
                             {faqData.map((item) => {
                                 const isOpen = openFaqId === item.id;
                                 return (
-                                    <div className={`about-faq-item${isOpen ? ' is-open' : ''}`} key={item.id}>
-                                        <button
-                                            type="button"
+                                    <details open={isOpen} className={`about-faq-item${isOpen ? ' is-open' : ''}`} key={item.id}>
+                                        <summary
                                             className="about-faq-question"
                                             aria-expanded={isOpen}
                                             aria-controls={`faq-${item.id}`}
-                                            onClick={() => setOpenFaqId(isOpen ? null : item.id)}
+                                            onClick={(event) => { event.preventDefault(); setOpenFaqId(isOpen ? null : item.id); }}
                                         >
                                             <span>{item.question}</span>
                                             <span className="about-faq-toggle" aria-hidden="true">
                                                 {isOpen ? <RemoveIcon /> : <AddIcon />}
                                             </span>
-                                        </button>
-                                        {isOpen && (
-                                            <p className="about-faq-answer" id={`faq-${item.id}`}>{item.answer}</p>
-                                        )}
-                                    </div>
+                                        </summary>
+                                        <p className="about-faq-answer" id={`faq-${item.id}`}>{item.answer}</p>
+                                    </details>
                                 );
                             })}
                         </div>

@@ -45,6 +45,7 @@ packages/react-devtools-timeline/dist
 .venv/
 temp/
 /tmp/
+/.prerender-*/
 e2e/.auth/
 
 # Playwright

@@ -23,6 +23,7 @@ import {
 
 import { appendConversationPage, historyCountLabel, isLastPage } from './paging';
 import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
 import { ReactComponent as MapIcon } from '../../img/llm/graph_share.svg';
 import { getRunningConversationIds, subscribeToActiveRun } from '../../service/activeRun';
@@ -940,7 +941,9 @@ const History = () => {
                                         key={`chat-${item.id}`}
                                         conversation={item.conversation}
                                         title={item.title}
-                                        leadingIcon={isInvestigateRun(item.conversation)
+                                        leadingIcon={item.conversation?.mode === 'literature_review'
+                                            ? <DescriptionOutlinedIcon />
+                                            : isInvestigateRun(item.conversation)
                                             ? <InvestigateIcon />
                                             : <ChatIcon />}
                                         subtitle={undefined}

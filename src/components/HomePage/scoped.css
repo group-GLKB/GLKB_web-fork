@@ -574,6 +574,38 @@
 }
 .home-search-options-section.is-model .model-picker-list { width: 100%; }
 
+/* AI Chat's answer options: one switch per row, label and hint on the left. */
+.home-search-options-section.is-include {
+    box-sizing: border-box;
+    height: auto;
+    gap: 12px;
+    padding: 20px 24px;
+}
+.home-search-options-switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    cursor: pointer;
+}
+.home-search-options-switch > span {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.home-search-options-switch strong {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    color: var(--color-text-primary);
+}
+.home-search-options-switch small {
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--color-text-tertiary);
+}
+
 .home-search-options-section-heading {
     display: flex;
     align-items: flex-start;

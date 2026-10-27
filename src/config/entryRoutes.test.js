@@ -46,3 +46,16 @@ describe('isConversationPath', () => {
         expect(isConversationPath('/')).toBe(false);
     });
 });
+
+describe("the prerendered page's pre-paint guard (scripts/prerender.cjs)", () => {
+    // It runs before the app and cannot import these, so it repeats them: they must stay the same.
+    const source = jest.requireActual('fs').readFileSync(
+        jest.requireActual('path').join(__dirname, '../../scripts/prerender.cjs'), 'utf8');
+
+    it("reads the same About-seen key and sign-in keys the app does", () => {
+        const { ABOUT_SEEN_KEY } = jest.requireActual('./entryRoutes');
+        expect(source).toContain(`s.getItem('${ABOUT_SEEN_KEY}')==='1'`);
+        expect(source).toContain("s.getItem('access_token')");
+        expect(source).toContain("s.getItem('user')");
+    });
+});

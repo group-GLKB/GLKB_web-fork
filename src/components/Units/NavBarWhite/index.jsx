@@ -44,7 +44,6 @@ import {
   ContextMenuItem,
   ContextMenuRenameIcon,
 } from '../ContextMenu';
-import BetaBadge from '../BetaBadge';
 import ConversationRunStatus from '../ConversationRunStatus';
 import {
   styled,
@@ -90,6 +89,7 @@ import {
 import { trackGtagEvent } from '../../../utils/gtag';
 import { prioritizeRunningConversations } from '../../../utils/recentConversations';
 import { useAuth } from '../../Auth/AuthContext';
+import useAccountTier from '../../../hooks/useAccountTier';
 import { avatarById } from '../../AccountPage/avatars';
 
 const drawerWidth = 240;
@@ -464,7 +464,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
             { label: 'Explore', to: '/search', icon: <CategorySearchIcon style={{ width: 20, height: 20 }} /> },
             { label: 'API', to: '/api-page', icon: <CodeBlocksIcon style={{ width: 20, height: 20 }} /> },
             // Behind its flag (config/features.js), like every other Literature Review entry point.
-            LITERATURE_REVIEW_ENABLED && { label: 'Literature Review', beta: true, to: '/literature-review', icon: <DescriptionOutlinedIcon style={{ width: 20, height: 20 }} /> },
+            LITERATURE_REVIEW_ENABLED && { label: 'Literature Review', to: '/literature-review', icon: <DescriptionOutlinedIcon style={{ width: 20, height: 20 }} /> },
             { label: 'Library', to: '/library', icon: <BookIcon className="sidebar-book-icon" style={{ width: 20, height: 20 }} /> },
             { label: 'History', to: '/history', icon: <HistoryIcon className="sidebar-history-icon" style={{ width: 20, height: 20 }} /> },
         ].filter((item) => item && !(DEBUG_HIDE_EXPLORE && item.label === 'Explore'))
@@ -499,8 +499,11 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const userDisplayName = storedProfile.name || user?.username || user?.email || 'Account';
     const userAvatarPreset = avatarById(user?.avatar_id);
-    const normalizedUserTier = `${user?.tier || 'free'}`.trim().toLowerCase();
-    const userPlanLabel = `${normalizedUserTier.charAt(0).toUpperCase()}${normalizedUserTier.slice(1)} plan`;
+    const { tierInfo } = useAccountTier(user);
+    const normalizedUserTier = `${tierInfo?.tier || ''}`.trim().toLowerCase();
+    const userPlanLabel = normalizedUserTier
+        ? `${normalizedUserTier.charAt(0).toUpperCase()}${normalizedUserTier.slice(1)} plan`
+        : 'Plan unavailable';
     const isUserMenuOpen = Boolean(userMenuAnchorEl);
     const isRecentMenuOpen = Boolean(recentMenuAnchorEl);
     const bookmarkedConversationIds = useMemo(
@@ -720,10 +723,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     </Box>
                 </ListItemIcon>
                 <ListItemText
-                    primary={item.beta
-                        // Compact: "Literature Review" all but fills the 240px sidebar's label column.
-                        ? <>{item.label}<BetaBadge style={{ marginLeft: 4, padding: '0 4px', fontSize: 9, lineHeight: '13px' }} /></>
-                        : item.label}
+                    primary={item.label}
                     secondary={item.secondaryLabel}
                     primaryTypographyProps={{
                         fontFamily: 'Geist, sans-serif',
@@ -745,8 +745,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                         my: 0,
                         opacity: open ? 1 : 0,
                         width: open ? 'auto' : 0,
-                        // The Beta pill may run a few px into the sidebar's right padding rather than be cut.
-                        overflow: open && item.beta ? 'visible' : 'hidden',
+                        overflow: 'hidden',
                         whiteSpace: 'nowrap',
                         transition: 'opacity 0.2s ease, width 0.2s ease',
                     }}

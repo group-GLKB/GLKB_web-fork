@@ -91,7 +91,7 @@ export default function ScopeStep({
 }) {
     const now = new Date().getFullYear();
     const words = scope.targetWords || 6000;
-    // What this review costs at the model picked (GET /credits/pricing): GPT-6 Luna 10, GPT-6.1 Sol 50.
+    // What this review costs at the model picked (GET /credits/pricing): GPT-6 Luna 10, GPT-6.1 Terra 20, GPT-6.1 Sol 50.
     const [pricing, setPricing] = useState(null);
     useEffect(() => {
         let alive = true;

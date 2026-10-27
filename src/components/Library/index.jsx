@@ -54,6 +54,7 @@ import {
 
 import { ReactComponent as FolderIcon } from '../../img/folder.svg';
 import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import { ReactComponent as ShareIcon } from '../../img/llm/graph_share.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
@@ -305,6 +306,7 @@ const normalizeFolderChat = (session) => {
         messageCount: session?.message_count ?? messages.length,
         // `sessions[].is_investigate` on /fav/chat and the folder listings.
         isInvestigate: session?.is_investigate === true,
+        mode: session?.mode || null,
         messages,
     };
 };
@@ -1693,7 +1695,7 @@ const Library = () => {
                                                         <ConversationCard
                                                             conversation={conversation}
                                                             title={getConversationTitle(conversation)}
-                                                            leadingIcon={<ChatIcon />}
+                                                            leadingIcon={conversation?.mode === 'literature_review' ? <DescriptionOutlinedIcon /> : <ChatIcon />}
                                                             footerContent={(
                                                                 <div className="library-card-meta">
                                                                     <span>{formatRelativeTime(conversation?.updatedAt || conversation?.createdAt)}</span>
@@ -1868,7 +1870,7 @@ const Library = () => {
                                                     <ConversationCard
                                                         conversation={conversation}
                                                         title={getConversationTitle(conversation)}
-                                                        leadingIcon={<ChatIcon />}
+                                                        leadingIcon={conversation?.mode === 'literature_review' ? <DescriptionOutlinedIcon /> : <ChatIcon />}
                                                         footerContent={(
                                                             <div className="library-card-meta">
                                                                 <span>{formatRelativeTime(conversation?.updatedAt || conversation?.createdAt)}</span>

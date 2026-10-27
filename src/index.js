@@ -1,7 +1,7 @@
 import './index.css';
 import './utils/axiosConfig'; // Import axios interceptor configuration
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 
 import { createRoot } from 'react-dom/client';
 import {
@@ -29,6 +29,7 @@ import {
   shouldEnterChat,
 } from './config/entryRoutes';
 import { LITERATURE_REVIEW_ENABLED, SHOW_API_DOCS } from './config/features';
+import { canonicalUrlFor, isIndexablePath, normalizeSeoPath } from './config/publicSeo';
 
 /* Everything past the landing page and the chat is fetched when it is asked for.
  *
@@ -43,6 +44,7 @@ import { LITERATURE_REVIEW_ENABLED, SHOW_API_DOCS } from './config/features';
  * one place this is trying to make faster.
  */
 const AboutPage = React.lazy(() => import('./components/AboutPage'));
+const ContactPage = React.lazy(() => import('./components/ContactPage'));
 const BlogPost = React.lazy(() => import('./components/Blog/BlogPost'));
 const PrivacyPolicy = React.lazy(() => import('./components/PrivacyPolicy'));
 const TermsOfService = React.lazy(() => import('./components/TermsOfService'));
@@ -118,19 +120,12 @@ const initState = {
     searchType: ''
 }
 
-const INDEXABLE_PATHS = new Set(['/', '/blog', '/chat', '/search', '/api-page', '/privacy', '/terms']);
 const MAINTENANCE_MODE = false;
-
-const normalizePathname = (pathname) => {
-    const normalized = pathname.replace(/\/+$/, '');
-    return normalized || '/';
-};
 
 function RouteSeoControl() {
     const location = useLocation();
-    const pathname = normalizePathname(location.pathname);
-    const isIndexable = INDEXABLE_PATHS.has(pathname);
-    const canonicalPath = pathname === '/' ? '' : pathname;
+    const pathname = normalizeSeoPath(location.pathname);
+    const isIndexable = isIndexablePath(pathname);
 
     return (
         <Helmet>
@@ -138,7 +133,7 @@ function RouteSeoControl() {
                 name="robots"
                 content={isIndexable ? 'index, follow' : 'noindex, nofollow'}
             />
-            <link rel="canonical" href={`https://glkb.org${canonicalPath}`} />
+            <link rel="canonical" href={canonicalUrlFor(pathname)} />
         </Helmet>
     );
 }
@@ -211,6 +206,7 @@ function AppWithRoutes() {
                     <Route path="/" element={<RootRoute />} />
                     <Route path={CHAT_HOME_PATH} element={<HomePage />} />
                     <Route path="/about" element={<AboutRedirect />} />
+                    <Route path="/contact" element={<ContactPage />} />
                     {/* The article list lives on About under "From the Lab". */}
                     <Route path="/blog" element={<Navigate to="/#from-the-lab" replace />} />
                     <Route path="/blog/:slug" element={<BlogPost />} />
@@ -277,14 +273,28 @@ const rootFallback = (
     </div>
 );
 
-const root = createRoot(document.getElementById('root'));
+/* A prerendered public page keeps its root invisible while the app is about to send the visit
+   elsewhere (scripts/prerender.cjs, `data-app-boot`): shown here, once the app has rendered — after
+   its children's effects, so a redirect to the chat has already been taken. */
+function ShowWhenRendered({ children }) {
+    useEffect(() => {
+        document.documentElement.removeAttribute('data-app-boot');
+    }, []);
+    return children;
+}
+
+const rootElement = document.getElementById('root');
+rootElement.removeAttribute('data-public-html');
+const root = createRoot(rootElement);
 root.render(
-    <Router>
-        <AuthProvider>
-            <ErrorBoundary label="app root" fallback={rootFallback}>
-                <AppWithRoutes />
-            </ErrorBoundary>
-        </AuthProvider>
-    </Router>
+    <ShowWhenRendered>
+        <Router>
+            <AuthProvider>
+                <ErrorBoundary label="app root" fallback={rootFallback}>
+                    <AppWithRoutes />
+                </ErrorBoundary>
+            </AuthProvider>
+        </Router>
+    </ShowWhenRendered>
 );
 

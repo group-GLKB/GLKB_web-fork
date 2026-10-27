@@ -468,9 +468,10 @@ describe('the outline, approved before anything is written', () => {
 describe('credits', () => {
     it('labels what the review costs at the model picked', async () => {
         render(<LiteratureReview />);
-        // the pricing request fails here, so the picker's fallback prices are shown: GPT-6 Luna 10
+        // the pricing request fails here, so the picker's fallback prices are shown: the default,
+        // GPT-6.1 Terra, 20
         const row = await screen.findByText('Cost');
-        expect(row.parentElement).toHaveTextContent('Cost10 credits');
+        expect(row.parentElement).toHaveTextContent('Cost20 credits');
     });
 
     it('says why a review the reader cannot afford was refused, and what they can afford', async () => {

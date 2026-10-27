@@ -1,9 +1,8 @@
 /**
  * The order the References panel puts papers in.
  *
- * BY YEAR, OLDEST FIRST. This is the bibliography order selected for the product: it makes the
- * development of a claim readable chronologically. Citation sorts by publication citation
- * count, most-cited first. Display numbers follow the resulting order.
+ * By year, newest first. Citation sorts by publication citation count, most-cited first.
+ * Display numbers always increase from 1 in the resulting order.
  *
  * The comparator also could not survive its own input. `(a.year || 0) - (b.year || 0)` returns
  * NaN for any year that is not a bare number, and a comparator that returns NaN is read as
@@ -44,18 +43,18 @@ export const getReferenceYear = (value) => {
 };
 
 /**
- * Oldest first, with unknown years last, and stable within a year.
+ * Newest first, with unknown years last, and stable within a year.
  *
  * Stability matters: papers sharing a year keep the order the agent chose for them, which is
  * its own relevance judgement and better than an arbitrary reshuffle.
  */
-export const compareByYearAscending = (a, b) => {
+export const compareByYearDescending = (a, b) => {
     const left = getReferenceYear(a?.year);
     const right = getReferenceYear(b?.year);
     if (left === null && right === null) return 0;
     if (left === null) return 1;
     if (right === null) return -1;
-    return left - right;
+    return right - left;
 };
 
 /**
@@ -112,7 +111,7 @@ export const sortReferences = (wrapped, sortOption) => {
         items.sort((a, b) => compareByCitationsDescending(a.reference, b.reference)
             || a.originalIndex - b.originalIndex);
     } else {
-        items.sort(({ reference: a }, { reference: b }) => compareByYearAscending(a, b));
+        items.sort(({ reference: a }, { reference: b }) => compareByYearDescending(a, b));
     }
     return items.map((item, index) => ({ ...item, displayNumber: index + 1 }));
 };

@@ -1,7 +1,7 @@
 import './scoped.css';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Helmet } from 'react-helmet-async';
+import PublicPageSeo from '../Units/PublicPageSeo';
 import ReactMarkdown from 'react-markdown';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
@@ -193,10 +193,7 @@ const BlogPost = () => {
 
     return (
         <div className="blog-page">
-            <Helmet>
-                <title>{`${post.title} | GLKB`}</title>
-                <meta name="description" content={post.lede} />
-            </Helmet>
+            <PublicPageSeo title={`${post.title} | GLKB`} description={post.lede} image={post.thumb} article />
 
             <BlogNav active="blog" />
 
