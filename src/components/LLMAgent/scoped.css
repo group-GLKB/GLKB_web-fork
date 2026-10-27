@@ -3049,3 +3049,14 @@ button.ip-notify.active { background: var(--color-brand-muted); color: var(--col
         font-size: 13px;
     }
 }
+
+/* The chat's loading panel (ChatProgress): the Investigate panel's look, with the chat's stages.
+   The bar eases between the stage floors the agent reports, so it moves without being driven. */
+.chat-progress .chat-progress-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.chat-progress .chat-progress-bar .ip-bar-fill {
+    transition: width 0.6s ease;
+}

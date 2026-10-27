@@ -9,11 +9,8 @@ import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import {
   Autocomplete,
   Box,
-  Button,
-  Drawer,
   Paper,
   Popper,
-  Switch,
   TextField,
   useMediaQuery,
 } from '@mui/material';
@@ -22,13 +19,19 @@ import { useAuth } from '../Auth/AuthContext';
 import { INVESTIGATE_ENABLED, LITERATURE_REVIEW_ENABLED } from '../../config/features';
 import { CHAT_NEW_PATH } from '../../config/entryRoutes';
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
-import { ReactComponent as SearchOptionsIcon } from '../../img/llm/search_options.svg';
-import { ReactComponent as SearchOptionsCloseIcon } from '../../img/llm/search_options_close.svg';
-import { ReactComponent as SearchOptionsCollapseIcon } from '../../img/llm/search_options_collapse.svg';
 import { trackGtagEvent } from '../../utils/gtag';
 import TierPicker from '../Units/TierPicker';
+import EffortPicker, { chooseEffort, EffortLevels } from '../Units/EffortPicker';
+import ComposerOptions, {
+    answerFlags,
+    DEFAULT_COMPOSER_OPTIONS,
+    OptionsButton,
+    optionsChanged,
+    searchFilters,
+} from '../Units/ComposerOptions';
 import {
     AttachButton,
+    AttachConflict,
     AttachmentChips,
     attachmentBlockedNote,
     dragHasFiles,
@@ -36,6 +39,16 @@ import {
     useAttachments,
 } from '../Units/AttachmentChips';
 import { effectiveTier, getTierPref, setTierPref } from '../../service/serviceTiers';
+import {
+    DEFAULT_EFFORT,
+    EFFORT_EXTRA,
+    effortLabel,
+    effortLevel,
+    getEffortPref,
+    isDeepEffort,
+    setEffortPref,
+    subscribeToEffortPref,
+} from '../../service/effortLevels';
 import { GUEST_INVESTIGATE_REASON, GUEST_REVIEW_REASON } from '../../utils/refusals';
 import ComposerModes, { COMPOSER_MODES, ModePill, ModeSheet } from './ComposerModes';
 import ReviewScope, { initialScope } from './ReviewScope';
@@ -43,7 +56,6 @@ import { setStylePref } from '../LiteratureReview/citationStyle';
 import {
     defaultQuestionFor,
     GUEST_ATTACH_REASON,
-    INVESTIGATE_ATTACH_NOTE,
     MAX_FILES_PER_MESSAGE,
     PAPER_ACCEPT,
     PAPER_FORMATS_TEXT,
@@ -61,23 +73,33 @@ const REVIEW_ATTACH = {
 
 const MODE_SHEET_SEEN_KEY = 'glkb-mode-sheet-seen-v1';
 
+// The room the "Extra doesn't read attached files" row takes above the control row.
+const CONFLICT_ROW = 46;
+
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
-    /* The composer's mode: AI Chat, Investigate or Literature Review, picked on the tabs along
-       its top edge (ComposerModes). Investigate and Literature Review each exist only behind
-       their flag (config/features.js); with both off there are no tabs and every question is
-       a chat question, as before. */
+    /* The composer's mode: Chat or Literature Review, picked on the tabs along its top edge
+       (ComposerModes). Literature Review exists only behind its flag (config/features.js).
+       Investigate is no longer a mode (2026-10-27, design GLKB Effort A): it is the chat's
+       Extra effort, picked in the model-and-effort menu. */
     const [mode, setMode] = useState('chat');
+    /* How hard the chat works on the question (service/effortLevels.js): Medium runs the chat
+       agent, Extra deep research. One preference with the chat page's composer. */
+    const [effort, setEffort] = useState(() => getEffortPref());
+    useEffect(() => subscribeToEffortPref(setEffort), []);
+    const changeEffort = (next) => {
+        setEffort(next);
+        setEffortPref(next);
+    };
     /* On a phone the modes are picked in a bottom sheet from the pill in the composer's row. Its
        dot says there is more than Chat, until the reader has opened the sheet once. */
     const [modeSheetOpen, setModeSheetOpen] = useState(false);
     const [modeSheetSeen, setModeSheetSeen] = useState(() => {
         try { return window.localStorage.getItem(MODE_SHEET_SEEN_KEY) === '1'; } catch { return false; }
     });
-    const investigateEnabled = INVESTIGATE_ENABLED && mode === 'investigate';
     const reviewEnabled = LITERATURE_REVIEW_ENABLED && mode === 'review';
-    const modes = ['chat', INVESTIGATE_ENABLED && 'investigate', LITERATURE_REVIEW_ENABLED && 'review']
-        .filter(Boolean);
+    const investigateEnabled = INVESTIGATE_ENABLED && !reviewEnabled && isDeepEffort(effort);
+    const modes = ['chat', LITERATURE_REVIEW_ENABLED && 'review'].filter(Boolean);
     const hasModeTabs = modes.length > 1;
     // A review's scope and model, handed to the Literature Review page with the topic.
     const [reviewScope, setReviewScope] = useState(initialScope);
@@ -87,55 +109,58 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
        the choice the conversation continues with — the two pickers are one preference, not
        two that can disagree once the reader lands on /chat. */
     const [serviceTier, setServiceTier] = useState(() => getTierPref());
-    const [sortBy, setSortBy] = useState('Default');
-    const [paperType, setPaperType] = useState('All types');
-    /* AI Chat's answer options: figures from the cited papers, and the answer's knowledge
-       graph, each as an Investigate answer carries them. Off by default; chat mode only. */
-    const [includeFigures, setIncludeFigures] = useState(false);
-    const [includeGraph, setIncludeGraph] = useState(false);
+    /* The Options drawer's choices (Units/ComposerOptions): Knowledge Graph and Figures
+       (Off / Auto / On), article type and sort. */
+    const [composerOptions, setComposerOptions] = useState(DEFAULT_COMPOSER_OPTIONS);
     const [isOpen, setIsOpen] = useState(false);
-    const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false);
-    const [desktopOptionsOpen, setDesktopOptionsOpen] = useState(false);
+    const [optionsOpen, setOptionsOpen] = useState(false);
     /* The tier menu belongs on this list for the same reason the two Search Options drawers
        do: it opens over the composer, and the example list must not be drawn underneath it.
        Stopping the chip's click (below) keeps a click at REST from opening the examples; this
        is the other half — the examples are often already open, because focusing the box opens
        them, and then the menu lands on top of a list the reader cannot use. */
     const [tierMenuOpen, setTierMenuOpen] = useState(false);
-    /* A guest may ask (guest mode, 2026-10-03): AI Chat at Standard only, 10 questions in all
-       (since 2026-10-09; Investigate needs an account too). Reaching past any of it opens the
-       sign-in overlay with the reason on it. */
+    /* A guest may ask (guest mode, 2026-10-03): Chat at Medium effort on GPT-6.1 Terra or GPT-6
+       Luna, 10 credits in all; Extra and Literature Review need an account. Reaching past any of
+       it opens the sign-in overlay with the reason on it. */
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
     const isGuest = !authLoading && !isAuthenticated;
     const navigate = useNavigate();
 
-    /* Picking a mode. A guest has AI Chat only (2026-10-09): either research tab opens the
-       sign-in overlay with its reason and the mode stays Chat. Entering Investigate is tracked
-       as the old chip's "enable" was, and every Investigate on/off as its toggle was. */
+    /* Picking a mode. A guest has Chat only (2026-10-09): the Literature Review tab opens the
+       sign-in overlay with its reason and the mode stays Chat. "investigate", which a prefill
+       may still ask for, is Chat at Extra effort. */
     const changeMode = (next) => {
-        if (next === mode) return;
-        if (isGuest && next === 'investigate') { openLoginModal(GUEST_INVESTIGATE_REASON); return; }
-        if (isGuest && next === 'review') { openLoginModal(GUEST_REVIEW_REASON); return; }
         if (next === 'investigate') {
+            if (isGuest) { openLoginModal(GUEST_INVESTIGATE_REASON); return; }
             trackGtagEvent('home_investigate_enable_click', { source: 'home_searchbar' });
+            changeEffort(EFFORT_EXTRA);
+            if (mode !== 'chat') setMode('chat');
+            return;
         }
-        if (next === 'investigate' || mode === 'investigate') {
-            trackGtagEvent('home_investigate_toggle_click', { enabled: next === 'investigate' });
-        }
+        if (next === mode) return;
+        if (isGuest && next === 'review') { openLoginModal(GUEST_REVIEW_REASON); return; }
         trackGtagEvent('home_composer_mode_click', { mode: next });
         setMode(next);
     };
     const { onModeChange } = props;
-    useEffect(() => { onModeChange?.(mode); }, [mode, onModeChange]);
+    // The page shows each mode's examples under the box; Chat at Extra gets Investigate's.
+    useEffect(() => {
+        onModeChange?.(investigateEnabled ? 'investigate' : mode);
+    }, [mode, investigateEnabled, onModeChange]);
     // A prefill from outside (the news strip's "Try it") can ask for a mode too.
     useEffect(() => {
-        if (props.requestedMode && modes.includes(props.requestedMode.mode)) changeMode(props.requestedMode.mode);
+        const requested = props.requestedMode?.mode;
+        if (requested && (modes.includes(requested) || (requested === 'investigate' && INVESTIGATE_ENABLED))) {
+            changeMode(requested);
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [props.requestedMode]);
     /* Images and PDFs on the first question (service/attachments.js). Uploaded as they are
        picked; the question hands their ids to the chat in its navigation state. Signed-in
-       readers only, and not on Investigate — see the paperclip below. On Literature Review the
-       files are the reader's own papers (documents only, up to 50), handed to the review page. */
+       readers only. Extra effort (deep research) does not read them: the composer says so and
+       offers Medium or removing them. On Literature Review the files are the reader's own papers
+       (documents only, up to 50), handed to the review page. */
     const attachments = useAttachments({
         onRequireSignIn: () => openLoginModal(GUEST_ATTACH_REASON),
         limits: reviewEnabled ? REVIEW_PAPER_LIMITS : undefined,
@@ -144,8 +169,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     // The app shell and HomePage both switch at 767px. A separate 600px
     // threshold mixed the mobile page with the PC search controls.
     const isMobileLayout = useMediaQuery('(max-width:767px)');
-    // Investigate and Literature Review say what the button does (shorter on a phone); AI Chat
-    // keeps the bare arrow.
+    // Literature Review says what the button does (shorter on a phone); Chat keeps the bare arrow.
     const modeAction = (isMobileLayout ? COMPOSER_MODES[mode]?.mobileAction : COMPOSER_MODES[mode]?.action) || '';
     /* The review's scope chips sit in the composer on a wide screen only: on a phone the review
        page's "Set up your review" is where they are set (the phone design), so the box keeps its size. */
@@ -165,6 +189,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const scopeRows = scopeHeight ? scopeHeight + 8 : (isMobileLayout ? 96 : 52);
     const composerMinHeight = `${(isMobileLayout ? 148 : 120) + (scopeInComposer ? scopeRows : 0)}px`;
     const inputTimeoutRef = React.useRef(null);
+    // The composer's box: the model-and-effort menu hangs off its lower edge.
+    const composerBoxRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
     const lastPrefillRef = React.useRef(undefined);
     const queryOriginRef = React.useRef('typed');
@@ -181,24 +207,24 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
        The quota is a different matter and still locks: there is no run to start at all. */
     // A guest at the limit keeps a live box: sending opens the sign-in overlay instead.
     const isInputLocked = isQueryLimitReached && !isGuest;
-    // Investigate does not read attachments; Literature Review reads them as the reader's papers.
-    const attachmentsOffForMode = investigateEnabled;
+    // Extra does not read attachments (AttachConflict says so); Literature Review reads them as
+    // the reader's papers.
+    const attachConflict = investigateEnabled && attachments.hasItems;
     const attachmentNote = attachmentBlockedNote(attachments, {
-        investigate: attachmentsOffForMode,
         review: reviewEnabled,
         maxFiles: reviewEnabled ? REVIEW_PAPER_LIMITS.maxFiles : MAX_FILES_PER_MESSAGE,
     });
     const readyAttachments = attachments.readyAttachments;
     // A review needs its topic in words; its papers are what it reads, not a question.
     const canStart = (Boolean(llmQuery.trim()) || (!reviewEnabled && readyAttachments.length > 0))
-        && !isInputLocked && !attachments.isUploading && !attachmentNote;
+        && !isInputLocked && !attachments.isUploading && !attachmentNote && !attachConflict;
     const takeFiles = (files) => {
         if (!files?.length) return;
         if (isGuest) {
             openLoginModal(GUEST_ATTACH_REASON);
             return;
         }
-        if (attachmentsOffForMode || isInputLocked) return;
+        if (isInputLocked) return;
         attachments.addFiles(files);
     };
     useEffect(() => {
@@ -255,12 +281,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     );
 
     const buildSearchOptionsPayload = () => {
-        // Investigate ignores filters / ranking_mode (see the lock comment below), and its
-        // controls are not rendered, so send the defaults rather than whatever the user
-        // happened to pick before turning Investigate on.
+        // Extra (deep research) ignores filters / ranking_mode and does figures and the graph on
+        // its own, so it is sent the defaults; the tier survives: it is priced, and run, by it.
         if (investigateEnabled) {
-            // The tier survives this branch while filters/rankingMode do not: deep research
-            // ignores the search-mode knobs but is priced, and run, by the tier.
             return {
                 filters: [],
                 rankingMode: 'default',
@@ -268,23 +291,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 serviceTier: effectiveTier(serviceTier, { isGuest }),
             };
         }
-
-        let rankingMode = 'default';
-        if (sortBy === 'High impact first') rankingMode = 'high_impact';
-        if (sortBy === 'Most recent first') rankingMode = 'recent';
-
-        let filters = [];
-        if (paperType === 'Reviews only') filters = ['review'];
-        if (paperType === 'Exclude reviews') filters = ['non_review'];
-
         return {
-            filters,
-            rankingMode,
+            ...searchFilters(composerOptions),
             investigateEnabled,
             serviceTier: effectiveTier(serviceTier, { isGuest }),
             // Only when on, so a request that asks for neither is the request it always was.
-            ...(includeFigures && { figures: true }),
-            ...(includeGraph && { graph: true }),
+            ...answerFlags(composerOptions, effort),
         };
     };
 
@@ -296,7 +308,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         }
         /* Held back while a file is still uploading, or when one failed or the mode cannot take
            them (the chips say which). A question with files and no words asks for a summary. */
-        if (attachments.hasItems && (attachments.isUploading || attachmentNote)) return;
+        if (attachments.hasItems && (attachments.isUploading || attachmentNote || attachConflict)) return;
         const sentAttachments = readyAttachments;
         const query = typedQuery
             || (sentAttachments.length && !reviewEnabled ? defaultQuestionFor(sentAttachments) : '');
@@ -360,52 +372,19 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             });
         }
     };
-    const sortOptions = [
-        { value: 'Default', label: 'Default' },
-        { value: 'High impact first', label: 'High impact' },
-        { value: 'Most recent first', label: 'Most recent' },
-    ];
-    const paperTypeOptions = [
-        { value: 'All types', label: 'All types', width: 78 },
-        { value: 'Reviews only', label: 'Reviews only', width: 103 },
-        { value: 'Exclude reviews', label: 'Exclude reviews', width: 124 },
-    ];
-    const defaultSortBy = 'Default';
-    const defaultPaperType = 'All types';
-    const mobileSelectedOptions = [];
-    if (paperType !== defaultPaperType) mobileSelectedOptions.push(paperType);
-    if (sortBy !== defaultSortBy) mobileSelectedOptions.push(sortBy);
-    if (includeFigures) mobileSelectedOptions.push('Figures');
-    if (includeGraph) mobileSelectedOptions.push('Graph');
-    // Deep Research runs its own hybrid retrieval instead of the agent's search tools, and drops
-    // `filters` / `ranking_mode` on the floor (see harness_runner.py's warning). Offering the
-    // control while Investigate is on promises filtering that never happens, so it is locked.
-    // The control is hidden rather than greyed out while locked: a disabled button still reads
-    // as "these settings apply, you just can't change them", which is the opposite of the truth.
-    const searchOptionsLocked = investigateEnabled || reviewEnabled;
-    const mobileChipLabel = (mobileSelectedOptions.length > 0)
-        ? mobileSelectedOptions.join(' + ')
-        : 'Options';
+    const optionsDot = optionsChanged(composerOptions);
+    // Literature Review has no tools or filters; on a phone its sheet still holds the model.
+    const optionsForChat = !reviewEnabled;
 
-    /* On a phone the Options sheet also holds the model (the row has no room for its chip), so it
-       opens in every mode; with the search controls locked it shows the model alone. */
     const openSearchOptions = () => {
-        if (searchOptionsLocked && !isMobileLayout) return;
+        if (!optionsForChat && !isMobileLayout) return;
         trackGtagEvent('home_search_options_open_click', {
             source: isMobileLayout ? 'mobile' : 'desktop',
         });
         setIsOpen(false);
-        if (props.setExamplesOpen) {
-            props.setExamplesOpen(false);
-        }
-        if (props.onCollapseExampleLists) {
-            props.onCollapseExampleLists();
-        }
-        if (isMobileLayout) {
-            setMobileOptionsOpen(true);
-            return;
-        }
-        setDesktopOptionsOpen(true);
+        props.setExamplesOpen?.(false);
+        props.onCollapseExampleLists?.();
+        setOptionsOpen(true);
     };
 
     const openModeSheet = () => {
@@ -419,177 +398,75 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         }
     };
 
-    // Turning Investigate on while the drawer is open must not leave an inert panel on screen,
-    // and the selections go back to their defaults so turning Investigate off again doesn't
-    // silently restore filters the user can no longer see.
-    useEffect(() => {
-        if (searchOptionsLocked) {
-            setMobileOptionsOpen(false);
-            setDesktopOptionsOpen(false);
-            setPaperType(defaultPaperType);
-            setSortBy(defaultSortBy);
-        }
-    }, [searchOptionsLocked]);
-
     const closeSearchOptions = () => {
         trackGtagEvent('home_search_options_close_click', {
             source: isMobileLayout ? 'mobile' : 'desktop',
         });
-        setMobileOptionsOpen(false);
-        setDesktopOptionsOpen(false);
+        setOptionsOpen(false);
     };
 
-    const handleResetSearchOptions = () => {
-        trackGtagEvent('home_search_options_reset_click', {
-            source: isMobileLayout ? 'mobile' : 'desktop',
-        });
-        setPaperType(defaultPaperType);
-        setSortBy(defaultSortBy);
-        setIncludeFigures(false);
-        setIncludeGraph(false);
+    const requireSignIn = (kind, entry) => {
+        setOptionsOpen(false);
+        if (kind === 'effort') {
+            openLoginModal(GUEST_INVESTIGATE_REASON);
+            return;
+        }
+        openLoginModal(
+            `${entry?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`,
+        );
+    };
+
+    // Picked in the menu. Entering Extra is tracked as entering Investigate always was.
+    const pickEffort = (next) => {
+        if (isDeepEffort(next)) trackGtagEvent('home_investigate_enable_click', { source: 'home_searchbar' });
+        changeEffort(next);
+    };
+
+    const changeTier = (tierId) => {
+        setServiceTier(tierId);
+        setTierPref(tierId);
     };
 
     const tierPicker = (variant) => (
         <TierPicker
             variant={variant}
             value={serviceTier}
-            onChange={(tierId) => {
-                setServiceTier(tierId);
-                setTierPref(tierId);
-            }}
+            onChange={changeTier}
             onResolveDefault={setServiceTier}
-            // Toggling Investigate re-prices the list (an Investigate
-            // query costs more per tier). A review has the same tiers.
+            // Each pipeline has its own prices: a review, a chat, an Extra (deep research) one.
             pipeline={reviewEnabled ? 'literature_review'
                 : investigateEnabled ? 'deep_research' : 'chat'}
             onOpenChange={setTierMenuOpen}
             disabled={isInputLocked}
             isGuest={isGuest}
-            onRequireSignIn={(tier) => {
-                setMobileOptionsOpen(false);
-                openLoginModal(
-                    `${tier?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`,
-                );
-            }}
+            onRequireSignIn={(tier) => requireSignIn('model', tier)}
         />
     );
 
-    const searchOptionsPanel = (
-        <div className="home-search-options-panel">
-            <header className="home-search-options-header">
-                <h2>{isMobileLayout ? 'Options' : 'Search Options'}</h2>
-                <button type="button" aria-label="Close search options" onClick={closeSearchOptions}>
-                    <SearchOptionsCloseIcon />
-                </button>
-            </header>
-
-            {isMobileLayout && (
-                <section className="home-search-options-section is-model">
-                    <div className="home-search-options-section-heading">
-                        <h3>Model</h3>
-                    </div>
-                    {tierPicker('list')}
-                </section>
-            )}
-            {isMobileLayout && !searchOptionsLocked && <div className="home-search-options-divider" />}
-
-            {!searchOptionsLocked && (<>
-            <section className="home-search-options-section is-article-type">
-                <div className="home-search-options-section-heading">
-                    <h3>Article Type</h3>
-                    <span className="home-search-options-collapse" aria-hidden="true">
-                        <SearchOptionsCollapseIcon />
-                    </span>
+    // The phone's sheet carries the model (and in Chat the effort): its row has no room for the chip.
+    const phoneOptionsHead = isMobileLayout ? (
+        <>
+            <div className="composer-options-group-title">Model</div>
+            <div className="composer-options-group">{tierPicker('list')}</div>
+            {optionsForChat && INVESTIGATE_ENABLED && (<>
+                <div className="composer-options-group-title">Effort</div>
+                <div className="composer-options-group effort-sheet-levels">
+                    <EffortLevels
+                        effort={effort}
+                        isGuest={isGuest}
+                        hasFiles={attachments.hasItems}
+                        onPick={(level) => chooseEffort({
+                            level, effort, isGuest, onEffortChange: pickEffort, onRequireSignIn: requireSignIn,
+                        })}
+                    />
                 </div>
-                <div className="home-search-options-segmented is-article-type">
-                    {paperTypeOptions.map((option) => (
-                        <button
-                            key={option.value}
-                            type="button"
-                            aria-pressed={option.value === paperType}
-                            className={option.value === paperType ? 'is-active' : ''}
-                            onClick={() => {
-                                trackGtagEvent('home_article_type_select_click', { value: option.value });
-                                setPaperType(option.value);
-                            }}
-                        >
-                            {option.label}
-                        </button>
-                    ))}
-                </div>
-                <p>Search every article</p>
-            </section>
-
-            <div className="home-search-options-divider" />
-
-            <section className="home-search-options-section is-sort-by">
-                <div className="home-search-options-section-heading">
-                    <h3>Sort by</h3>
-                    <span className="home-search-options-collapse" aria-hidden="true">
-                        <SearchOptionsCollapseIcon />
-                    </span>
-                </div>
-                <div className="home-search-options-segmented is-sort-by">
-                    {sortOptions.map((option) => (
-                        <button
-                            key={option.value}
-                            type="button"
-                            aria-pressed={option.value === sortBy}
-                            className={option.value === sortBy ? 'is-active' : ''}
-                            onClick={() => {
-                                trackGtagEvent('home_sort_mode_select_click', { value: option.value });
-                                setSortBy(option.value);
-                            }}
-                        >
-                            {option.label}
-                        </button>
-                    ))}
-                </div>
-                <p>Best matches for your query</p>
-            </section>
-
-            <div className="home-search-options-divider" />
-
-            <section className="home-search-options-section is-include">
-                <div className="home-search-options-section-heading">
-                    <h3>Include in the answer</h3>
-                </div>
-                {[
-                    ['figures', 'Figures', 'From the papers the answer cites', includeFigures, setIncludeFigures],
-                    ['graph', 'Knowledge graph', 'How GLKB connects the answer\'s entities', includeGraph, setIncludeGraph],
-                ].map(([key, label, hint, on, setOn]) => (
-                    <label key={key} className="home-search-options-switch">
-                        <span>
-                            <strong>{label}</strong>
-                            <small>{hint}</small>
-                        </span>
-                        <Switch
-                            size="small"
-                            checked={on}
-                            onChange={(event) => {
-                                trackGtagEvent('home_answer_option_toggle', { option: key, on: event.target.checked });
-                                setOn(event.target.checked);
-                            }}
-                            inputProps={{ 'aria-label': label }}
-                        />
-                    </label>
-                ))}
-            </section>
             </>)}
-
-            <footer className="home-search-options-footer">
-                <div>
-                    {!searchOptionsLocked && (
-                        <button type="button" className="home-search-options-reset" onClick={handleResetSearchOptions}>Reset</button>
-                    )}
-                    <button type="button" className="home-search-options-done" onClick={closeSearchOptions}>Done</button>
-                </div>
-            </footer>
-        </div>
-    );
+        </>
+    ) : null;
 
     return (
         <Box
+            ref={composerBoxRef}
             className={`llm-searchbar${isDragOver ? ' attachment-drop-target' : ''}`}
             onDragOver={(event) => {
                 if (!dragHasFiles(event)) return;
@@ -623,7 +500,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             <Autocomplete
                 freeSolo
                 fullWidth
-                open={!mobileOptionsOpen && !desktopOptionsOpen && !tierMenuOpen && !modeSheetOpen && isOpen}
+                open={!optionsOpen && !tierMenuOpen && !modeSheetOpen && isOpen}
                 disabled={isInputLocked}
                 options={props.autocompleteOptions || []}
                 filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
@@ -677,9 +554,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 mode={mode}
                                 onChange={changeMode}
                                 disabled={isInputLocked}
+                                duration={mode === 'chat' ? effortLevel(effort)?.time : undefined}
                             />
                         )}
                         <AttachmentChips
+                            variant="design"
                             items={attachments.items}
                             notice={attachments.notice}
                             blockedNote={attachmentNote}
@@ -691,7 +570,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 /* Files of any type attach; a very long text becomes "Pasted
                                    text.txt" (as in Claude) where a file could be attached. */
                                 const files = pastedAttachments(event.clipboardData, {
-                                    longText: !isGuest && !attachmentsOffForMode && !isInputLocked,
+                                    longText: !isGuest && !isInputLocked,
                                 });
                                 if (!files.length) return;
                                 event.preventDefault();
@@ -721,7 +600,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     paddingLeft: '20px',
                                     paddingRight: '20px !important',
                                     paddingTop: hasModeTabs && !isMobileLayout ? '8px' : (isMobileLayout ? '18px' : '20px'),
-                                    paddingBottom: (isMobileLayout ? 64 : 52) + (scopeInComposer ? scopeRows : 0) + 'px',
+                                    paddingBottom: (isMobileLayout ? 64 : 52) + (scopeInComposer ? scopeRows : 0)
+                                        + (attachConflict ? CONFLICT_ROW : 0) + 'px',
                                     fontFamily: 'Geist, sans-serif',
                                     // 16px on a phone: below it iOS zooms the page in on focus.
                                     fontSize: isMobileLayout ? '16px' : '14px',
@@ -760,6 +640,22 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 }} />
                             </div>
                         )}
+                        {attachConflict && (
+                            <Box sx={{
+                                position: 'absolute',
+                                left: 0,
+                                right: 0,
+                                bottom: (isMobileLayout ? 60 : 56) + 'px',
+                            }}>
+                                <AttachConflict
+                                    effortName={effortLabel(effort)}
+                                    fallbackName={effortLabel(DEFAULT_EFFORT)}
+                                    count={attachments.items.length}
+                                    onUseFallback={() => changeEffort(DEFAULT_EFFORT)}
+                                    onRemoveFiles={() => attachments.clear()}
+                                />
+                            </Box>
+                        )}
                         <Box
                             sx={{
                                 position: 'absolute',
@@ -794,12 +690,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     sx={{ display: 'inline-flex', flexShrink: 0 }}
                                 >
                                     <AttachButton
+                                        variant="square"
                                         onFiles={takeFiles}
-                                        {...(reviewEnabled ? REVIEW_ATTACH : {})}
+                                        {...(reviewEnabled ? REVIEW_ATTACH : { label: 'Attach PDF, figure or spreadsheet' })}
                                         isGuest={isGuest}
                                         onRequireSignIn={() => openLoginModal(GUEST_ATTACH_REASON)}
-                                        disabled={attachmentsOffForMode || isInputLocked}
-                                        disabledReason={attachmentsOffForMode ? INVESTIGATE_ATTACH_NOTE : ''}
+                                        disabled={isInputLocked}
                                         source="home_searchbar"
                                     />
                                 </Box>
@@ -825,19 +721,13 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     pointerEvents: 'auto',
                                 }}
                             >
-                                {/* Beside Search Options, and NOT behind `searchOptionsLocked`
-                                    with it: Investigate withdraws the search-mode controls
-                                    because deep research discards filters and ranking, but it
-                                    is priced and run by the tier — so this one stays offered.
-
-                                    Wrapped in the same click guard the other controls in this
-                                    row carry. The row sits inside the Autocomplete, whose root
-                                    focuses the input on any click it sees, and `openOnFocus`
-                                    then drops the example list open — so opening the tier
-                                    menu also popped the examples open underneath it, over the
-                                    very menu the reader was aiming at. `preventDefault` on
-                                    mousedown is what keeps the focus from moving; stopping the
-                                    click is what keeps the Autocomplete from opening. */}
+                                {/* The model-and-effort chip (Chat) or the model chip (Literature Review),
+                                    then Options. Wrapped in a click guard: the row sits inside the
+                                    Autocomplete, whose root focuses the input on any click it sees,
+                                    and `openOnFocus` then drops the example list open over the very
+                                    menu the reader was aiming at. `preventDefault` on mousedown keeps
+                                    the focus where it is; stopping the click keeps the Autocomplete
+                                    shut. On a phone both live in the Options sheet (no room). */}
                                 <Box
                                     onMouseDown={(event) => {
                                         event.preventDefault();
@@ -846,101 +736,42 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     onClick={(event) => {
                                         event.stopPropagation();
                                     }}
-                                    // Never squeezed: the model chip does not shrink, so a shrinking
-                                    // wrapper only let it spill over Search Options. On a phone the
-                                    // model is in the Options sheet instead (the row has no room).
-                                    sx={{ display: isMobileLayout ? 'none' : 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, flexShrink: 0 }}
+                                    sx={{ display: isMobileLayout ? 'none' : 'inline-flex', alignItems: 'center', gap: '8px', minWidth: 0, flexShrink: 0 }}
                                 >
-                                {tierPicker()}
-                                </Box>
-
-                                {/* The phone's Options: an icon alone (the phone design), opening the sheet
-                                    that holds the model and, in Chat, the search controls. A dot says
-                                    a search control is off its default. */}
-                                {isMobileLayout && (
-                                <Box
-                                    role="button"
-                                    tabIndex={0}
-                                    aria-label={mobileSelectedOptions.length ? `Options: ${mobileChipLabel}` : 'Options'}
-                                    className="composer-options-button"
-                                    onMouseDown={(event) => {
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                    }}
-                                    onClick={(event) => {
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                        openSearchOptions();
-                                    }}
-                                    onKeyDown={(event) => {
-                                        if (event.key !== 'Enter' && event.key !== ' ') return;
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                        openSearchOptions();
-                                    }}
-                                    sx={{
-                                        position: 'relative',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        width: '28px',
-                                        height: '40px',
-                                        flexShrink: 0,
-                                        borderRadius: '10px',
-                                        color: 'var(--color-text-secondary)',
-                                        cursor: 'pointer',
-                                        pointerEvents: 'auto',
-                                    }}
-                                >
-                                    <SearchOptionsIcon style={{ width: '24px', height: '24px' }} />
-                                    {mobileSelectedOptions.length > 0 && !searchOptionsLocked && (
-                                        <span className="composer-options-dot" aria-hidden="true" />
+                                    {!isMobileLayout && (optionsForChat ? (
+                                        <EffortPicker
+                                            tier={serviceTier}
+                                            onTierChange={changeTier}
+                                            onTierResolveDefault={setServiceTier}
+                                            effort={effort}
+                                            onEffortChange={pickEffort}
+                                            isGuest={isGuest}
+                                            onRequireSignIn={requireSignIn}
+                                            hasFiles={attachments.hasItems}
+                                            placement="down"
+                                            anchorRef={composerBoxRef}
+                                            disabled={isInputLocked}
+                                            onOpenChange={setTierMenuOpen}
+                                        />
+                                    ) : tierPicker())}
+                                    {optionsForChat && !isMobileLayout && (
+                                        <OptionsButton
+                                            open={optionsOpen}
+                                            changed={optionsDot}
+                                            onClick={openSearchOptions}
+                                        />
                                     )}
                                 </Box>
-                                )}
 
-                                {!searchOptionsLocked && (
-                                <Button
-                                    aria-label="Search Options"
-                                    sx={{
-                                        display: isMobileLayout ? 'none' : 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '4px',
-                                        height: '32px',
-                                        padding: '4px 8px',
-                                        borderRadius: '8px',
-                                        background: 'transparent',
-                                        color: 'var(--color-text-tertiary)',
-                                        cursor: 'pointer',
-                                        fontFamily: 'Geist, sans-serif',
-                                        fontWeight: 600,
-                                        fontSize: '12px',
-                                        lineHeight: '16px',
-                                        textTransform: 'none',
-                                        minWidth: 0,
-                                        whiteSpace: 'nowrap',
-                                        maxWidth: '280px',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        pointerEvents: 'auto',
-                                        '&:hover': {
-                                            background: 'transparent',
-                                        },
-                                    }}
-                                    onMouseDown={(event) => {
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                    }}
-                                    onClick={(event) => {
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                        openSearchOptions();
-                                    }}
-                                >
-                                    <SearchOptionsIcon style={{ color: 'var(--color-text-tertiary)', width: '20px', height: '20px' }} />
-                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{mobileChipLabel}</span>
-                                </Button>
+                                {/* The phone's Options: an icon alone, opening the sheet that holds the
+                                    model, the effort and the tools. */}
+                                {isMobileLayout && (
+                                    <OptionsButton
+                                        compact
+                                        open={optionsOpen}
+                                        changed={optionsForChat && optionsDot}
+                                        onClick={openSearchOptions}
+                                    />
                                 )}
 
                                 <Box
@@ -987,37 +818,17 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             </Box>
                         </Box>
 
-                        <Drawer
-                            anchor="bottom"
-                            open={mobileOptionsOpen}
+                        <ComposerOptions
+                            open={optionsOpen}
                             onClose={closeSearchOptions}
-                            ModalProps={{
-                                // Mounted while closed: on a phone the model list inside it is the
-                                // picker that resolves the default tier before anything is sent.
-                                keepMounted: isMobileLayout,
-                                BackdropProps: {
-                                    sx: { backgroundColor: 'rgba(0, 0, 0, 0.32)' },
-                                },
-                            }}
-                            PaperProps={{
-                                sx: {
-                                    borderTopLeftRadius: '24px',
-                                    borderTopRightRadius: '24px',
-                                    backgroundColor: 'var(--color-background-surface)',
-                                    px: 0,
-                                    pb: 0,
-                                    pt: 0,
-                                    minHeight: '300px',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                },
-                            }}
+                            effort={effort}
+                            value={composerOptions}
+                            onChange={setComposerOptions}
+                            onReset={() => setComposerOptions(DEFAULT_COMPOSER_OPTIONS)}
+                            showTools={optionsForChat}
                         >
-                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
-                                <Box sx={{ width: '44px', height: '4px', borderRadius: '4px', backgroundColor: 'var(--color-background-normal)' }} />
-                            </Box>
-                            {searchOptionsPanel}
-                        </Drawer>
+                            {phoneOptionsHead}
+                        </ComposerOptions>
 
                         {hasModeTabs && isMobileLayout && (
                             <ModeSheet
@@ -1029,32 +840,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             />
                         )}
 
-                        <Drawer
-                            anchor="right"
-                            open={desktopOptionsOpen}
-                            onClose={closeSearchOptions}
-                            ModalProps={{
-                                keepMounted: true,
-                                BackdropProps: {
-                                    sx: { backgroundColor: 'rgba(0, 0, 0, 0.32)' },
-                                },
-                            }}
-                            PaperProps={{
-                                sx: {
-                                    width: '363px',
-                                    maxWidth: '92vw',
-                                    backgroundColor: 'var(--color-background-surface)',
-                                    px: 0,
-                                    pb: 0,
-                                    pt: 0,
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    boxShadow: 'none',
-                                },
-                            }}
-                        >
-                            {searchOptionsPanel}
-                        </Drawer>
                     </Box>
                 )}
                 PaperComponent={({ children }) => (

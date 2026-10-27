@@ -58,7 +58,8 @@ const HomePage = () => {
     const [usage, setUsage] = useState(null);
     const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
     const [isAgentRunActive, setIsAgentRunActive] = useState(() => isRunActive());
-    // The composer's mode (Chat / Investigate / Literature Review): what shows under it follows.
+    // The composer's mode (Chat, Chat at Extra effort = 'investigate', Literature Review): what
+    // shows under it follows.
     const [composerMode, setComposerMode] = useState('chat');
     const [requestedMode, setRequestedMode] = useState(null);
     const modeExamples = composerMode === 'investigate' ? (exampleSchema.investigateExamples || [])

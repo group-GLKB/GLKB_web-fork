@@ -434,3 +434,132 @@ button.message-attachment.is-image {
     background: rgba(255, 255, 255, 0.3);
     outline: none;
 }
+
+/* The composer's "+" and waiting files in the design's form (GLKB Effort A). */
+.attach-button.is-square {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #E5E9F0;
+    border-radius: 8px;
+    background: #fff;
+    color: #222A38;
+}
+
+.attach-button.is-square:hover:not(:disabled) {
+    border-color: #CBD2E0;
+    background: #fff;
+    color: #222A38;
+}
+
+.attach-button-plus {
+    font-family: 'Geist', sans-serif;
+    font-size: 18px;
+    font-weight: 300;
+    line-height: 1;
+}
+
+.attachment-chips.is-design {
+    gap: 6px;
+    padding: 12px 14px 0;
+}
+
+.attachment-chips.is-design .attachment-chip-list {
+    gap: 6px;
+}
+
+.attachment-chips.is-design .attachment-chip {
+    gap: 8px;
+    max-width: 320px;
+    padding: 5px 6px 5px 8px;
+    border: 1px solid #E5E9F0;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 12px;
+    line-height: 16px;
+    color: #222A38;
+}
+
+.attachment-chips.is-design .attachment-chip.is-error {
+    border-color: var(--color-status-error);
+}
+
+.attachment-chip-tag {
+    flex: none;
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: #EEF3FF;
+    color: #155DFC;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    line-height: 12px;
+}
+
+.attachment-chips.is-design .attachment-chip-name {
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 400;
+    color: #222A38;
+}
+
+.attachment-chips.is-design .attachment-chip-meta {
+    flex: none;
+    font-size: 11px;
+    color: #8090AB;
+}
+
+.attachment-chips.is-design .attachment-chip.is-error .attachment-chip-meta {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--color-status-error-text);
+}
+
+.attachment-chips.is-design .attachment-chip-remove {
+    position: static;
+    flex: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    color: #8090AB;
+    font-size: 14px;
+}
+
+.attach-conflict {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 12px;
+    padding: 6px 6px 6px 10px;
+    border-radius: 8px;
+    background: #FEF4E6;
+    color: #8A4B00;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    line-height: 17px;
+}
+
+.attach-conflict-text {
+    flex: 1;
+}
+
+.attach-conflict button {
+    height: 26px;
+    padding: 0 9px;
+    border: 0;
+    border-radius: 6px;
+    color: #8A4B00;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.attach-conflict-primary {
+    background: #fff;
+}
+
+.attach-conflict-secondary {
+    background: transparent;
+}

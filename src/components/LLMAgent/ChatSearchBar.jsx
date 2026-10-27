@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 import CloseIcon from '@mui/icons-material/Close';
 import {
@@ -8,49 +8,70 @@ import {
 } from '@mui/material';
 
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
-import { INVESTIGATE_ATTACH_NOTE, pastedAttachments } from '../../service/attachments';
+import { pastedAttachments } from '../../service/attachments';
+import {
+    DEFAULT_EFFORT,
+    effortLabel,
+    isDeepEffort,
+} from '../../service/effortLevels';
 import { trackGtagEvent } from '../../utils/gtag';
 import {
     AttachButton,
+    AttachConflict,
     AttachmentChips,
     attachmentBlockedNote,
     dragHasFiles,
     filesFromTransfer,
 } from '../Units/AttachmentChips';
+import ComposerOptions, {
+    DEFAULT_COMPOSER_OPTIONS,
+    OptionsButton,
+    optionsChanged,
+} from '../Units/ComposerOptions';
+import EffortPicker, { chooseEffort, EffortLevels } from '../Units/EffortPicker';
 import TierPicker from '../Units/TierPicker';
 
+/**
+ * The composer at the foot of a conversation (design: GLKB Effort A) — the field, then a row:
+ * "+", the model-and-effort chip, Options, send. The effort is per question: Medium asks the chat
+ * agent, Extra runs deep research, in the same conversation.
+ */
 const ChatSearchBar = ({
     userInput,
     setUserInput,
     isLoading,
     isRunElsewhere = false,
     isQueryLimitReached = false,
-    // Investigate is fixed for the life of a session, so the bar reports the
-    // mode for analytics but no longer renders a toggle.
-    investigateEnabled = false,
-    // Which service tier answers the next question (service/serviceTiers.js). Per-turn, unlike
-    // `investigateEnabled`: the picker is right here in the composer, so a reader can change it
-    // between two turns of one conversation and expects the next answer to honour the change.
+    // Which service tier answers the next question (service/serviceTiers.js). Per-turn: the
+    // reader can change it between two turns of one conversation and expects the next answer to
+    // honour the change.
     serviceTier,
     onServiceTierChange,
     onServiceTierResolveDefault,
-    // A guest is held to Standard; picking another tier asks them to sign in.
+    // How hard the next question is worked on (service/effortLevels.js): Medium is the chat
+    // agent, Extra deep research. Per-turn, like the tier.
+    effort = DEFAULT_EFFORT,
+    onEffortChange,
+    // The Options drawer's choices (Units/ComposerOptions) for the next question.
+    composerOptions = DEFAULT_COMPOSER_OPTIONS,
+    onComposerOptionsChange,
+    // A guest is held to Terra or Luna at Medium; reaching past asks them to sign in.
     isGuest = false,
+    // (kind: 'model' | 'effort', entry)
     onRequireSignIn,
-    // Resolved by the parent, which is the only place that can see both signals — see the
-    // comment at the call site. Not derived from `investigateEnabled` above: that one is
-    // for analytics and is false for a reopened investigate conversation.
-    pipelineIsDeepResearch = false,
     /* The files waiting on this question (Units/AttachmentChips/useAttachments), owned by the
-       parent because it reads them at send time. Absent: no paperclip at all. */
+       parent because it reads them at send time. Absent: no "+" at all. */
     attachments = null,
-    // A guest reaching for the paperclip (or dropping a file) is asked to sign in.
+    // A guest reaching for the "+" (or dropping a file) is asked to sign in.
     onAttachRequireSignIn,
     onSubmit,
     onStop,
 }) => {
     const isMobileViewport = useMediaQuery('(max-width:767px)');
     const [isDragOver, setIsDragOver] = useState(false);
+    const [optionsOpen, setOptionsOpen] = useState(false);
+    const boxRef = useRef(null);
+    const deep = isDeepEffort(effort);
     /* Two different situations wear the same `isLoading`, and the field stays usable in both.
 
        THIS conversation is answering: a submit is queued by the parent, so a follow-up that
@@ -59,28 +80,26 @@ const ChatSearchBar = ({
 
        ANOTHER conversation is answering (`isRunElsewhere`): nothing is racing. That run has
        its own session and its own history id, and the backend locks per history id — so this
-       question simply starts, and the other answer goes on being written. The field used to
-       be disabled here, which meant "New Chat" during a run led to a composer that could not
-       be typed in. */
+       question simply starts, and the other answer goes on being written. */
     const canType = !isQueryLimitReached;
-    /* Attachments are AI Chat only (the Investigate pipeline does not read them), and a guest's
-       question has no owner to keep a file for — so the "+" button is off on one and asks the
-       other to sign in. Chips already waiting when the conversation is an Investigate one
-       hold the send back with a note rather than being dropped without a word. */
-    const attachDisabled = pipelineIsDeepResearch || !canType;
-    const attachmentNote = attachmentBlockedNote(attachments, { investigate: pipelineIsDeepResearch });
+    /* Extra (deep research) does not read attachments, and a guest's question has no owner to
+       keep a file for. Files waiting at Extra hold the send back, with the design's note
+       offering Medium or removing them; a guest's "+" asks them to sign in. */
+    const attachConflict = deep && Boolean(attachments?.hasItems);
+    const attachmentNote = attachmentBlockedNote(attachments);
     const readyAttachmentCount = attachments?.readyAttachments?.length || 0;
     const canSend = (Boolean(userInput.trim()) || readyAttachmentCount > 0)
         && canType
         && !attachments?.isUploading
-        && !attachmentNote;
+        && !attachmentNote
+        && !attachConflict;
     const takeFiles = (files) => {
         if (!attachments || !files?.length) return;
         if (isGuest) {
             onAttachRequireSignIn?.();
             return;
         }
-        if (attachDisabled) return;
+        if (!canType) return;
         attachments.addFiles(files);
     };
     // Stop is what the button offers when there is nothing to send. Typing turns it back into
@@ -89,7 +108,7 @@ const ChatSearchBar = ({
     // the run belongs to another thread.
     const showStop = isLoading && !isRunElsewhere && !canSend;
     const trackInvestigateSubmit = (inputMethod) => {
-        if (!pipelineIsDeepResearch) return;
+        if (!deep) return;
         trackGtagEvent('investigate_question_submit', {
             source: 'chat_searchbar',
             input_method: inputMethod,
@@ -100,12 +119,21 @@ const ChatSearchBar = ({
         ? (isMobileViewport ? 'Ask something new…' : 'Ask a new question — the other answer keeps writing')
         : (isLoading
             ? (isMobileViewport ? 'Ask next…' : 'Ask a follow-up — it will send when this answer finishes')
-            : (isMobileViewport ? 'Ask more...' : 'Ask a question about the biomedical literature...'));
+            : (isMobileViewport ? 'Ask more...' : 'Ask a follow-up…'));
+    const submit = (event, queryMethod) => {
+        if (!canSend) return;
+        trackInvestigateSubmit(queryMethod);
+        onSubmit?.(event, { queryMethod });
+    };
+    const optionsDot = optionsChanged(composerOptions);
+
+    const stopRow = (event) => { event.preventDefault(); event.stopPropagation(); };
 
     return (
         <div className="chat-header">
         <Box
-            className={isDragOver ? 'attachment-drop-target' : undefined}
+            ref={boxRef}
+            className={`chat-composer${isDragOver ? ' attachment-drop-target' : ''}`}
             onDragOver={(event) => {
                 if (!attachments || !dragHasFiles(event)) return;
                 event.preventDefault();
@@ -122,20 +150,20 @@ const ChatSearchBar = ({
                 takeFiles(filesFromTransfer(event.dataTransfer));
             }}
             sx={{
-            width: '100%',
-            display: 'flex',
-            // The chips sit above the field, inside the same rounded box.
-            flexDirection: 'column',
-            margin: '0 auto',
-            backgroundColor: 'var(--color-background-subtle)',
-            borderRadius: '16px',
-            borderWidth: '1px',
-            borderStyle: 'solid',
-            borderColor: 'var(--color-border-default)',
-            boxShadow: 'none',
-        }}>
+                position: 'relative',
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                margin: '0 auto',
+                backgroundColor: '#F2F4F8',
+                borderRadius: '16px',
+                border: '1px solid #E5E9F0',
+                boxShadow: 'none',
+            }}
+        >
             {attachments && (
                 <AttachmentChips
+                    variant="design"
                     items={attachments.items}
                     notice={attachments.notice}
                     blockedNote={attachmentNote}
@@ -144,15 +172,14 @@ const ChatSearchBar = ({
             )}
             <TextField
                 className="input-form"
-                size="small"
                 value={userInput}
                 onPaste={(event) => {
                     /* A paste that carries files (any type) attaches them; a very long text
                        becomes "Pasted text.txt", as in Claude — but only where a file could be
-                       attached, so a guest's or an Investigate paste still lands in the box. */
+                       attached and read, so a guest's paste, or one at Extra, still lands in the box. */
                     if (!attachments) return;
                     const files = pastedAttachments(event.clipboardData, {
-                        longText: !isGuest && !attachDisabled,
+                        longText: !isGuest && canType && !deep,
                     });
                     if (!files.length) return;
                     event.preventDefault();
@@ -166,180 +193,203 @@ const ChatSearchBar = ({
                 variant="outlined"
                 placeholder={placeholder}
                 multiline
-                minRows={1}
-                maxRows={4}
+                minRows={isMobileViewport ? 1 : 2}
+                maxRows={6}
                 onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent?.isComposing) {
                         e.preventDefault();
-                        if (canSend) {
-                            trackInvestigateSubmit('enter');
-                            onSubmit?.(e, { queryMethod: 'enter' });
-                        }
+                        submit(e, 'enter');
                     }
                 }}
                 sx={{
                     width: '100%',
                     '& .MuiInputBase-root': {
-                        borderRadius: '16px',
-                        minHeight: isMobileViewport ? '44px' : '52px',
-                        height: 'auto',
-                        alignItems: 'center',
-                        // 20px of text inset, or room for the "+" when it leads the field.
-                        paddingLeft: attachments ? '8px' : '20px',
-                        /* The end cluster (model chip, clear, send) is a flex sibling of the
-                           textarea rather than an overlay, so the field's own right padding is
-                           just the gap to the composer's edge. It used to be 60px to clear an
-                           absolutely-positioned send button — a reservation that could only ever
-                           be right for one cluster width, and the chip's width depends on the
-                           model's name. */
-                        paddingRight: '12px !important',
-                        gap: '8px',
-                        paddingTop: isMobileViewport ? '8px' : '10px',
-                        paddingBottom: isMobileViewport ? '8px' : '10px',
+                        padding: isMobileViewport ? '12px 16px 4px' : '14px 20px 6px',
                         fontFamily: 'Geist, sans-serif',
-                        fontSize: '14px',
-                        color: 'var(--color-text-primary)',
+                        // 16px on a phone: below it iOS zooms the page in on focus.
+                        fontSize: isMobileViewport ? '16px' : '14px',
+                        color: '#0C1018',
                         '& fieldset': {
                             border: 'none',
                         },
                     },
                     '& .MuiInputBase-input': {
-                        lineHeight: '24px',
+                        lineHeight: '22px',
+                        padding: 0,
                     },
                     '& .MuiInputBase-input::placeholder': {
-                        color: 'var(--color-grey-300)',
+                        color: '#A8B3C8',
                         opacity: 1,
                     },
                 }}
                 fullWidth
-                InputProps={{
-                    // The "+" panel opens under (or over) the whole field, as ChatGPT's does.
-                    'data-attach-anchor': true,
-                    // The "+" at the start of the field, as in ChatGPT.
-                    startAdornment: attachments ? (
-                        <AttachButton
-                            onFiles={takeFiles}
-                            isGuest={isGuest}
-                            onRequireSignIn={onAttachRequireSignIn}
-                            disabled={attachDisabled}
-                            disabledReason={pipelineIsDeepResearch ? INVESTIGATE_ATTACH_NOTE : ''}
-                            source="chat_searchbar"
-                        />
-                    ) : null,
-                    endAdornment: (
-                        <Box
-                            display="flex"
-                            alignItems="center"
-                            sx={{
-                                gap: 1,
-                                // The textarea is what gives way when the row is tight; this
-                                // cluster is all fixed-size controls.
-                                flexShrink: 0,
-                            }}
-                        >
-                            {/* On the field's own row, left of send — where the home page's bar
-                                puts it too. It had a control row of its own under the field for
-                                a while, which cost the composer 54px of height for one chip and
-                                left the chip stranded in a band of empty space. */}
-                            <TierPicker
-                                value={serviceTier}
-                                onChange={onServiceTierChange}
-                                onResolveDefault={onServiceTierResolveDefault}
-                                pipeline={pipelineIsDeepResearch ? 'deep_research' : 'chat'}
-                                isGuest={isGuest}
-                                onRequireSignIn={onRequireSignIn}
-                                // Left usable while an answer streams. A follow-up typed
-                                // mid-answer is queued by the parent, and it should be able to
-                                // name its own tier — the choice applies to the NEXT request,
-                                // never to the one in flight.
-                                disabled={isQueryLimitReached}
-                            />
-                            {userInput !== '' && !isQueryLimitReached && !isLoading && (
-                                <CloseIcon
-                                    onMouseDown={(event) => {
-                                        event.preventDefault();
-                                    }}
-                                    onClick={() => {
-                                        trackGtagEvent('chat_input_clear_click', { source: 'chat_searchbar' });
-                                        setUserInput('');
-                                    }}
-                                    sx={{
-                                        color: 'grey.500',
-                                        cursor: 'pointer',
-                                        fontSize: '20px',
-                                    }}
-                                />
-                            )}
-                            {showStop ? (
-                                <Box
-                                    component="button"
-                                    type="button"
-                                    aria-label="Stop generating"
-                                    onClick={() => {
-                                        trackGtagEvent('chat_stop_click', { source: 'chat_searchbar' });
-                                        onStop?.();
-                                    }}
-                                    sx={{
-                                        width: 32,
-                                        height: 32,
-                                        borderRadius: '8px',
-                                        // Same brand-muted square as the idle send button — the
-                                        // near-black fill it used to have belonged to no palette here.
-                                        backgroundColor: 'var(--color-brand-muted)',
-                                        border: 'none',
-                                        padding: 0,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        cursor: 'pointer',
-                                    }}
-                                    title="Stop"
-                                >
-                                    <Box sx={{ width: 12, height: 12, backgroundColor: 'var(--color-brand-primary)', borderRadius: '2px' }} />
-                                </Box>
-                            ) : (
-                                <Box
-                                    component="button"
-                                    type="button"
-                                    aria-label={isLoading ? 'Send when this answer finishes' : 'Send'}
-                                    aria-disabled={!canSend}
-                                    onClick={(event) => {
-                                        if (!canSend) return;
-                                        trackGtagEvent('chat_submit_click', {
-                                            source: 'chat_searchbar',
-                                            investigate: Boolean(investigateEnabled),
-                                            queued: false,
-                                        });
-                                        trackInvestigateSubmit('button');
-                                        onSubmit?.(event, { queryMethod: 'button' });
-                                    }}
-                                    sx={{
-                                        width: 32,
-                                        height: 32,
-                                        borderRadius: '8px',
-                                        backgroundColor: canSend ? 'var(--color-brand-primary)' : 'var(--color-brand-muted)',
-                                        border: 'none',
-                                        padding: 0,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        cursor: canSend ? 'pointer' : 'default',
-                                    }}
-                                    title={isLoading ? 'Send when this answer finishes' : 'Send'}
-                                >
-                                    <SearchArrowIcon
-                                        style={{
-                                            width: 16,
-                                            height: 16,
-                                            color: canSend ? 'var(--color-neutral-white)' : 'var(--color-brand-primary)',
-                                        }}
-                                    />
-                                </Box>
-                            )}
-                        </Box>
-                    ),
-                }}
             />
+            {attachConflict && (
+                <AttachConflict
+                    effortName={effortLabel(effort)}
+                    fallbackName={effortLabel(DEFAULT_EFFORT)}
+                    count={attachments.items.length}
+                    onUseFallback={() => onEffortChange?.(DEFAULT_EFFORT)}
+                    onRemoveFiles={() => attachments.clear()}
+                />
+            )}
+            <Box
+                className="chat-composer-row"
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 12px 12px',
+                }}
+            >
+                {attachments && (
+                    <AttachButton
+                        variant="square"
+                        label="Attach PDF, figure or spreadsheet"
+                        onFiles={takeFiles}
+                        isGuest={isGuest}
+                        onRequireSignIn={onAttachRequireSignIn}
+                        disabled={!canType}
+                        source="chat_searchbar"
+                    />
+                )}
+                <Box sx={{ flex: 1 }} />
+                {!isMobileViewport && (
+                    // Left usable while an answer streams: the choice applies to the NEXT
+                    // request, never to the one in flight.
+                    <EffortPicker
+                        tier={serviceTier}
+                        onTierChange={onServiceTierChange}
+                        onTierResolveDefault={onServiceTierResolveDefault}
+                        effort={effort}
+                        onEffortChange={onEffortChange}
+                        isGuest={isGuest}
+                        onRequireSignIn={onRequireSignIn}
+                        hasFiles={Boolean(attachments?.hasItems)}
+                        placement="up"
+                        anchorRef={boxRef}
+                        disabled={isQueryLimitReached}
+                    />
+                )}
+                <OptionsButton
+                    compact={isMobileViewport}
+                    open={optionsOpen}
+                    changed={optionsDot}
+                    onClick={() => {
+                        trackGtagEvent('chat_options_open_click', { source: 'chat_searchbar' });
+                        setOptionsOpen(true);
+                    }}
+                />
+                {userInput !== '' && !isQueryLimitReached && !isLoading && (
+                    <CloseIcon
+                        onMouseDown={stopRow}
+                        onClick={() => {
+                            trackGtagEvent('chat_input_clear_click', { source: 'chat_searchbar' });
+                            setUserInput('');
+                        }}
+                        sx={{ color: '#8090AB', cursor: 'pointer', fontSize: '20px' }}
+                    />
+                )}
+                {showStop ? (
+                    <Box
+                        component="button"
+                        type="button"
+                        aria-label="Stop generating"
+                        onClick={() => {
+                            trackGtagEvent('chat_stop_click', { source: 'chat_searchbar' });
+                            onStop?.();
+                        }}
+                        sx={{
+                            width: 32,
+                            height: 32,
+                            flex: 'none',
+                            borderRadius: '8px',
+                            backgroundColor: '#D9E6FE',
+                            border: 'none',
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                        }}
+                        title="Stop"
+                    >
+                        <Box sx={{ width: 12, height: 12, backgroundColor: '#155DFC', borderRadius: '2px' }} />
+                    </Box>
+                ) : (
+                    <Box
+                        component="button"
+                        type="button"
+                        aria-label={isLoading ? 'Send when this answer finishes' : 'Send'}
+                        aria-disabled={!canSend}
+                        onClick={(event) => {
+                            if (!canSend) return;
+                            trackGtagEvent('chat_submit_click', {
+                                source: 'chat_searchbar',
+                                investigate: deep,
+                                queued: false,
+                            });
+                            submit(event, 'button');
+                        }}
+                        sx={{
+                            width: 32,
+                            height: 32,
+                            flex: 'none',
+                            borderRadius: '8px',
+                            backgroundColor: canSend ? '#155DFC' : '#D9E6FE',
+                            border: 'none',
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: canSend ? 'pointer' : 'default',
+                        }}
+                        title={isLoading ? 'Send when this answer finishes' : 'Send'}
+                    >
+                        <SearchArrowIcon
+                            style={{
+                                width: 16,
+                                height: 16,
+                                color: canSend ? '#fff' : '#155DFC',
+                            }}
+                        />
+                    </Box>
+                )}
+            </Box>
+            <ComposerOptions
+                open={optionsOpen}
+                onClose={() => setOptionsOpen(false)}
+                effort={effort}
+                value={composerOptions}
+                onChange={onComposerOptionsChange}
+                onReset={() => onComposerOptionsChange?.(DEFAULT_COMPOSER_OPTIONS)}
+            >
+                {isMobileViewport && (<>
+                    <div className="composer-options-group-title">Model</div>
+                    <div className="composer-options-group">
+                        <TierPicker
+                            variant="list"
+                            value={serviceTier}
+                            onChange={onServiceTierChange}
+                            onResolveDefault={onServiceTierResolveDefault}
+                            pipeline={deep ? 'deep_research' : 'chat'}
+                            isGuest={isGuest}
+                            onRequireSignIn={(tier) => onRequireSignIn?.('model', tier)}
+                        />
+                    </div>
+                    <div className="composer-options-group-title">Effort</div>
+                    <div className="composer-options-group">
+                        <EffortLevels
+                            effort={effort}
+                            isGuest={isGuest}
+                            hasFiles={Boolean(attachments?.hasItems)}
+                            onPick={(level) => chooseEffort({
+                                level, effort, isGuest, onEffortChange, onRequireSignIn,
+                            })}
+                        />
+                    </div>
+                </>)}
+            </ComposerOptions>
         </Box>
         </div>
     );

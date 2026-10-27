@@ -9,8 +9,10 @@ import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg
 import BetaBadge from '../Units/BetaBadge';
 
 /**
- * The home composer's three modes, as tabs along its top edge (design: Chat / Investigate /
- * Literature Review, with what the mode does and how long it takes on the right).
+ * The home composer's modes, as tabs along its top edge: Chat and Literature Review, with what
+ * the mode does and how long it takes on the right. Investigate was a third tab until 2026-10-27;
+ * it is now the chat's Extra effort (Units/EffortPicker), and its entry here serves only a prefill
+ * that still asks for it.
  *
  * `compact` drops the hint and the icons, and the tabs share the composer's width. The phone
  * layout no longer uses the tabs: it has ModePill in the composer's bottom row, which opens
@@ -66,8 +68,10 @@ const stop = (event) => { event.preventDefault(); event.stopPropagation(); };
 const capitalize = (text) => (text ? text[0].toUpperCase() + text.slice(1) : text);
 const bare = (text) => (text || '').replace(/\.$/, '');
 
-export default function ComposerModes({ modes, mode, onChange, disabled, compact }) {
+export default function ComposerModes({ modes, mode, onChange, disabled, compact, duration }) {
     const current = COMPOSER_MODES[mode] || COMPOSER_MODES.chat;
+    // Chat's time depends on its effort (Medium ~30 s, Extra 3–5 min); the composer says which.
+    const shownDuration = duration || current.duration;
     return (
         <div className={`composer-modes${compact ? ' is-compact' : ''}`} onMouseDown={stop}
              onClick={(event) => event.stopPropagation()}>
@@ -101,7 +105,7 @@ export default function ComposerModes({ modes, mode, onChange, disabled, compact
             {!compact && (
                 <div className="composer-modes-hint" aria-live="polite">
                     {current.hint} <span className="composer-modes-sep">·</span>{' '}
-                    <span className="composer-modes-duration">{current.duration}</span>
+                    <span className="composer-modes-duration">{shownDuration}</span>
                 </div>
             )}
         </div>

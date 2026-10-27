@@ -29,20 +29,9 @@ import CheckIcon from '@mui/icons-material/Check';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { ClickAwayListener, Popper, useMediaQuery } from '@mui/material';
 
-import {
-    fetchTierPricing,
-    GUEST_TIER,
-    isGuestTier,
-    tiersFor,
-} from '../../../service/serviceTiers';
+import { isGuestTier } from '../../../service/serviceTiers';
 import { trackGtagEvent } from '../../../utils/gtag';
-
-// A literature review is charged once per review, not per question.
-const creditsText = (credits, pipeline) => (
-    Number.isFinite(credits)
-        ? `${credits} credit${credits === 1 ? '' : 's'}/${pipeline === 'literature_review' ? 'review' : 'query'}`
-        : ''
-);
+import useTierChoice, { creditsText } from './useTierChoice';
 
 const TierPicker = ({
     value,
@@ -59,20 +48,11 @@ const TierPicker = ({
     onRequireSignIn,
     variant = 'chip',
 }) => {
-    const [pricing, setPricing] = useState(null);
     const [isOpen, setIsOpen] = useState(false);
     const anchorRef = useRef(null);
     /* The chip shortens on a phone ("6.1 Sol"), where the composer's row has no room for the
        full name. The PANEL always shows full names. */
     const isNarrow = useMediaQuery('(max-width:767px)');
-
-    useEffect(() => {
-        let cancelled = false;
-        fetchTierPricing().then((fetched) => {
-            if (!cancelled) setPricing(fetched);
-        });
-        return () => { cancelled = true; };
-    }, []);
 
     // Through a ref so a parent passing an inline arrow cannot make this fire every render.
     const onOpenChangeRef = useRef(onOpenChange);
@@ -81,30 +61,11 @@ const TierPicker = ({
         onOpenChangeRef.current?.(isOpen);
     }, [isOpen]);
 
-    const { tiers, defaultTier: pipelineDefault } = tiersFor(pricing, pipeline);
-    const defaultTier = isGuest && !isGuestTier(pipelineDefault) && tiers.some((t) => t.id === GUEST_TIER)
-        ? GUEST_TIER : pipelineDefault;
-    const eligible = tiers.some((t) => t.id === value) && (!isGuest || isGuestTier(value));
-
-    /* The parent may hold nothing yet, a tier this pipeline does not offer, or (a guest) a tier
-       they may not use. Each is replaced by the default, VISIBLY — the chip re-renders before
-       anything is sent — and reported as a resolved default so it is not stored. Only a value
-       this picker resolved itself is replaceable later; a row the reader clicked is not. */
-    const resolvedRef = useRef('');
-    useEffect(() => {
-        if (!defaultTier) return;
-        const holdingOurOwnDefault = Boolean(value) && value === resolvedRef.current;
-        if (value && eligible && !holdingOurOwnDefault) return;
-        resolvedRef.current = defaultTier;
-        if (value === defaultTier) return;
-        onResolveDefault?.(defaultTier);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [defaultTier, value, eligible]);
-
-    const selected = eligible ? value : defaultTier;
+    const { tiers, defaultTier, selected, selectedRow, clearResolved } = useTierChoice({
+        value, pipeline, isGuest, onResolveDefault,
+    });
     // Nothing honest to show before the prices land.
     if (!selected) return null;
-    const selectedRow = tiers.find((t) => t.id === selected);
 
     const close = () => setIsOpen(false);
 
@@ -135,7 +96,7 @@ const TierPicker = ({
                             tier: entry.id,
                             pipeline,
                         });
-                        resolvedRef.current = '';
+                        clearResolved();
                         onChange?.(entry.id);
                     }}
                 >

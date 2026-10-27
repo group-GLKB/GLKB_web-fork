@@ -67,6 +67,7 @@ import { emptyFunnel, mergeFunnel, settleFunnel } from './funnel';
    already cancelled) and a reader can meet more than one of them in a single run. */
 import { keepsWhatItWrote, stoppedMessageFor, withStoppedMessage } from './stopped';
 import InvestigateProgress, { formatElapsed } from './InvestigateProgress';
+import ChatProgress from './ChatProgress';
 import {
     mergeInvestigateDetail,
     mergeLiveKeywords,
@@ -137,7 +138,18 @@ import {
   toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import { createQuerySubmitSuccessTracker, trackGtagEvent } from '../../utils/gtag';
-import { CREDITS_PURCHASE_URL } from '../../config/features';
+import { CREDITS_PURCHASE_URL, INVESTIGATE_ENABLED } from '../../config/features';
+import {
+    getEffortPref,
+    isDeepEffort,
+    setEffortPref,
+    subscribeToEffortPref,
+} from '../../service/effortLevels';
+import {
+    answerFlags,
+    DEFAULT_COMPOSER_OPTIONS,
+    searchFilters,
+} from '../Units/ComposerOptions';
 import { useAuth } from '../Auth/AuthContext';
 import {
     NOTIFY_EMAIL_KEY,
@@ -154,7 +166,7 @@ import {
     setTierPref,
     subscribeToTierPref,
 } from '../../service/serviceTiers';
-import { refusalNeedsSignIn, refusalText } from '../../utils/refusals';
+import { GUEST_INVESTIGATE_REASON, refusalNeedsSignIn, refusalText } from '../../utils/refusals';
 import {
     attachmentIdsOf,
     defaultQuestionFor,
@@ -1219,7 +1231,13 @@ const MessageCard = React.memo(function MessageCard({
     // as long as there are thoughts behind it.
     const showInvestigateSummary = isAssistant && isInvestigateMessage && !isLoading
         && (Boolean(investigatedDurationLabel) || hasDisplayGroups);
-    const showThoughtHeader = isAssistant && (
+    /* While a chat answer is being worked on, its stages show in the Investigate panel's style
+       (ChatProgress); once it is done, the "Thought for …" row takes over as before. */
+    const showChatProgress = isAssistant && !isInvestigateMessage && isLoading;
+    const chatPhase = answerReady
+        ? 'finalizing'
+        : (investigatePhase || inferInvestigatePhase(streamingStepName, '') || 'planning');
+    const showThoughtHeader = isAssistant && !showChatProgress && (
         !isInvestigateMessage && (isLoading || thoughtDurationLabel || hasDisplayGroups)
     );
     const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
@@ -1547,6 +1565,17 @@ const MessageCard = React.memo(function MessageCard({
                             />
                         )}
 
+                        {showChatProgress && (
+                            <ChatProgress
+                                phase={chatPhase}
+                                label={streamingStepName || ''}
+                                preamble={preamble || ''}
+                                percent={answerReady ? 97 : investigatePercent}
+                                startedAt={investigateStartedAt}
+                                paused={Boolean(pendingClarification)}
+                            />
+                        )}
+
                         {showThoughtHeader && (
                             <Box sx={{
                                 display: 'flex',
@@ -1615,7 +1644,7 @@ const MessageCard = React.memo(function MessageCard({
                             group is drawn only after the answer has landed, and during the run the
                             panel is one animated status line. This is the one thing that has to be
                             readable DURING the wait, so it gets its own slot. */}
-                        {isAssistant && isLoading && preamble && (
+                        {isAssistant && isLoading && preamble && !showChatProgress && (
                             <Box sx={{
                                 mt: '6px',
                                 ml: 1,
@@ -2065,7 +2094,6 @@ function LLMAgent({ isRouteActive = true }) {
     useEffect(() => subscribeToNotifyPrefs(
         (prefs) => setNotifyEmailEnabled(prefs.email),
     ), []);
-    const chatInvestigateEnabled = getConversationInvestigateMode(activeConversationId, chatHistory);
     /* Which model answers the next question.
 
        Seeded from localStorage, so a reader's choice survives a reload, and '' until the
@@ -2080,6 +2108,17 @@ function LLMAgent({ isRouteActive = true }) {
         setServiceTier(tierId);
         setTierPref(tierId);
     }, []);
+    /* The effort the next question is sent at (service/effortLevels.js): Medium asks the chat
+       agent, Extra runs deep research. Per question, so one conversation can hold both; one
+       preference with the home composer. */
+    const [composerEffort, setComposerEffort] = useState(() => getEffortPref());
+    useEffect(() => subscribeToEffortPref(setComposerEffort), []);
+    const handleEffortChange = useCallback((next) => {
+        setComposerEffort(next);
+        setEffortPref(next);
+    }, []);
+    // The Options drawer's choices for the next question (Units/ComposerOptions).
+    const [composerOptions, setComposerOptions] = useState(DEFAULT_COMPOSER_OPTIONS);
     const investigateFunnelRef = useRef(initialRunSnapshot?.investigateFunnel || emptyFunnel());
     /* What the funnel counters actually SHOWED, as opposed to what the agent reported.
        Kept apart from `investigateFunnelRef` for two reasons, and they pull in opposite
@@ -2463,6 +2502,14 @@ function LLMAgent({ isRouteActive = true }) {
     const requestPremiumSignIn = useCallback((tier) => {
         requireSignIn(`${tier?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`);
     }, [requireSignIn]);
+    // The composer's guest gate: GPT-6.1 Sol, or Extra effort.
+    const requestComposerSignIn = useCallback((kind, entry) => {
+        if (kind === 'effort') {
+            requireSignIn(GUEST_INVESTIGATE_REASON);
+            return;
+        }
+        requestPremiumSignIn(entry);
+    }, [requireSignIn, requestPremiumSignIn]);
     /* Images and PDFs waiting on the composer (service/attachments.js). Held here, not in the
        composer, because the send reads them: `submitOrQueue` puts them on the turn's options
        and clears the chips once the question has left. Signed-in readers and AI Chat only. */
@@ -2836,7 +2883,7 @@ function LLMAgent({ isRouteActive = true }) {
         setInvestigateKeywords(investigateKeywordsRef.current);
         setInvestigatePapers(investigatePapersRef.current);
         setInvestigateDetail(investigateDetailRef.current);
-        setInvestigateStartedAt(investigate ? (progressSnapshot?.investigateStartedAt || Date.now()) : null);
+        setInvestigateStartedAt(progressSnapshot?.investigateStartedAt || (investigate ? Date.now() : null));
         /* Which product Stop must cancel. The two pipelines have separate routers, and this
            ref was only ever written by a submit — so Stop on a reattached investigate run
            called the CHAT cancel endpoint, which knows nothing about the deep-research relay
@@ -4550,7 +4597,8 @@ function LLMAgent({ isRouteActive = true }) {
         // within milliseconds, but the network round-trip should not be a visible dead spot).
         setInvestigatePhase('planning');
         setInvestigateFunnel(emptyFunnel());
-        setInvestigateStartedAt(investigateEnabled ? requestStartedAt : null);
+        // Both pipelines: the chat's loading panel (ChatProgress) shows a clock too.
+        setInvestigateStartedAt(requestStartedAt);
         setInvestigatePercent(investigateEnabled ? PHASE_PERCENT_FLOOR.planning : null);
         setInvestigateKeywords([]);
         setInvestigatePapers([]);
@@ -4772,7 +4820,11 @@ function LLMAgent({ isRouteActive = true }) {
                             }));
                             return;
                         }
-                        if (update.phase) {
+                        /* The Started frame's phase is a default ("searching"), not something the
+                           run reported. A chat run's stages come from its own progress frames
+                           (ChatProgress), so it stays at "Understanding the question" until one
+                           arrives rather than claiming to search before it has begun. */
+                        if (update.phase && investigateEnabled) {
                             investigatePhaseRef.current = update.phase;
                             setInvestigatePhase(update.phase);
                         }
@@ -7743,19 +7795,33 @@ function LLMAgent({ isRouteActive = true }) {
                                                         // A guest at the limit keeps a live composer: sending
                                                         // opens the sign-in overlay instead (handleSubmit).
                                                         isQueryLimitReached={isLimitReachedEffective && !isGuest}
-                                                        investigateEnabled={chatInvestigateEnabled}
                                                         serviceTier={serviceTier}
-                                                        pipelineIsDeepResearch={chatInvestigateEnabled}
                                                         onServiceTierChange={handleServiceTierChange}
                                                         onServiceTierResolveDefault={setServiceTier}
+                                                        effort={composerEffort}
+                                                        onEffortChange={handleEffortChange}
+                                                        composerOptions={composerOptions}
+                                                        onComposerOptionsChange={setComposerOptions}
                                                         isGuest={isGuest}
-                                                        onRequireSignIn={requestPremiumSignIn}
+                                                        onRequireSignIn={requestComposerSignIn}
                                                         attachments={composerAttachments}
                                                         onAttachRequireSignIn={requestAttachSignIn}
                                                         onSubmit={(event, submissionMeta) => {
+                                                            /* The effort picks the pipeline for THIS
+                                                               question: Extra is deep research, which
+                                                               takes no filters and does figures and
+                                                               the graph on its own. */
+                                                            const deep = INVESTIGATE_ENABLED
+                                                                && isDeepEffort(composerEffort);
+                                                            const flags = answerFlags(composerOptions, composerEffort);
                                                             submitOrQueue(event, {
-                                                                investigateEnabled: chatInvestigateEnabled,
+                                                                investigateEnabled: deep,
                                                                 serviceTier,
+                                                                ...(deep ? {} : {
+                                                                    ...searchFilters(composerOptions),
+                                                                    figures: Boolean(flags.figures),
+                                                                    graph: Boolean(flags.graph),
+                                                                }),
                                                             }, submissionMeta?.queryMethod || 'button');
                                                         }}
                                                         onStop={handleStopStreaming}

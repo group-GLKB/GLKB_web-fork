@@ -133,7 +133,7 @@ export const formatElapsed = (totalSeconds) => {
  * A missing `startedAt` falls back to mount time. That keeps the clock plausible instead of
  * printing the ~56 years that `Date.now() - 0` would give.
  */
-const useElapsedSeconds = (startedAt, running) => {
+export const useElapsedSeconds = (startedAt, running) => {
     const mountedAt = useRef(Date.now());
     const origin = Number.isFinite(Number(startedAt)) && Number(startedAt) > 0
         ? Number(startedAt)

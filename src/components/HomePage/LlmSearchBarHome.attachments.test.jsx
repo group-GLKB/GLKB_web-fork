@@ -43,6 +43,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+    window.localStorage.clear();
     mockAuth.openLoginModal = jest.fn();
     mockAuth.isAuthenticated = false;
     mockNavigate.mockClear();
@@ -58,7 +59,7 @@ const renderBar = () => render(
     />,
 );
 
-const paperclip = () => screen.getByRole('button', { name: 'Add files or photos' });
+const paperclip = () => screen.getByRole('button', { name: 'Attach PDF, figure or spreadsheet' });
 const startChat = () => {
     const button = screen.getByRole('button', { name: 'Start chat' });
     fireEvent.mouseDown(button);
@@ -75,12 +76,56 @@ it('asks a guest to sign in instead of opening the file picker', () => {
     expect(mockAuth.openLoginModal).toHaveBeenCalledWith("Sign in to attach files — it's free.");
 });
 
-it('turns the + button off on Investigate', () => {
+it('opens the file picker straight from the +, with no menu in between', () => {
     mockAuth.isAuthenticated = true;
     renderBar();
-    expect(paperclip()).toBeEnabled();
-    fireEvent.click(screen.getByTitle('Investigate off'));
-    expect(paperclip()).toBeDisabled();
+    const input = screen.getByTestId('attachment-file-input');
+    const click = jest.spyOn(input, 'click').mockImplementation(() => {});
+    fireEvent.click(paperclip());
+    expect(click).toHaveBeenCalled();
+    expect(document.querySelector('.attach-menu')).toBeNull();
+});
+
+it('says Extra does not read the file, and offers Medium or removing it', async () => {
+    mockAuth.isAuthenticated = true;
+    uploadAttachment.mockResolvedValueOnce({
+        id: 'p1', kind: 'pdf', mime_type: 'application/pdf', filename: 'paper.pdf', size_bytes: 4, page_count: 3,
+    });
+    window.localStorage.setItem('glkb_effort', 'extra');
+    renderBar();
+    pick([pdf()]);
+    expect(await screen.findByText("Extra doesn't read attached files.")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('attachment-chip')).toHaveClass('is-ready'));
+    fireEvent.change(screen.getByPlaceholderText(/Ask a question about the biomedical literature/i), {
+        target: { value: 'What does this paper show?' },
+    });
+    startChat();
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use Medium' }));
+    expect(screen.queryByText("Extra doesn't read attached files.")).toBeNull();
+    startChat();
+    expect(mockNavigate.mock.calls[0][1].state.initialSearchOptions).toEqual(expect.objectContaining({
+        investigateEnabled: false,
+        attachments: [expect.objectContaining({ id: 'p1' })],
+    }));
+});
+
+it('can remove the file instead and stay at Extra', async () => {
+    mockAuth.isAuthenticated = true;
+    uploadAttachment.mockResolvedValueOnce({
+        id: 'p1', kind: 'pdf', mime_type: 'application/pdf', filename: 'paper.pdf', size_bytes: 4,
+    });
+    window.localStorage.setItem('glkb_effort', 'extra');
+    renderBar();
+    pick([pdf()]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove file' }));
+    expect(screen.queryByTestId('attachment-chip')).toBeNull();
+    fireEvent.change(screen.getByPlaceholderText(/Ask a question about the biomedical literature/i), {
+        target: { value: 'What does TP53 do?' },
+    });
+    startChat();
+    expect(mockNavigate.mock.calls[0][1].state.initialSearchOptions.investigateEnabled).toBe(true);
 });
 
 it('hands the uploaded files to the chat with the first question, and asks for a summary when it has no words', async () => {
@@ -90,7 +135,11 @@ it('hands the uploaded files to the chat with the first question, and asks for a
     });
     renderBar();
     pick([pdf()]);
-    expect(await screen.findByText('PDF · 3 pages · 4 B')).toBeInTheDocument();
+    // The design's chip: the extension as a tag, then the name.
+    const chip = await screen.findByTestId('attachment-chip');
+    await waitFor(() => expect(chip).toHaveClass('is-ready'));
+    expect(chip.querySelector('.attachment-chip-tag')).toHaveTextContent('PDF');
+    expect(chip).toHaveTextContent('paper.pdf');
     startChat();
     expect(mockNavigate).toHaveBeenCalledWith('/chat/new', expect.objectContaining({
         state: expect.objectContaining({
@@ -136,12 +185,15 @@ it("leaves a guest's long paste in the box rather than attaching it", () => {
     expect(mockAuth.openLoginModal).not.toHaveBeenCalled();
 });
 
-it('uploads a notebook picked from the + menu', async () => {
+it('uploads a notebook picked with the +', async () => {
     mockAuth.isAuthenticated = true;
     uploadAttachment.mockResolvedValueOnce({
         id: 'n1', kind: 'file', format: 'Notebook', mime_type: 'application/x-ipynb+json', filename: 'run.ipynb', size_bytes: 2048,
     });
     renderBar();
     pick([new File(['{}'], 'run.ipynb', { type: '' })]);
-    expect(await screen.findByText('Notebook · 2 KB')).toBeInTheDocument();
+    const chip = await screen.findByTestId('attachment-chip');
+    await waitFor(() => expect(chip).toHaveClass('is-ready'));
+    expect(chip.querySelector('.attachment-chip-tag')).toHaveTextContent('IPYNB');
+    expect(chip).toHaveTextContent('run.ipynb');
 });

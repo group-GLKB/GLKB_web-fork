@@ -1,11 +1,10 @@
 /**
- * Search Options is withdrawn while Investigate is on, and Investigate itself only exists
- * when the deployment flag allows it.
+ * The home composer (design: GLKB Effort A): the model-and-effort chip, Options, and what a
+ * question is sent with.
  *
- * Deep Research runs its own hybrid retrieval and drops `filters` / `ranking_mode` entirely
- * (`service/harness_runner.py` logs a warning and discards them). A greyed-out control still
- * reads as "these settings apply, you just can't change them", so the trigger is removed and
- * the payload falls back to the defaults.
+ * Medium effort is the chat agent; Extra is deep research (formerly the Investigate tab), which
+ * runs its own retrieval and drops `filters` / `ranking_mode` (`service/harness_runner.py`), so
+ * at Extra the payload falls back to the defaults and Options says the filters don't apply.
  */
 import React from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -55,6 +54,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+    window.localStorage.clear();
     mockNavigate.mockClear();
     trackGtagEvent.mockClear();
     mockInvestigateFlag = true;
@@ -67,24 +67,28 @@ const setup = (props = {}) => render(
     <LlmSearchBarHome setOpen={() => {}} autocompleteOptions={[]} {...props} />,
 );
 
-// Matched outside the drawers on purpose: the option chips inside them carry the very same
-// labels once the drawer has been opened, so a plain by-role query finds several elements.
-// The trigger's accessible name is the current selection, hence the alternation.
-const OPTIONS_LABEL = /Options|Reviews only|High impact|Most recent|Figures|Graph/;
-const optionsTrigger = () => {
-    const drawers = Array.from(document.querySelectorAll('.MuiDrawer-root'));
-    return Array.from(document.querySelectorAll('button')).find((node) => (
-        !drawers.some((drawer) => drawer.contains(node)) && OPTIONS_LABEL.test(node.textContent)
-    )) || null;
-};
-// `hidden: true` because an open drawer is a modal: MUI marks the rest of the page aria-hidden.
-// The modes are tabs along the composer's top edge; leaving Investigate is picking Chat.
-const investigateButton = () => screen.queryByRole('tab', { name: /investigate/i, hidden: true });
+// The row's Options button (outside the drawer).
+const optionsTrigger = () => document.querySelector('button.composer-options-trigger');
 const chatTab = () => screen.queryByRole('tab', { name: /chat/i, hidden: true });
-// The drawers use `keepMounted`, so their content is in the DOM whether open or closed —
-// presence of "Article Type" proves nothing. MUI marks a closed modal with `MuiModal-hidden`.
+// The drawer uses `keepMounted`, so its content is in the DOM whether open or closed. MUI marks a
+// closed modal with `MuiModal-hidden`.
 const drawerIsOpen = () => Array.from(document.querySelectorAll('.MuiDrawer-root'))
     .some((n) => !n.classList.contains('MuiModal-hidden'));
+
+// The chip waits for the prices before it can open.
+const effortChip = () => document.querySelector('button.effort-chip');
+const chipReady = () => waitFor(() => expect(effortChip()).not.toBeDisabled());
+const openEffortMenu = () => {
+    fireEvent.click(effortChip());
+    fireEvent.click(document.querySelector('.effort-sub-row'));
+};
+const levelRow = (name) => Array.from(document.querySelectorAll('.effort-level-row'))
+    .find((row) => row.querySelector('.effort-level-label').textContent.startsWith(name));
+const chooseEffortLevel = async (name) => {
+    await chipReady();
+    openEffortMenu();
+    fireEvent.click(levelRow(name));
+};
 
 const chooseReviewsOnly = () => {
     fireEvent.click(optionsTrigger());
@@ -99,48 +103,72 @@ const submit = () => {
     return mockNavigate.mock.calls[0][1].state.initialSearchOptions;
 };
 
+const exampleListIsOpen = () => Boolean(document.querySelector('.homepage-autocomplete-listbox'));
+
 // The chips live INSIDE the Autocomplete, whose root focuses the input on any click it sees;
 // `openOnFocus` then drops the example list open. Every control in that row has to stop its
 // click from getting there, or opening it also opens the examples — underneath the very menu
 // the reader is aiming at.
-const tierTrigger = () => document.querySelector('button.model-picker-trigger');
-const exampleListIsOpen = () => Boolean(document.querySelector('.homepage-autocomplete-listbox'));
-
 describe('the controls in the composer row', () => {
-    it('opens the tier menu without opening the example list', async () => {
+    it('opens the model-and-effort menu without opening the example list', async () => {
         setup({ autocompleteOptions: ['What is TP53?'] });
-        await waitFor(() => expect(tierTrigger()).not.toBeNull());
+        await chipReady();
+        expect(effortChip()).toHaveTextContent('GPT-6.1 Terra · Medium');
         expect(exampleListIsOpen()).toBe(false);
 
-        fireEvent.click(tierTrigger());
+        fireEvent.click(effortChip());
 
-        expect(document.querySelector('.model-picker-panel')).not.toBeNull();
+        expect(document.querySelector('.effort-menu')).not.toBeNull();
+        expect(Array.from(document.querySelectorAll('.effort-model-label')).map((n) => n.textContent))
+            .toEqual(['GPT-6.1 Sol', 'GPT-6.1 Terra', 'GPT-6 Luna']);
         expect(exampleListIsOpen()).toBe(false);
         expect(screen.queryByText('What is TP53?')).toBeNull();
     });
 
     it('hides an example list that was already open when the menu opens', async () => {
-        // The reader's screenshot: focusing the box opens the examples, and the model menu
-        // then landed on top of them — two popups stacked over each other.
         setup({ autocompleteOptions: ['What is TP53?'] });
-        await waitFor(() => expect(tierTrigger()).not.toBeNull());
+        await chipReady();
         fireEvent.focus(screen.getByPlaceholderText('Ask a question about the biomedical literature...'));
         await waitFor(() => expect(exampleListIsOpen()).toBe(true));
 
-        fireEvent.click(tierTrigger());
+        fireEvent.click(effortChip());
 
-        expect(document.querySelector('.model-picker-panel')).not.toBeNull();
+        expect(document.querySelector('.effort-menu')).not.toBeNull();
         expect(exampleListIsOpen()).toBe(false);
     });
 
-    it('does the same for Search Options and Investigate', () => {
+    it('does the same for Options', () => {
         setup({ autocompleteOptions: ['What is TP53?'] });
-        fireEvent.click(investigateButton());
+        fireEvent.click(optionsTrigger());
         expect(exampleListIsOpen()).toBe(false);
+    });
+
+    it('lists the five efforts, with only Medium and Extra offered', async () => {
+        setup();
+        await chipReady();
+        openEffortMenu();
+        const rows = Array.from(document.querySelectorAll('.effort-level-row'));
+        expect(rows.map((row) => row.querySelector('.effort-level-label').firstChild.textContent))
+            .toEqual(['Low', 'Medium', 'High', 'Extra', 'Max']);
+        expect(rows.map((row) => row.getAttribute('aria-disabled')))
+            .toEqual(['true', 'false', 'true', 'false', 'true']);
+        expect(levelRow('Medium')).toHaveAttribute('aria-checked', 'true');
+        // a greyed-out level cannot be picked
+        fireEvent.click(levelRow('High'));
+        expect(effortChip()).toHaveTextContent('· Medium');
+    });
+
+    it('picks a model from the menu and keeps it open', async () => {
+        setup();
+        await chipReady();
+        fireEvent.click(effortChip());
+        fireEvent.click(screen.getByRole('menuitemradio', { name: /GPT-6 Luna/ }));
+        expect(effortChip()).toHaveTextContent('GPT-6 Luna · Medium');
+        expect(document.querySelector('.effort-menu')).not.toBeNull();
     });
 });
 
-describe('with Investigate off', () => {
+describe('at Medium effort (the chat agent)', () => {
     it('carries the typed submit method through the route handoff', () => {
         setup();
         const field = screen.getByPlaceholderText('Ask a question about the biomedical literature...');
@@ -155,18 +183,20 @@ describe('with Investigate off', () => {
         expect(mockNavigate.mock.calls[0][1].state.initialQueryMethod).toBe('example');
     });
 
-    it('opens the drawer, showing Article Type and Sort by', () => {
+    it('opens the drawer, showing Research tools and the search filters', () => {
         setup();
         expect(drawerIsOpen()).toBe(false);
         fireEvent.click(optionsTrigger());
         expect(drawerIsOpen()).toBe(true);
+        expect(screen.getByText('Research tools')).toBeInTheDocument();
         expect(screen.getAllByText('Sort by').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Reviews only').length).toBeGreaterThan(0);
     });
 
-    it('sends the chosen filter', () => {
+    it('sends the chosen filter, and the knowledge graph Auto turns on at Medium', () => {
         setup();
         chooseReviewsOnly();
+        expect(optionsTrigger()).toHaveAttribute('aria-label', 'Options (changed)');
         expect(submit()).toEqual({
             filters: ['review'],
             rankingMode: 'default',
@@ -174,29 +204,28 @@ describe('with Investigate off', () => {
             // Empty: these submits happen before the picker's prices resolve, and an absent
             // tier is exactly what the chat then omits, leaving the server's default.
             serviceTier: '',
+            graph: true,
         });
     });
 });
 
-describe('with Investigate on', () => {
-    it('tracks entering the mode, but not switching it back off', () => {
+describe('at Extra effort (deep research, formerly Investigate)', () => {
+    it('tracks entering it', async () => {
         setup();
-        fireEvent.click(investigateButton());
-        fireEvent.click(chatTab());
-
+        await chooseEffortLevel('Extra');
+        expect(effortChip()).toHaveTextContent('· Extra');
         expect(trackGtagEvent).toHaveBeenCalledWith('home_investigate_enable_click', {
             source: 'home_searchbar',
         });
-        expect(trackGtagEvent.mock.calls.filter(
-            ([eventName]) => eventName === 'home_investigate_enable_click',
-        )).toHaveLength(1);
+        // and the mode hint gives Extra's time
+        expect(document.querySelector('.composer-modes-duration')?.textContent ?? '3–5 min').toBe('3–5 min');
     });
 
-    it('tracks an Investigate question submitted from the home search box', () => {
+    it('tracks a question submitted from the home search box', async () => {
         setup();
+        await chooseEffortLevel('Extra');
         const field = screen.getByPlaceholderText('Ask a question about the biomedical literature...');
         fireEvent.change(field, { target: { value: 'what is TP53?' } });
-        fireEvent.click(investigateButton());
         fireEvent.keyDown(field, { key: 'Enter' });
 
         expect(trackGtagEvent).toHaveBeenCalledWith('investigate_question_submit', {
@@ -206,66 +235,52 @@ describe('with Investigate on', () => {
         });
     });
 
-    it('removes the trigger entirely', () => {
+    it('says in Options that the filters do not apply, and the tools are always on', async () => {
         setup();
-        fireEvent.click(investigateButton());
-        expect(optionsTrigger()).toBeNull();
-    });
-
-    it('closes the drawer if it was already open', async () => {
-        // Not reachable by pointer today — the open drawer is a modal, so Investigate is behind
-        // the backdrop. The guard exists so the panel cannot be left showing an inert drawer if
-        // the toggle ever moves outside it.
-        setup();
+        await chooseEffortLevel('Extra');
         fireEvent.click(optionsTrigger());
-        expect(drawerIsOpen()).toBe(true);
-        fireEvent.click(investigateButton());
-        // MUI only flags the modal hidden once its exit transition finishes.
-        await waitFor(() => expect(drawerIsOpen()).toBe(false));
+        expect(screen.getByText(/Extra runs its own multi-channel retrieval/)).toBeInTheDocument();
+        expect(screen.getAllByText('Extra always includes it.')).toHaveLength(2);
+        expect(screen.queryAllByText('Reviews only')).toHaveLength(0);
     });
 
-    it('sends the defaults even if a filter was chosen beforehand', () => {
+    it('sends the defaults even if a filter was chosen beforehand', async () => {
         setup();
         chooseReviewsOnly();
-        fireEvent.click(investigateButton());
+        await chooseEffortLevel('Extra');
         expect(submit()).toEqual({
             filters: [],
             rankingMode: 'default',
             investigateEnabled: true,
-            // Empty: these submits happen before the picker's prices resolve, and an absent
-            // tier is exactly what the chat then omits, leaving the server's default.
-            serviceTier: '',
+            serviceTier: 'advanced',
         });
     });
 
-    it('does not restore the old selection when switched back off', () => {
-        // Turning Investigate off must not silently reinstate a filter the user last saw
-        // before the control disappeared.
+    it('is the effort the next visit starts with', async () => {
+        const first = setup();
+        await chooseEffortLevel('Extra');
+        first.unmount();
         setup();
-        chooseReviewsOnly();
-        fireEvent.click(investigateButton());
-        fireEvent.click(chatTab());
-        expect(optionsTrigger()).toHaveTextContent('Options');
-        expect(submit()).toEqual({
-            filters: [],
-            rankingMode: 'default',
-            investigateEnabled: false,
-            // Empty: these submits happen before the picker's prices resolve, and an absent
-            // tier is exactly what the chat then omits, leaving the server's default.
-            serviceTier: '',
-        });
+        await chipReady();
+        expect(effortChip()).toHaveTextContent('· Extra');
+    });
+
+    it('asks a prefill for "investigate" to switch to Extra', async () => {
+        setup({ requestedMode: { mode: 'investigate' } });
+        await chipReady();
+        expect(effortChip()).toHaveTextContent('· Extra');
     });
 });
 
 describe('with LITERATURE_REVIEW_ENABLED on', () => {
     const reviewTab = () => screen.getByRole('tab', { name: /Literature Review/, hidden: true });
 
-    it('offers the three modes as tabs', () => {
+    it('offers Chat and Literature Review as tabs (Investigate is the Extra effort now)', () => {
         mockReviewFlag = true;
         setup();
         const tabs = screen.getAllByRole('tab', { hidden: true });
-        expect(tabs.map((n) => n.querySelector('.composer-mode-label').textContent)).toEqual(['Chat', 'Investigate', 'Literature Review']);
-        expect(tabs.map((n) => Boolean(n.querySelector('.beta-badge')))).toEqual([false, false, true]);
+        expect(tabs.map((n) => n.querySelector('.composer-mode-label').textContent)).toEqual(['Chat', 'Literature Review']);
+        expect(tabs.map((n) => Boolean(n.querySelector('.beta-badge')))).toEqual([false, true]);
         expect(screen.getByRole('tab', { name: /Chat/, hidden: true })).toHaveAttribute('aria-selected', 'true');
     });
 
@@ -374,11 +389,11 @@ describe('with LITERATURE_REVIEW_ENABLED on', () => {
         expect(screen.getByRole('option', { name: /Your papers only/ })).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('leaves Investigate working beside it', () => {
+    it('leaves Extra working beside it', async () => {
         mockReviewFlag = true;
         setup();
-        fireEvent.click(investigateButton());
-        expect(screen.getByTitle('Investigate on')).toBeInTheDocument();
+        await chooseEffortLevel('Extra');
+        expect(chatTab()).toHaveAttribute('aria-selected', 'true');
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'what is TP53?' } });
         fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
         const [path, opts] = mockNavigate.mock.calls[0];
@@ -388,10 +403,12 @@ describe('with LITERATURE_REVIEW_ENABLED on', () => {
 });
 
 describe('with INVESTIGATE_ENABLED off', () => {
-    it('drops the Investigate toggle and leaves Search Options live', () => {
+    it('greys Extra out and leaves Options live', async () => {
         mockInvestigateFlag = false;
         setup();
-        expect(investigateButton()).toBeNull();
+        await chipReady();
+        openEffortMenu();
+        expect(levelRow('Extra')).toHaveAttribute('aria-disabled', 'true');
         fireEvent.click(optionsTrigger());
         expect(drawerIsOpen()).toBe(true);
     });
@@ -405,10 +422,10 @@ describe('while another Agent conversation is answering', () => {
        history id, so it does not race the answer already being written. */
     const PLACEHOLDER = 'Ask a new question — the other answer keeps writing';
 
-    it('stays usable and says the other answer is not being interrupted', () => {
+    it('stays usable and says the other answer is not being interrupted', async () => {
         setup({ isAgentRunActive: true });
         expect(screen.getByPlaceholderText(PLACEHOLDER)).not.toBeDisabled();
-        expect(investigateButton()).not.toBeDisabled();
+        await chipReady();
     });
 
     it('starts the new conversation on Enter', () => {
@@ -436,12 +453,13 @@ describe('while another Agent conversation is answering', () => {
 
 describe('when the quota is gone', () => {
     // A different matter entirely: there is no run to start, so the box really is locked.
-    it('locks every entry point and does not navigate', () => {
+    it('locks every entry point and does not navigate', async () => {
         setup({ isQueryLimitReached: true });
 
         const field = document.querySelector('textarea:not([aria-hidden="true"])');
         expect(field).toBeDisabled();
-        expect(investigateButton()).toBeDisabled();
+        await waitFor(() => expect(effortChip()).not.toBeNull());
+        expect(effortChip()).toBeDisabled();
 
         const start = screen.getByRole('button', { name: /start chat/i, hidden: true });
         expect(start).toHaveAttribute('aria-disabled', 'true');
@@ -453,7 +471,7 @@ describe('when the quota is gone', () => {
 describe('with nothing typed', () => {
     const start = () => screen.getByRole('button', { name: /start chat/i, hidden: true });
 
-    it.each([['Chat', false], ['Investigate', false], ['Literature Review', true]])(
+    it.each([['Chat', false], ['Literature Review', true]])(
         'the arrow starts nothing in %s mode, and starts once there is a question',
         (mode, review) => {
             mockReviewFlag = review;
@@ -475,16 +493,21 @@ describe('with nothing typed', () => {
     );
 });
 
-describe('Include in the answer (AI Chat options)', () => {
-    it('sends figures and graph only when switched on, and Reset turns them off', () => {
+describe('Research tools (Options)', () => {
+    const choose = (tool, choice) => {
+        const group = screen.getByRole('radiogroup', { name: tool, hidden: true });
+        fireEvent.click(within(group).getByRole('radio', { name: choice, hidden: true }));
+    };
+
+    it('sends figures and the graph as chosen, and Reset goes back to Auto', () => {
         setup();
         fireEvent.click(optionsTrigger());
-        fireEvent.click(screen.getAllByRole('checkbox', { name: 'Figures', hidden: true })[0]);
-        fireEvent.click(screen.getAllByRole('checkbox', { name: 'Knowledge graph', hidden: true })[0]);
+        choose('Figures', 'On');
+        choose('Knowledge Graph', 'Off');
         fireEvent.click(screen.getAllByText('Done')[0]);
         expect(submit()).toEqual({
             filters: [], rankingMode: 'default', investigateEnabled: false, serviceTier: '',
-            figures: true, graph: true,
+            figures: true,
         });
 
         mockNavigate.mockClear();
@@ -493,13 +516,15 @@ describe('Include in the answer (AI Chat options)', () => {
         fireEvent.click(screen.getAllByText('Done')[0]);
         expect(submit()).toEqual({
             filters: [], rankingMode: 'default', investigateEnabled: false, serviceTier: '',
+            graph: true,
         });
     });
 
-    it('is not offered in Investigate, which does both on its own', () => {
+    it('sends neither at Extra, which does both on its own', async () => {
         setup();
-        fireEvent.click(investigateButton());
-        expect(screen.queryAllByRole('checkbox', { name: 'Figures', hidden: true })).toHaveLength(0);
-        expect(submit()).not.toHaveProperty('figures');
+        await chooseEffortLevel('Extra');
+        const sent = submit();
+        expect(sent).not.toHaveProperty('figures');
+        expect(sent).not.toHaveProperty('graph');
     });
 });

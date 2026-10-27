@@ -89,7 +89,11 @@ export const AttachButton = ({
     itemLabel = 'Add photos and files',
     itemHint = 'Upload from computer',
     accept,
+    /* The composer's "+" (design: GLKB Effort A): a bordered square that opens the file picker
+       straight away, with no panel in between. */
+    variant = 'menu',
 }) => {
+    const direct = variant === 'square';
     const inputRef = useRef(null);
     const buttonRef = useRef(null);
     const [anchor, setAnchor] = useState(null);
@@ -109,10 +113,10 @@ export const AttachButton = ({
                     <button
                         ref={buttonRef}
                         type="button"
-                        className={`attach-button${menuOpen ? ' is-open' : ''}`}
+                        className={`attach-button${menuOpen ? ' is-open' : ''}${direct ? ' is-square' : ''}`}
                         aria-label={label}
-                        aria-haspopup="menu"
-                        aria-expanded={menuOpen}
+                        aria-haspopup={direct ? undefined : 'menu'}
+                        aria-expanded={direct ? undefined : menuOpen}
                         disabled={disabled}
                         onMouseDown={(event) => {
                             // Keeps focus (and, on the home page, the example list) where it was.
@@ -128,6 +132,11 @@ export const AttachButton = ({
                                 onRequireSignIn?.();
                                 return;
                             }
+                            if (direct) {
+                                trackGtagEvent('chat_attach_click', { source, via: 'button' });
+                                inputRef.current?.click();
+                                return;
+                            }
                             if (menuOpen) {
                                 close();
                                 return;
@@ -136,7 +145,8 @@ export const AttachButton = ({
                             setAnchor(button?.closest('[data-attach-anchor]') || button);
                         }}
                     >
-                        <AddIcon className="attach-button-icon" />
+                        {direct ? <span className="attach-button-plus" aria-hidden="true">+</span>
+                            : <AddIcon className="attach-button-icon" />}
                     </button>
                     <input
                         ref={inputRef}
@@ -217,10 +227,110 @@ const chipMeta = (item) => {
  * The files waiting on a composer, with their upload state. `blockedNote` explains why the
  * question cannot be sent as it stands (a failed upload, Investigate).
  */
-export const AttachmentChips = ({ items = [], notice = '', blockedNote = '', onRemove }) => {
+// The design chip's tag: the file's extension, "PDF", "PNG", "CSV".
+const extensionTag = (name) => {
+    const text = String(name || '');
+    const dot = text.lastIndexOf('.');
+    const ext = dot > 0 ? text.slice(dot + 1) : '';
+    return (ext && ext.length <= 5 ? ext : 'file').toUpperCase();
+};
+
+/**
+ * The composer's waiting files in the design's form (GLKB Effort A): one compact chip each —
+ * the extension as a tag, the name, and × — with the upload's progress along its foot and an
+ * error in place of the name's tail.
+ */
+const DesignChips = ({ items, notice, blockedNote, onRemove }) => (
+    <div
+        className="attachment-chips is-design"
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+    >
+        {items.length > 0 && (
+            <ul className="attachment-chip-list" aria-label="Attached files">
+                {items.map((item) => (
+                    <li
+                        key={item.key}
+                        className={`attachment-chip is-${item.status} is-${item.kind}`}
+                        data-testid="attachment-chip"
+                        title={item.status === 'error' ? chipMeta(item) : item.name}
+                    >
+                        <span className="attachment-chip-tag">{extensionTag(item.name)}</span>
+                        <span className="attachment-chip-name">{item.name}</span>
+                        {item.status !== 'ready' && (
+                            <span
+                                className="attachment-chip-meta"
+                                role={item.status === 'error' ? 'alert' : undefined}
+                            >
+                                {item.status === 'uploading'
+                                    ? `${Math.round((Number(item.progress) || 0) * 100)}%`
+                                    : chipMeta(item)}
+                            </span>
+                        )}
+                        {item.status === 'uploading' && (
+                            <span
+                                className="attachment-chip-progress"
+                                role="progressbar"
+                                aria-label={`Uploading ${item.name}`}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-valuenow={Math.round((Number(item.progress) || 0) * 100)}
+                            >
+                                <span style={{ width: `${Math.round((Number(item.progress) || 0) * 100)}%` }} />
+                            </span>
+                        )}
+                        <button
+                            type="button"
+                            className="attachment-chip-remove"
+                            title="Remove"
+                            aria-label={`Remove ${item.name}`}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                onRemove?.(item.key);
+                            }}
+                        >
+                            ×
+                        </button>
+                    </li>
+                ))}
+            </ul>
+        )}
+        {(blockedNote || notice) && (
+            <div className="attachment-chips-note" role="status">
+                {blockedNote || notice}
+            </div>
+        )}
+    </div>
+);
+
+/**
+ * The composer's warning when the chosen effort does not read the waiting files (design: GLKB
+ * Effort A): "Extra doesn't read attached files.  [Use Medium] [Remove file]".
+ */
+export const AttachConflict = ({ effortName, fallbackName, onUseFallback, onRemoveFiles, count = 1 }) => (
+    <div
+        className="attach-conflict"
+        role="status"
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+    >
+        <span className="attach-conflict-text">{effortName} doesn't read attached files.</span>
+        <button type="button" className="attach-conflict-primary" onClick={onUseFallback}>Use {fallbackName}</button>
+        <button type="button" className="attach-conflict-secondary" onClick={onRemoveFiles}>
+            {count > 1 ? 'Remove files' : 'Remove file'}
+        </button>
+    </div>
+);
+
+export const AttachmentChips = ({ items = [], notice = '', blockedNote = '', onRemove, variant = 'card' }) => {
     // The waiting image shown large (its local preview), until closed.
     const [preview, setPreview] = useState(null);
     if (!items.length && !notice && !blockedNote) return null;
+    if (variant === 'design') {
+        return <DesignChips items={items} notice={notice} blockedNote={blockedNote} onRemove={onRemove} />;
+    }
     return (
         <div
             className="attachment-chips"
