@@ -150,9 +150,9 @@ import {
 import {
     effectiveTier,
     getTierPref,
+    GUEST_TIER,
     setTierPref,
     subscribeToTierPref,
-    TIER_STANDARD,
 } from '../../service/serviceTiers';
 import { refusalNeedsSignIn, refusalText } from '../../utils/refusals';
 import {
@@ -2586,7 +2586,7 @@ function LLMAgent({ isRouteActive = true }) {
             // A members-only tier puts the picker back on the guest's; a refusal for attached
             // files (`reason: "attachments"`) has nothing to do with the tier.
             if (refusal.code === 'GUEST_LOGIN_REQUIRED' && refusal.reason !== 'attachments') {
-                setServiceTier(TIER_STANDARD);
+                setServiceTier(GUEST_TIER);
             }
         }
         if (refusal.code === 'INSUFFICIENT_CREDITS' || refusal.code === 'GUEST_LIMIT_REACHED') {

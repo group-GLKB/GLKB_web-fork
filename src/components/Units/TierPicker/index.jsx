@@ -1,6 +1,6 @@
 /**
- * Which service tier answers the next question — `standard` (shown as GPT-6 Luna) or `premium`
- * (shown as GPT-6.1 Sol).
+ * Which service tier answers the next question — `standard` (shown as GPT-6 Luna), `advanced`
+ * (GPT-6.1 Terra, the default) or `premium` (GPT-6.1 Sol).
  *
  * A chip showing the current tier, opening a panel of the tiers this pipeline offers with what
  * each costs in credits (service/serviceTiers.js). It replaced the model picker when the backend
@@ -14,8 +14,8 @@
  *   onResolveDefault — the prices arrived and nothing usable was held, so this is what the server
  *                      would use anyway. NOT remembered: storing it would pin today's default.
  *
- * A guest is held to `standard` (the backend refuses anything else with a 403). The panel still
- * lists `premium` — a guest should see what signing in unlocks — but choosing it asks them to
+ * A guest is held to `GUEST_TIER`, `advanced` (the backend refuses anything else with a 403).
+ * The panel still lists the others — a guest should see what signing in unlocks — but choosing it asks them to
  * sign in (`onRequireSignIn`) instead of selecting it. *
  * `variant="list"` draws the rows in place, without the chip: the phone home composer has no room
  * in its row for the chip, so the tiers sit in its Options sheet instead.

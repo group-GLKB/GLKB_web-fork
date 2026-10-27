@@ -2,16 +2,18 @@
  * Which service tier answers the question.
  *
  * Since the credit system (glkb-backend `docs/frontend-credits.md`, 2026-09-30) a web request
- * names a TIER — `service_tier`, `standard` or `premium` — never a model. The backend prices the
+ * names a TIER — `service_tier`, `standard`, `advanced` or `premium` — never a model. The backend prices the
  * tier in credits and the agent decides which model runs it (`SERVICE_TIERS` in glkb-agent
  * `service/model_catalog.py`).
  *
  * The reader still sees MODEL names, not tier names (product decision, 2026-10-04): `standard`
- * is shown as GPT-6 Luna and `premium` as GPT-6.1 Sol. So moving a tier to another model is
+ * is shown as GPT-6 Luna, `advanced` as GPT-6.1 Terra and `premium` as GPT-6.1 Sol. So moving a
+ * tier to another model is
  * the agent's table AND `TIER_COPY` below — change both together.
  *
  * The tiers and their prices are FETCHED from `GET /api/v1/credits/pricing` (public), and only
- * the rows marked `enabled` are offered (Advanced is off today). `FALLBACK_PRICING` exists only
+ * the rows marked `enabled` are offered (all three since 2026-10-26, when Advanced became the
+ * default). `FALLBACK_PRICING` exists only
  * so the picker still renders when that request fails.
  *
  * The choice persists in localStorage and `subscribeToTierPref` keeps every composer — the home
@@ -25,16 +27,21 @@ const CHANGE_EVENT = 'glkb-service-tier-change';
 const PRICING_ENDPOINT = '/api/v1/credits/pricing';
 
 export const TIER_STANDARD = 'standard';
+export const TIER_ADVANCED = 'advanced';
 export const TIER_PREMIUM = 'premium';
 
-/** The tier a guest is held to; the backend refuses any other with a 403. */
-export const GUEST_TIER = TIER_STANDARD;
+/** What a request naming no tier gets when the pricing does not say (the backend's default). */
+const DEFAULT_TIER = TIER_ADVANCED;
+
+/** The tier a guest is held to; the backend refuses any other with a 403. GPT-6.1 Terra since
+ * 2026-10-26 (GPT-6 Luna before). */
+export const GUEST_TIER = TIER_ADVANCED;
 
 // Words only: prices come from the endpoint. Labels name the model the agent runs for the tier
 // (glkb-agent SERVICE_TIERS); `shortLabel` is the chip's on a narrow phone, as the model picker had.
 const TIER_COPY = {
     standard: { label: 'GPT-6 Luna', shortLabel: '6 Luna', description: 'Fastest and cheapest' },
-    advanced: { label: 'Advanced', shortLabel: 'Advanced', description: 'More depth for harder questions' },
+    advanced: { label: 'GPT-6.1 Terra', shortLabel: '6.1 Terra', description: 'Balanced speed and depth' },
     premium: { label: 'GPT-6.1 Sol', shortLabel: '6.1 Sol', description: 'Most capable' },
 };
 // Most capable first, the order the picker has always listed in.
@@ -42,13 +49,16 @@ const TIER_ORDER = ['premium', 'advanced', 'standard'];
 
 /** Used only when the pricing endpoint cannot be reached. */
 export const FALLBACK_PRICING = {
-    default_service_tier: TIER_STANDARD,
+    default_service_tier: DEFAULT_TIER,
     prices: [
         { pipeline: 'chat', service_tier: 'standard', credits: 1, enabled: true },
+        { pipeline: 'chat', service_tier: 'advanced', credits: 5, enabled: true },
         { pipeline: 'chat', service_tier: 'premium', credits: 10, enabled: true },
         { pipeline: 'deep_research', service_tier: 'standard', credits: 20, enabled: true },
+        { pipeline: 'deep_research', service_tier: 'advanced', credits: 30, enabled: true },
         { pipeline: 'deep_research', service_tier: 'premium', credits: 45, enabled: true },
         { pipeline: 'literature_review', service_tier: 'standard', credits: 10, enabled: true },
+        { pipeline: 'literature_review', service_tier: 'advanced', credits: 20, enabled: true },
         { pipeline: 'literature_review', service_tier: 'premium', credits: 50, enabled: true },
     ],
 };
@@ -86,7 +96,7 @@ export const parsePricing = (raw) => {
     const preferred = String(raw?.default_service_tier || '').trim().toLowerCase();
     const defaultTier = tiers.some((t) => t.id === preferred)
         ? preferred
-        : (tiers.find((t) => t.id === TIER_STANDARD) || tiers[tiers.length - 1])?.id || TIER_STANDARD;
+        : (tiers.find((t) => t.id === DEFAULT_TIER) || tiers[tiers.length - 1])?.id || DEFAULT_TIER;
     return { defaultTier, tiers };
 };
 
@@ -123,7 +133,7 @@ export const tiersFor = (pricing, pipeline) => {
     const preferred = pricing?.defaultTier;
     const defaultTier = tiers.some((t) => t.id === preferred)
         ? preferred
-        : (tiers.find((t) => t.id === TIER_STANDARD) || tiers[tiers.length - 1])?.id || '';
+        : (tiers.find((t) => t.id === DEFAULT_TIER) || tiers[tiers.length - 1])?.id || '';
     return { tiers, defaultTier };
 };
 
@@ -180,7 +190,7 @@ export const subscribeToTierPref = (listener) => {
 };
 
 /**
- * The tier a request should carry: a guest is always `standard` (the backend refuses anything
+ * The tier a request should carry: a guest is always `GUEST_TIER` (the backend refuses anything
  * else with a 403), a signed-in reader whatever they chose.
  */
 export const effectiveTier = (tierId, { isGuest = false } = {}) => (
