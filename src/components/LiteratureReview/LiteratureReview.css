@@ -734,6 +734,8 @@
   font: 600 18px/26px var(--font-family-sans, "Geist", sans-serif);
   color: var(--color-text-primary, #0B1220);
   outline: none;
+  resize: none;
+  overflow: hidden;
 }
 .lr-outline-review-title:focus { border-color: var(--color-brand-primary); box-shadow: 0 0 0 3px var(--color-brand-soft, #EEF3FF); }
 .lr-outline-thesis-label { margin-top: 16px; }
@@ -792,3 +794,95 @@
 .lr-planned.lr-cost { margin-top: -12px; }
 .lr-cost .lr-mono { font-weight: 600; color: var(--color-text-primary, #0B1220); }
 .lr-mbar-sub .lr-mbar-cost { font-weight: 600; color: var(--color-text-primary, #0B1220); }
+
+/* Outline, the design's version: the sections as cards (length stepper, papers, move / leave out), and
+   the scope with the planned length against the target beside them (OutlineStep). */
+.lr-outline-page .lr-title.lr-outline-heading { margin-bottom: 0; }
+.lr-ohead { margin-top: 28px; padding: 20px 24px; border: 1px solid var(--color-border-default, #E5E9F0); border-radius: 16px; background: var(--color-background-surface, #fff); }
+.lr-ohead-label { display: block; font-size: 13px; font-weight: 600; letter-spacing: .02em; color: var(--color-text-tertiary, #5E6E87); }
+.lr-ohead .lr-ohead-label + .lr-outline-review-title { margin-top: 6px; }
+.lr-ohead .lr-outline-thesis { margin-top: 4px; }
+.lr-ohead .lr-ohead-label:not(:first-child) { margin-top: 16px; }
+.lr-osecs { display: flex; flex-direction: column; gap: 12px; margin: 16px 0 0; padding: 0; list-style: none; }
+.lr-osec {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 20px 18px 20px;
+  border: 1px solid var(--color-border-default, #E5E9F0);
+  border-radius: 16px;
+  background: var(--color-background-surface, #fff);
+}
+.lr-osec-num { flex: none; width: 24px; padding-top: 6px; font-size: 14px; color: var(--color-grey-400, #8090AB); }
+.lr-osec-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.lr-osec .lr-outline-title { font-size: 18px; line-height: 26px; }
+.lr-osec-covers { margin: 0; font-size: 15px; line-height: 22px; color: var(--color-text-tertiary, #5E6E87); }
+.lr-osec-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 10px; }
+.lr-osec-meta { font-size: 13px; color: var(--color-grey-400, #8090AB); }
+.lr-osec-meta.lr-mono { font-size: 14px; color: var(--color-text-tertiary, #5E6E87); }
+.lr-osec-words {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  border: 1px solid var(--color-border-default, #E5E9F0);
+  border-radius: 8px;
+  background: var(--color-background-surface, #fff);
+}
+.lr-osec-words .lr-mono { min-width: 128px; padding: 0 4px; text-align: center; font-size: 14px; color: var(--color-text-primary, #0B1220); }
+.lr-osec-words button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-text-secondary, #222A38);
+  cursor: pointer;
+}
+.lr-osec-words button:hover:not(:disabled) { background: var(--color-background-muted, #E5E9F0); }
+.lr-osec-words button:disabled { opacity: .3; cursor: default; }
+.lr-osec-tools { margin-top: 2px; }
+.lr-osec.is-removed { background: var(--color-background-subtle, #F7F9FC); border-style: dashed; }
+.lr-osec.is-removed .lr-outline-title { text-decoration: line-through; color: var(--color-grey-400, #8090AB); }
+
+.lr-outline-side { position: sticky; top: 96px; }
+.lr-outline-side .lr-primary { margin-top: 20px; }
+.lr-ometer { margin-top: 4px; }
+.lr-ometer-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; color: var(--color-text-tertiary, #5E6E87); }
+.lr-ometer-head .lr-mono { font-size: 15px; color: var(--color-text-primary, #0B1220); }
+.lr-ometer-bar { height: 6px; margin-top: 10px; overflow: hidden; border-radius: 3px; background: var(--color-background-muted, #E5E9F0); }
+.lr-ometer-bar span { display: block; height: 100%; border-radius: 3px; transition: width .2s ease; }
+.lr-ometer.is-on .lr-ometer-bar span { background: var(--color-green-700, #03722C); }
+.lr-ometer.is-off .lr-ometer-bar span { background: var(--color-orange-500, #FC9015); }
+.lr-ometer-status { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 20px; margin-top: 8px; font-size: 14px; }
+.lr-ometer.is-on .lr-ometer-status { color: var(--color-green-700, #03722C); }
+.lr-ometer.is-off .lr-ometer-status { color: var(--color-orange-700, #A14A03); }
+.lr-outline-fit { font-size: 14px; }
+.lr-ochange-row { margin-top: 18px; text-align: center; }
+.lr-ochange { font-size: 15px; }
+.lr-oconfirm { text-align: left; }
+.lr-oconfirm p { margin: 0 0 10px; font-size: 14px; line-height: 20px; color: var(--color-text-secondary, #222A38); }
+.lr-oconfirm > div { display: flex; gap: 8px; }
+.lr-oconfirm .lr-secondary { flex: 1; height: 36px; padding: 0 10px; font-size: 14px; }
+.lr-secondary.is-danger { border-color: var(--color-status-error-text, #A10902); color: var(--color-status-error-text, #A10902); }
+@media (max-width: 900px) {
+  .lr-outline-side { position: static; }
+}
+
+/* The outline on a phone: the topic, the title and argument, the sections, then the scope. */
+.lr-moutline { padding: 24px 16px 0; }
+.lr-moutline-topic { margin: 0 0 12px; font-size: 17px; line-height: 24px; font-weight: 600; color: var(--color-text-primary, #0B1220); }
+.lr-moutline .lr-moutline-head { padding: 0; border: 0; background: none; }
+.lr-moutline .lr-ohead { margin-top: 0; padding: 16px; }
+.lr-moutline .lr-osec { gap: 10px; padding: 16px 12px 14px 14px; }
+.lr-moutline .lr-osec-num { width: 20px; }
+.lr-moutline .lr-osec .lr-outline-title { font-size: 17px; line-height: 24px; }
+.lr-moutline .lr-osec-covers { font-size: 14px; line-height: 20px; }
+.lr-moutline .lr-osec-tools { flex-direction: column; }
+.lr-moutline-scope { margin-top: 16px; padding: 4px 16px 16px; }
+.lr-moutline-scope .lr-scope-rows { margin-bottom: 12px; }
+.lr-moutline-change { margin-top: 16px; }
+.lr-moutline > .lr-mbar { margin-top: auto; }

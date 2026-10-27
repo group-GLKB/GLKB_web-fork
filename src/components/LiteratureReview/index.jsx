@@ -6,8 +6,8 @@
  *   /literature-review/:publicId    a saved review, reopened from History, Recent or a link
  *
  * The page walks the design's four steps — Scope, Outline, Writing, Review. Behind
- * LR_OUTLINE_APPROVAL_ENABLED (off for now), the run stops once the outline is planned
- * (`outline_approval`): the reader renames, reorders or leaves out sections and approves it
+ * LR_OUTLINE_APPROVAL_ENABLED (config/features.js), the run stops once the outline is planned
+ * (`outline_approval`): the reader renames, reorders, resizes or leaves out sections and approves it
  * (OutlineStep), and only then is anything written. Nothing runs while they decide, and a reload —
  * or the mail saying the outline is ready — finds it again (getReviewRun). Off, Outline is a step the
  * run passes through, not one the reader edits.
@@ -331,7 +331,8 @@ export default function LiteratureReview() {
         setSections(null);
         setProgress({ phase: 'writing', label: 'Writing the review…', percent: 80, detail: {} });
         setStatus('running');
-        trackGtagEvent('literature_review_outline_approve', { sections: chosen.length });
+        trackGtagEvent('literature_review_outline_approve', { sections: chosen.length,
+                                                              words: chosen.reduce((n, x) => n + (x.words || 0), 0) });
         const run = { finished: false, approving: true };
         try {
             await approveOutline({ runId, title, sections: chosen, signal: controller.signal }, onFrame(run));
@@ -355,20 +356,32 @@ export default function LiteratureReview() {
         }
     }, [onFrame]);
 
-    /* Discard the outline: the prompt is answered as stopped, and the topic is kept for another try. */
-    const discardOutline = useCallback(async () => {
+    /* Change the scope: the outline is discarded (the prompt is answered as stopped) and Step 1 opens
+       again with the topic and the scope the outline was planned with — the run's own record of it,
+       which a reload keeps when the page's state does not. */
+    const changeScope = useCallback(async () => {
         try {
             await cancelReview(runIdRef.current);
         } catch (err) {
             /* nothing was running; the outline is left as it was */
         }
         trackGtagEvent('literature_review_outline_discard', {});
+        const planned = outline?.scope || {};
+        setScope((s) => ({
+            ...s,
+            ...(planned.target_words ? { targetWords: planned.target_words } : {}),
+            ...('start_year' in planned ? { startYear: planned.start_year || null } : {}),
+            // The service fills in this year when none was chosen, which the form shows as no end year.
+            ...(planned.cutoff_year
+                ? { cutoffYear: planned.cutoff_year >= new Date().getFullYear() ? null : planned.cutoff_year } : {}),
+            ...(planned.article_types ? { articleTypes: planned.article_types } : {}),
+        }));
         setOutline(null);
         setError('');
         setTopic((t) => t || savedQuestion);
         setStatus('idle');
         navigate('/literature-review');
-    }, [navigate, savedQuestion]);
+    }, [navigate, savedQuestion, outline]);
 
     const stop = useCallback(async () => {
         try {
@@ -483,8 +496,9 @@ export default function LiteratureReview() {
             {status === 'loading' && <LinearProgress sx={{ mx: 4, mt: 4 }} />}
 
             {status === 'outline' && outline && (
-                <OutlineStep key={runIdRef.current || 'outline'} outline={outline} onApprove={approve}
-                             onDiscard={discardOutline} error={error} phone={isPhone} />
+                <OutlineStep key={runIdRef.current || 'outline'} outline={outline} topic={savedQuestion}
+                             scope={scope} citationStyle={scope.citationStyle} yourPapers={savedPapers.length}
+                             onApprove={approve} onChangeScope={changeScope} error={error} phone={isPhone} />
             )}
 
             {writing && (
