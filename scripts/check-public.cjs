@@ -54,8 +54,12 @@ for (const url of urls) {
         assert.ok(fs.existsSync(path.join(root, decodeURIComponent(src))), `missing asset ${src}`);
     }
 }
-assert.ok(home.includes('Do you search full texts, or just abstracts?'));
-assert.ok(home.includes('results should be reviewed and validated'));
+const faqData = require('../src/components/AboutPage/faqData.json');
+const escapeHtml = text => text.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;' }[character]));
+for (const item of faqData) {
+    assert.ok(home.includes(escapeHtml(item.question)), `prerendered FAQ question: ${item.id}`);
+    assert.ok(home.includes(escapeHtml(item.answer)), `prerendered FAQ answer: ${item.id}`);
+}
 assert.ok(home.includes('/blog/glkb-knowledge-graph'));
 assert.match(fs.readFileSync(path.join(root, 'app.html'), 'utf8'), /noindex, nofollow/);
 assert.equal(redirects.at(-1).target, '/app.html');

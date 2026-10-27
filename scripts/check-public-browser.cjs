@@ -49,7 +49,7 @@ async function main() {
                 }
                 if (!javaScriptEnabled && pathname === '/') {
                     assert.ok(await page.locator('#root').evaluate(el => el.scrollHeight > el.clientHeight && getComputedStyle(el).overflowY === 'auto'));
-                    const question = page.locator('summary').filter({ hasText: 'Do you search full texts, or just abstracts?' });
+                    const question = page.locator('summary').filter({ hasText: 'Does GLKB search full-text papers or abstracts?' });
                     await question.click();
                     assert.ok(await question.locator('..').getAttribute('open') !== null);
                 }
