@@ -33,9 +33,14 @@ export const TIER_PREMIUM = 'premium';
 /** What a request naming no tier gets when the pricing does not say (the backend's default). */
 const DEFAULT_TIER = TIER_ADVANCED;
 
-/** The tier a guest is held to; the backend refuses any other with a 403. GPT-6.1 Terra since
- * 2026-10-26 (GPT-6 Luna before). */
+/** The tier a guest gets by default: GPT-6.1 Terra since 2026-10-26 (GPT-6 Luna before). */
 export const GUEST_TIER = TIER_ADVANCED;
+
+/** The tiers a guest may use (2026-10-26): Terra and Luna. The backend refuses Premium with a
+ * 403. */
+export const GUEST_TIERS = [TIER_ADVANCED, TIER_STANDARD];
+
+export const isGuestTier = (tierId) => GUEST_TIERS.includes(tierId);
 
 // Words only: prices come from the endpoint. Labels name the model the agent runs for the tier
 // (glkb-agent SERVICE_TIERS); `shortLabel` is the chip's on a narrow phone, as the model picker had.
@@ -190,9 +195,11 @@ export const subscribeToTierPref = (listener) => {
 };
 
 /**
- * The tier a request should carry: a guest is always `GUEST_TIER` (the backend refuses anything
- * else with a 403), a signed-in reader whatever they chose.
+ * The tier a request should carry: a signed-in reader whatever they chose; a guest their choice
+ * if it is one of `GUEST_TIERS`, else `GUEST_TIER` (the backend refuses Premium with a 403).
  */
-export const effectiveTier = (tierId, { isGuest = false } = {}) => (
-    isGuest ? GUEST_TIER : (typeof tierId === 'string' ? tierId.trim().toLowerCase() : '')
-);
+export const effectiveTier = (tierId, { isGuest = false } = {}) => {
+    const chosen = typeof tierId === 'string' ? tierId.trim().toLowerCase() : '';
+    if (!isGuest) return chosen;
+    return isGuestTier(chosen) ? chosen : GUEST_TIER;
+};

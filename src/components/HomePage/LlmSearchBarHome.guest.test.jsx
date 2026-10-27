@@ -124,11 +124,15 @@ describe('a guest at the home composer', () => {
         expect(mockAuth.openLoginModal).toHaveBeenCalledWith(expect.stringMatching(/GPT-6.1 Sol is available to signed-in users/));
     });
 
-    it('picking GPT-6 Luna asks them to sign in too', async () => {
+    it('may pick GPT-6 Luna, and the question is sent on Standard', async () => {
         renderBar();
         fireEvent.click(await screen.findByRole('button', { name: 'Model: GPT-6.1 Terra' }));
         fireEvent.click(screen.getByRole('option', { name: /GPT-6 Luna/ }));
-        expect(mockAuth.openLoginModal).toHaveBeenCalledWith(expect.stringMatching(/GPT-6 Luna is available to signed-in users/));
+        expect(mockAuth.openLoginModal).not.toHaveBeenCalled();
+        expect(await screen.findByRole('button', { name: 'Model: GPT-6 Luna' })).toBeInTheDocument();
+        typeQuestion('What is BRCA1?');
+        startChat();
+        expect(mockNavigate.mock.calls[0][1].state.initialSearchOptions.serviceTier).toBe('standard');
     });
 
     it('turning on Investigate asks them to sign in, and the question stays AI Chat', () => {

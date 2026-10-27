@@ -14,9 +14,10 @@
  *   onResolveDefault — the prices arrived and nothing usable was held, so this is what the server
  *                      would use anyway. NOT remembered: storing it would pin today's default.
  *
- * A guest is held to `GUEST_TIER`, `advanced` (the backend refuses anything else with a 403).
- * The panel still lists the others — a guest should see what signing in unlocks — but choosing it asks them to
- * sign in (`onRequireSignIn`) instead of selecting it. *
+ * A guest may use `GUEST_TIERS` — Terra (`GUEST_TIER`, their default) and Luna; the backend
+ * refuses Premium with a 403. The panel still lists Premium — a guest should see what signing in
+ * unlocks — but choosing it asks them to sign in (`onRequireSignIn`) instead of selecting it.
+ *
  * `variant="list"` draws the rows in place, without the chip: the phone home composer has no room
  * in its row for the chip, so the tiers sit in its Options sheet instead.
  */
@@ -31,6 +32,7 @@ import { ClickAwayListener, Popper, useMediaQuery } from '@mui/material';
 import {
     fetchTierPricing,
     GUEST_TIER,
+    isGuestTier,
     tiersFor,
 } from '../../../service/serviceTiers';
 import { trackGtagEvent } from '../../../utils/gtag';
@@ -80,8 +82,9 @@ const TierPicker = ({
     }, [isOpen]);
 
     const { tiers, defaultTier: pipelineDefault } = tiersFor(pricing, pipeline);
-    const defaultTier = isGuest && tiers.some((t) => t.id === GUEST_TIER) ? GUEST_TIER : pipelineDefault;
-    const eligible = tiers.some((t) => t.id === value) && (!isGuest || value === GUEST_TIER);
+    const defaultTier = isGuest && !isGuestTier(pipelineDefault) && tiers.some((t) => t.id === GUEST_TIER)
+        ? GUEST_TIER : pipelineDefault;
+    const eligible = tiers.some((t) => t.id === value) && (!isGuest || isGuestTier(value));
 
     /* The parent may hold nothing yet, a tier this pipeline does not offer, or (a guest) a tier
        they may not use. Each is replaced by the default, VISIBLY — the chip re-renders before
@@ -108,7 +111,7 @@ const TierPicker = ({
     const options = (
         tiers.map((entry) => {
             const isSelected = entry.id === selected;
-            const needsSignIn = isGuest && entry.id !== GUEST_TIER;
+            const needsSignIn = isGuest && !isGuestTier(entry.id);
             return (
                 <button
                     key={entry.id}
