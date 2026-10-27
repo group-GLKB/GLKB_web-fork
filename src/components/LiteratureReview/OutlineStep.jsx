@@ -1,13 +1,9 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import CloseIcon from '@mui/icons-material/Close';
-import RemoveIcon from '@mui/icons-material/Remove';
 
 import { articleTypeLabel, sourceById, yearsLabel } from '../HomePage/ReviewScope';
 import BetaBadge from '../Units/BetaBadge';
+import { OptionDropdown, OptionItem } from '../Units/OptionMenu';
 import { styleById } from './citationStyle';
 
 const pad2 = (n) => String(n).padStart(2, '0');
@@ -84,13 +80,13 @@ function WordStepper({ name, words, onChange, canGrow, disabled }) {
         <span className="lr-osec-words" role="group" aria-label={`Length: ${name}`}>
             <button type="button" aria-label={`Shorter: ${name}`} disabled={disabled || words <= SECTION_WORDS.min}
                     onClick={() => onChange(clampWords(words - SECTION_WORDS.step))}>
-                <RemoveIcon style={{ width: 16, height: 16 }} />
+                −
             </button>
             <span className="lr-mono" aria-live="polite">~{fmt(words)} words</span>
             <button type="button" aria-label={`Longer: ${name}`}
                     disabled={disabled || !canGrow || words >= SECTION_WORDS.max}
                     onClick={() => onChange(clampWords(words + SECTION_WORDS.step))}>
-                <AddIcon style={{ width: 16, height: 16 }} />
+                +
             </button>
         </span>
     );
@@ -108,6 +104,11 @@ function WordStepper({ name, words, onChange, canGrow, disabled }) {
  * the planned length against the target. `onApprove({title, sections: [{id, title, words}]})` writes
  * it, every kept section with the length shown; a section the reader moved or resized by more than a
  * quarter has its paragraphs planned again before it is written (narrative.apply_edits).
+ *
+ * Laid out as the design's outline page: the working title as the heading (renamed in place), the
+ * sections as cards, and a section left out leaves the list ("+ Add section" puts it back). What the
+ * design has and the service does not take is left out: a section's description is shown, not edited,
+ * and a section the outline did not plan cannot be added.
  *
  * "Change scope" discards the outline and goes back to Step 1 with the same settings
  * (`onChangeScope`): the outline was the review's charge, so starting again is charged again, which
@@ -139,15 +140,19 @@ export default function OutlineStep({
     const onTarget = Math.abs(off) <= ON_TARGET;
 
     const patch = (id, change) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...change } : r)));
-    // The body's sections sit between the introduction and the outlook: a move swaps two of them.
+    // The body's sections sit between the introduction and the outlook: a move swaps a section with the
+    // next one kept (a section left out is not shown, so it is stepped over).
     const move = (id, by) => setRows((rs) => {
         const i = rs.findIndex((r) => r.id === id);
-        const j = i + by;
+        let j = i + by;
+        while (j >= 0 && j < rs.length && rs[j].kind === 'body' && rs[j].removed) j += by;
         if (i < 0 || j < 0 || j >= rs.length || rs[j].kind !== 'body') return rs;
         const next = [...rs];
         [next[i], next[j]] = [next[j], next[i]];
         return next;
     });
+    const keptBody = body.filter((r) => !r.removed);
+    const removed = rows.filter((r) => r.removed);
     const approve = () => onApprove({
         title: title.trim(),
         sections: kept.map((r) => ({ id: r.id, title: r.title.trim() || original.get(r.id), words: r.words })),
@@ -165,70 +170,74 @@ export default function OutlineStep({
         </button>
     );
 
+    const covers = (r) => (r.subsections?.length ? r.subsections.map((x) => x.title).join(' · ') : r.message);
+    /* The design's section cards: number, title (renamed in place), what it covers, its length and
+       papers, and — for the body — move up, move down and leave out. A section left out goes from the
+       list; "+ Add section" puts it back (the review service writes only the sections it planned). */
     const list = (
-        <ol className="lr-osecs" aria-label="Sections">
-            {rows.map((r) => {
-                const n = kept.indexOf(r) + 1;
-                const at = body.indexOf(r);
-                const name = r.title.trim() || original.get(r.id);
-                const covers = r.subsections?.length ? r.subsections.map((x) => x.title).join(' · ') : r.message;
-                const fixed = r.kind === 'introduction' ? 'Always first' : r.kind === 'outlook' ? 'Always last' : '';
-                return (
-                    <li key={r.id} className={`lr-osec is-${r.kind}${r.removed ? ' is-removed' : ''}`}>
-                        <span className="lr-mono lr-osec-num" aria-hidden="true">{r.removed ? '—' : pad2(n)}</span>
-                        <div className="lr-osec-main">
-                            <TitleField
-                                className="lr-outline-title"
-                                value={r.title}
-                                disabled={r.removed || busy}
-                                aria-label={`Section title: ${original.get(r.id)}`}
-                                onChange={(value) => patch(r.id, { title: value })}
-                            />
-                            {!r.removed && covers && <p className="lr-osec-covers">{covers}</p>}
-                            <div className="lr-osec-foot">
-                                {r.removed ? (
-                                    <span className="lr-osec-meta">Left out: not written</span>
-                                ) : (
+        <>
+            <ol className="lr-osecs" aria-label="Sections">
+                {kept.map((r, n) => {
+                    const at = keptBody.indexOf(r);
+                    const name = r.title.trim() || original.get(r.id);
+                    const fixed = r.kind === 'introduction' ? 'Always first' : r.kind === 'outlook' ? 'Always last' : '';
+                    return (
+                        <li key={r.id} className={`lr-osec is-${r.kind}`}>
+                            <span className="lr-mono lr-osec-num" aria-hidden="true">{pad2(n + 1)}</span>
+                            <div className="lr-osec-main">
+                                <TitleField
+                                    className="lr-outline-title"
+                                    value={r.title}
+                                    disabled={busy}
+                                    aria-label={`Section title: ${original.get(r.id)}`}
+                                    onChange={(value) => patch(r.id, { title: value })}
+                                />
+                                {covers(r) && <p className="lr-osec-covers">{covers(r)}</p>}
+                                <div className="lr-osec-foot">
+                                    <WordStepper name={name} words={r.words || 0} disabled={busy}
+                                                 canGrow={!cap || planned + SECTION_WORDS.step <= cap}
+                                                 onChange={(words) => patch(r.id, { words })} />
+                                    {citesFor(r) !== null && (
+                                        <span className="lr-mono lr-osec-meta"
+                                              title={`About ${citesFor(r)} cited, of the ${r.papers} papers its writer is shown`}>
+                                            ~{citesFor(r)} paper{citesFor(r) === 1 ? '' : 's'}
+                                        </span>
+                                    )}
+                                    {fixed && <span className="lr-osec-meta">{fixed}</span>}
+                                </div>
+                            </div>
+                            <div className="lr-osec-tools">
+                                {r.kind === 'body' && (
                                     <>
-                                        <WordStepper name={name} words={r.words || 0} disabled={busy}
-                                                     canGrow={!cap || planned + SECTION_WORDS.step <= cap}
-                                                     onChange={(words) => patch(r.id, { words })} />
-                                        {citesFor(r) !== null && (
-                                            <span className="lr-mono lr-osec-meta"
-                                                  title={`About ${citesFor(r)} cited, of the ${r.papers} papers its writer is shown`}>
-                                                ~{citesFor(r)} paper{citesFor(r) === 1 ? '' : 's'}
-                                            </span>
-                                        )}
-                                        {fixed && <span className="lr-osec-meta">{fixed}</span>}
+                                        <button type="button" title="Move up" aria-label={`Move up: ${name}`}
+                                                disabled={busy || at === 0} onClick={() => move(r.id, -1)}>↑</button>
+                                        <button type="button" title="Move down" aria-label={`Move down: ${name}`}
+                                                disabled={busy || at === keptBody.length - 1} onClick={() => move(r.id, 1)}>↓</button>
+                                        <button type="button" title="Remove" className="is-remove" aria-label={`Leave out: ${name}`}
+                                                disabled={busy} onClick={() => patch(r.id, { removed: true })}>×</button>
                                     </>
                                 )}
                             </div>
-                        </div>
-                        {r.kind === 'body' && (
-                            <div className="lr-outline-tools lr-osec-tools">
-                                {!r.removed && (
-                                    <>
-                                        <button type="button" aria-label={`Move up: ${name}`} disabled={busy || at === 0}
-                                                onClick={() => move(r.id, -1)}>
-                                            <ArrowUpwardIcon style={{ width: 18, height: 18 }} />
-                                        </button>
-                                        <button type="button" aria-label={`Move down: ${name}`}
-                                                disabled={busy || at === body.length - 1} onClick={() => move(r.id, 1)}>
-                                            <ArrowDownwardIcon style={{ width: 18, height: 18 }} />
-                                        </button>
-                                    </>
-                                )}
-                                <button type="button" className={r.removed ? 'is-undo' : ''} disabled={busy}
-                                        aria-label={r.removed ? `Keep: ${name}` : `Leave out: ${name}`}
-                                        onClick={() => patch(r.id, { removed: !r.removed })}>
-                                    {r.removed ? 'Undo' : <CloseIcon style={{ width: 18, height: 18 }} />}
-                                </button>
-                            </div>
-                        )}
-                    </li>
-                );
-            })}
-        </ol>
+                        </li>
+                    );
+                })}
+            </ol>
+            {removed.length > 0 && (
+                <OptionDropdown label="Add section" panelLabel="Sections left out" display="+ Add section"
+                                className="lr-oadd" panelClassName="lr-pop lr-oadd-panel" placement="bottom-start"
+                                disabled={busy}>
+                    {(close) => (
+                        <>
+                            <div className="option-menu-heading">Left out of this outline</div>
+                            {removed.map((r) => (
+                                <OptionItem key={r.id} label={r.title.trim() || original.get(r.id)} hint={covers(r)}
+                                            onClick={() => { patch(r.id, { removed: false }); close(); }} />
+                            ))}
+                        </>
+                    )}
+                </OptionDropdown>
+            )}
+        </>
     );
 
     const head = (
@@ -321,26 +330,32 @@ export default function OutlineStep({
     }
 
     return (
-        <div className="lr-page lr-scope lr-outline-page">
-            <div className="lr-main">
-                <div className="lr-kicker">Step 2 · Approve the outline<BetaBadge className="lr-kicker-beta" /></div>
-                <h1 className="lr-title lr-outline-heading">{topic || outline?.title || 'Review the outline'}</h1>
-                <p className="lr-lede">{lede}</p>
+        <div className="lr-dpage lr-outline-page">
+            <div className="lr-dmain">
+                <div className="lr-dkicker">Step 2 · Approve the outline<BetaBadge className="lr-kicker-beta" /></div>
+                <h1 className="lr-dtitle lr-otitle">
+                    <TitleField id="lr-outline-review-title" className="lr-otitle-field" value={title}
+                                aria-label="Working title" placeholder={topic || 'Working title'}
+                                disabled={busy} onChange={setTitle} />
+                </h1>
+                <p className="lr-dlede">{lede}</p>
+                {outline?.thesis && (
+                    <p className="lr-oargument"><span className="lr-oargument-label">Argument</span>{outline.thesis}</p>
+                )}
                 {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-                {head}
                 {list}
             </div>
-            <aside className="lr-card lr-scope-card lr-outline-side" aria-label="Scope">
-                <div className="lr-card-title">Scope</div>
-                <dl className="lr-scope-rows">
+            <aside className="lr-daside lr-outline-side" aria-label="Scope">
+                <div className="lr-daside-kicker">Scope</div>
+                <dl className="lr-dsummary">
                     {scopeRows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
                 </dl>
                 {meter}
-                <button type="button" className="lr-primary" disabled={!canWrite} onClick={approve}>
+                <button type="button" className="lr-btn-primary lr-daside-go" disabled={!canWrite} onClick={approve}>
                     Approve &amp; start writing →
                 </button>
                 <div className="lr-ochange-row">{changeScope}</div>
-                <p className="lr-note">{leave}</p>
+                <p className="lr-daside-note">{leave}</p>
             </aside>
         </div>
     );

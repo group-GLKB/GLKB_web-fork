@@ -3,14 +3,15 @@ import React, {
 } from 'react';
 import ReactMarkdown from 'react-markdown';
 import CheckIcon from '@mui/icons-material/Check';
-import { CircularProgress } from '@mui/material';
 import remarkGfm from 'remark-gfm';
 
 import BetaBadge from '../Units/BetaBadge';
 import { OptionSelect } from '../Units/OptionMenu';
 
 import { buildStyle, REVIEW_STYLES } from './citationStyle';
-import { countWords, isProseBlock, linkCitations, markdownBlocks, parseReview } from './reviewModel';
+import {
+    countWords, isProseBlock, linkCitations, locateSelection, markdownBlocks, parseReview, proseWords,
+} from './reviewModel';
 
 const REMARK_PLUGINS = [remarkGfm];
 const pad2 = (n) => String(n).padStart(2, '0');
@@ -19,25 +20,40 @@ const pad2 = (n) => String(n).padStart(2, '0');
 export const PARAGRAPH_ACTIONS_ENABLED = true;
 
 /**
- * Each action: its label, what the panel says while it works, what its result is called, and the
- * box the reader types into — their question (Ask, required) or their direction (the others,
- * optional: empty does the standard job). `next` is the box under a result, for a follow-up
- * question or "not quite, change this".
+ * The four actions the toolbar over a selection offers (the design's Ask · Rewrite · Shorten · Add
+ * evidence). Each works on the text the reader selected (`selection`), or on the whole paragraph when
+ * the selection is all of it. `tab` is the panel tab it belongs to; `run` its button; `working` what
+ * the panel says while it runs. Ask and Rewrite open the panel for the reader's own words first;
+ * Shorten and Add evidence run at once, and "Try again" opens the box for a direction.
  */
 export const PARAGRAPH_ACTIONS = [
-    { id: 'ask', label: 'Ask', working: 'Answering…', result: 'Answer', submit: 'Ask', required: true,
-      placeholder: 'Ask anything about this paragraph…', next: 'Ask a follow-up…' },
-    { id: 'rewrite', label: 'Rewrite', working: 'Rewriting…', result: 'Suggested rewrite', submit: 'Rewrite',
-      placeholder: 'How should it change? e.g. more concise, lead with the main finding, plainer words. Leave empty for a clearer version.',
-      next: 'Not quite? Say what to change…' },
-    { id: 'shorten', label: 'Shorten', working: 'Shortening…', result: 'Suggested shorter version', submit: 'Shorten',
-      placeholder: 'What should stay, and how short? e.g. keep the AML result, about 50 words. Leave empty to cut it to about 60%.',
-      next: 'Not quite? Say what to change…' },
-    { id: 'evidence', label: 'Add evidence', working: 'Looking for more evidence…', result: 'With new evidence', submit: 'Find evidence',
-      placeholder: 'What evidence? e.g. clinical trials, human studies only, cisplatin. Leave empty for papers that support it.',
-      next: 'Look for something else, or say what to change…' },
+    { id: 'ask', label: 'Ask', tab: 'ask', run: 'Ask', working: 'Reading the cited sources…',
+      placeholder: 'Ask about this paragraph…', placeholderSelected: 'Ask about the selected text…' },
+    { id: 'rewrite', label: 'Rewrite', tab: 'rewrite', run: 'Rewrite', working: 'Rewriting with the same sources…',
+      placeholder: 'How should it change? e.g. tighten the second half' },
+    { id: 'shorten', label: 'Shorten', tab: 'rewrite', run: 'Shorten', working: 'Shortening with the same sources…',
+      placeholder: 'What should stay, and how short? e.g. keep the AML result' },
+    { id: 'evidence', label: 'Add evidence', tab: 'rewrite', run: 'Find evidence', working: 'Looking for more evidence…',
+      placeholder: 'What evidence? e.g. clinical trials, human studies only' },
 ];
 const ACTION_BY_ID = Object.fromEntries(PARAGRAPH_ACTIONS.map((a) => [a.id, a]));
+/** Actions that run as soon as they are picked: they have a standard job to do without the reader's words. */
+const RUNS_AT_ONCE = new Set(['shorten', 'evidence']);
+/** The design's suggestions under the box, each run as the action that does it. */
+const ASK_DEFAULT = 'What is the strongest evidence here?';
+const QUICK = {
+    ask: [
+        { label: ASK_DEFAULT, action: 'ask', question: ASK_DEFAULT },
+        { label: 'Which claims rely on one study?', action: 'ask', question: 'Which claims rely on one study?' },
+        { label: 'Any contradicting papers?', action: 'ask', question: 'Any contradicting papers?' },
+    ],
+    rewrite: [
+        { label: 'More concise', action: 'shorten', question: '' },
+        { label: 'Emphasize limitations', action: 'rewrite', question: 'Emphasize limitations' },
+        { label: 'More formal', action: 'rewrite', question: 'More formal' },
+        { label: 'Add supporting evidence', action: 'evidence', question: '' },
+    ],
+};
 
 /** What a paragraph needs from the document: which one is being worked on, and the handlers. */
 const ParaContext = createContext(null);
@@ -53,180 +69,233 @@ const errorText = (err) => {
 const turnAnswer = (turn, source) => {
     const r = turn.result || {};
     if (r.answer) return r.answer;
-    return r.paragraph && r.paragraph.trim() !== source.trim() ? r.paragraph : '';
+    const proposed = r.replacement ?? r.paragraph;
+    return proposed && r.paragraph && r.paragraph.trim() !== source.trim() ? proposed : '';
 };
 
-/** The box the reader types into. Enter sends (not while an IME is composing), Shift+Enter is a new line. */
-function ParaInput({ placeholder, submitLabel, required, onCancel, cancelLabel = 'Cancel', autoFocus = true }) {
-    const { para, setPara, runPara } = useContext(ParaContext);
-    const text = para.text || '';
-    const ready = !required || text.trim().length > 0;
-    const send = () => { if (ready) runPara(text.trim()); };
-    return (
-        <form className="lr-para-ask" onSubmit={(e) => { e.preventDefault(); send(); }}>
-            <textarea
-                // eslint-disable-next-line jsx-a11y/no-autofocus
-                autoFocus={autoFocus}
-                rows={2}
-                placeholder={placeholder}
-                aria-label={placeholder}
-                value={text}
-                maxLength={2000}
-                onChange={(e) => { const value = e.target.value; setPara((p) => ({ ...p, text: value })); }}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); }
-                }}
-            />
-            <div className="lr-para-ask-buttons">
-                <button type="submit" className="is-primary" disabled={!ready}>{submitLabel}</button>
-                {onCancel && <button type="button" onClick={onCancel}>{cancelLabel}</button>}
-            </div>
-        </form>
-    );
-}
+/** "12 fewer words", "3 more words" or "same length". */
+const wordDelta = (before, after) => {
+    const a = proseWords(before);
+    const b = proseWords(after);
+    if (b < a) return `${a - b} fewer word${a - b === 1 ? '' : 's'}`;
+    if (b > a) return `${b - a} more word${b - a === 1 ? '' : 's'}`;
+    return 'same length';
+};
 
-/** The directions a suggestion was made with, in the reader's words. */
-function Directions({ turns }) {
-    const said = turns.map((t) => t.question).filter(Boolean);
-    if (!said.length) return null;
-    return (
-        <div className="lr-para-direction">
-            {said.map((q, i) => <span key={i}>{i > 0 && ' → '}“{q}”</span>)}
-        </div>
-    );
-}
+/* The selected text stays marked while its panel is open (the CSS Custom Highlight API, where the
+   browser has it): typing in the panel's box takes the browser's own selection away. */
+const HIGHLIGHT = 'lr-selection';
+const markRange = (range) => {
+    try {
+        if (range && window.CSS?.highlights && typeof window.Highlight === 'function') {
+            window.CSS.highlights.set(HIGHLIGHT, new window.Highlight(range));
+        }
+    } catch (err) { /* nothing marked: the panel still says what it works on */ }
+};
+const unmarkRange = () => {
+    try { window.CSS?.highlights?.delete(HIGHLIGHT); } catch (err) { /* nothing was marked */ }
+};
 
-/** The question box, then the suggestion or the answers, under the paragraph being worked on. */
+/** The panel under the paragraph being worked on: the design's idle, loading and done states. */
 function ParagraphPanel({ id, source }) {
     const ctx = useContext(ParaContext);
     const { para, setPara } = ctx;
     const action = ACTION_BY_ID[para.action];
     const turns = para.turns || [];
     const last = turns[turns.length - 1];
+    const result = last?.result || {};
+    const selected = Boolean(para.selection);
+    const working = para.status === 'loading' || para.status === 'saving';
+    const isAsk = para.action === 'ask';
     const close = () => setPara(null);
     const accept = () => {
         setPara((p) => ({ ...p, status: 'saving' }));
-        ctx.onAccept(source, last.result)
-            .then(() => setPara(null))
+        ctx.onAccept(source, result)
+            .then(() => { setPara(null); ctx.markEdited(id); })
             .catch((err) => setPara((p) => (p?.id === id ? { ...p, status: 'error', error: errorText(err), saveFailed: true } : p)));
     };
-    const working = para.status === 'loading' || para.status === 'saving';
-    const result = last?.result || {};
-    const changed = result.paragraph && result.paragraph.trim() !== source.trim();
-    return (
-        <div className="lr-para-panel" role="region" aria-label={action.label}>
-            {para.action === 'ask' && turns.map((t, i) => (
-                // eslint-disable-next-line react/no-array-index-key
-                <div className="lr-para-turn" key={i}>
-                    <div className="lr-para-q">{t.question}</div>
-                    <div className="lr-para-suggestion">{ctx.renderPlain(t.result.answer || '')}</div>
+    // Back to the box: what came before stays as history, so "now shorter still" revises the suggestion.
+    const again = () => setPara((p) => ({ ...p, status: 'idle', text: '', error: null, saveFailed: false }));
+    const switchTab = (tab) => setPara((p) => (ACTION_BY_ID[p.action].tab === tab ? p
+        : { ...p, action: tab, status: 'idle', text: '', turns: [], error: null }));
+    const submit = () => ctx.runPara(para.action, para.text || '');
+
+    const proposed = result.replacement ?? result.paragraph;
+    const changed = Boolean(result.paragraph && result.paragraph.trim() !== source.trim());
+    const before = result.replacement != null ? (result.selection || para.selection) : source;
+
+    let body;
+    if (working) {
+        body = (
+            <div className="lr-pa-loading" role="status">
+                <span className="lr-pa-dot" aria-hidden="true" />
+                {para.status === 'saving' ? 'Saving…' : action.working}
+            </div>
+        );
+    } else if (para.status === 'error' && para.saveFailed) {
+        body = (
+            <div className="lr-pa-done">
+                <div className="lr-pa-error" role="alert">{para.error}</div>
+                <div className="lr-pa-buttons">
+                    <button type="button" className="lr-pa-btn is-primary" onClick={accept}>Try again</button>
+                    <button type="button" className="lr-pa-btn is-ghost" onClick={close}>Close</button>
                 </div>
-            ))}
-            {para.action !== 'ask' && last && para.status !== 'loading' && (
-                changed ? (
-                    <>
-                        <div className="lr-para-panel-label">{action.result}{turns.length > 1 ? ` · revision ${turns.length}` : ''}</div>
-                        <Directions turns={turns} />
-                        <div className="lr-para-suggestion">{ctx.renderPlain(result.paragraph)}</div>
-                        {result.new_references?.length > 0 && (
-                            <ul className="lr-para-newrefs" aria-label="New references">
-                                {result.new_references.map((r) => (
-                                    <li key={r.pmid}>
-                                        <span className="lr-mono">[{r.number}]</span> {r.title}{r.year ? ` (${r.year})` : ''}
-                                        {r.pmid && <> · <a href={r.url || `https://pubmed.ncbi.nlm.nih.gov/${r.pmid}/`} target="_blank" rel="noopener noreferrer">PMID {r.pmid}</a></>}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                        {!working && (
-                            <div className="lr-para-buttons">
-                                <button type="button" className="is-primary" onClick={accept}>Replace paragraph</button>
-                                <button type="button" onClick={close}>Discard</button>
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    <>
-                        <Directions turns={turns} />
-                        <div className="lr-para-note">{result.message || 'No change to suggest for this paragraph.'}</div>
-                    </>
-                )
-            )}
-            {working && (
-                <div className="lr-para-working">
-                    <CircularProgress size={14} thickness={5} />
-                    <span>
-                        {para.status === 'saving' ? 'Saving…' : action.working}
-                        {para.status === 'loading' && para.pending && para.action !== 'ask' ? ` “${para.pending}”` : ''}
-                    </span>
+            </div>
+        );
+    } else if (para.status === 'ready' && isAsk) {
+        body = (
+            <div className="lr-pa-done">
+                <div className="lr-pa-q">“{last.question}”</div>
+                <div className="lr-pa-answer">{ctx.renderPlain(result.answer || '')}</div>
+                <div className="lr-pa-buttons">
+                    <button type="button" className="lr-pa-btn" onClick={again}>Ask a follow-up</button>
+                    <button type="button" className="lr-pa-btn is-ghost" onClick={close}>Close</button>
                 </div>
-            )}
-            {para.status === 'loading' && para.action === 'ask' && para.pending && (
-                <div className="lr-para-q is-pending">{para.pending}</div>
-            )}
-            {para.status === 'error' && (
-                <div className="lr-para-error" role="alert">{para.error}</div>
-            )}
-            {para.status === 'error' && para.saveFailed ? (
-                <div className="lr-para-buttons">
-                    <button type="button" className="is-primary" onClick={accept}>Try again</button>
-                    <button type="button" onClick={close}>Close</button>
+            </div>
+        );
+    } else if (para.status === 'ready') {
+        body = changed ? (
+            <div className="lr-pa-done">
+                <div className="lr-pa-label">Proposed · {wordDelta(before, proposed)}</div>
+                <div className="lr-pa-proposed">{ctx.renderPlain(proposed)}</div>
+                {result.new_references?.length > 0 && (
+                    <ul className="lr-pa-newrefs" aria-label="New references">
+                        {result.new_references.map((r) => (
+                            <li key={r.pmid}>
+                                <span className="lr-mono">[{r.number}]</span> {r.title}{r.year ? ` (${r.year})` : ''}
+                                {r.pmid && <> · <a href={r.url || `https://pubmed.ncbi.nlm.nih.gov/${r.pmid}/`} target="_blank" rel="noopener noreferrer">PMID {r.pmid}</a></>}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+                <div className="lr-pa-buttons">
+                    <button type="button" className="lr-pa-btn is-primary" onClick={accept}>
+                        {result.replacement != null ? 'Replace selection' : 'Replace paragraph'}
+                    </button>
+                    <button type="button" className="lr-pa-btn" onClick={again}>Try again</button>
+                    <button type="button" className="lr-pa-btn is-ghost" onClick={close}>Discard</button>
                 </div>
-            ) : !working && (
-                <div className={last ? 'lr-para-next' : undefined}>
-                    <ParaInput
-                        placeholder={last ? action.next : action.placeholder}
-                        submitLabel={last && para.action !== 'ask' ? 'Revise' : action.submit}
-                        // Revising a suggestion needs words; the first run of an edit does not.
-                        required={action.required || Boolean(last)}
-                        autoFocus={!last}
-                        onCancel={close}
-                        cancelLabel={last ? 'Close' : 'Cancel'}
+            </div>
+        ) : (
+            <div className="lr-pa-done">
+                <p className="lr-pa-note">{result.message || `No change to suggest for this ${selected ? 'text' : 'paragraph'}.`}</p>
+                <div className="lr-pa-buttons">
+                    <button type="button" className="lr-pa-btn" onClick={again}>Try again</button>
+                    <button type="button" className="lr-pa-btn is-ghost" onClick={close}>Discard</button>
+                </div>
+            </div>
+        );
+    } else {
+        const placeholder = isAsk && selected ? action.placeholderSelected : action.placeholder;
+        body = (
+            <form className="lr-pa-idle" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+                {para.status === 'error' && <div className="lr-pa-error" role="alert">{para.error}</div>}
+                <div className="lr-pa-row">
+                    <input
+                        // eslint-disable-next-line jsx-a11y/no-autofocus
+                        autoFocus
+                        value={para.text || ''}
+                        maxLength={2000}
+                        placeholder={placeholder}
+                        aria-label={placeholder}
+                        onChange={(e) => { const value = e.target.value; setPara((p) => ({ ...p, text: value })); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && e.nativeEvent.isComposing) e.preventDefault(); }}
                     />
+                    <button type="submit" className="lr-pa-run">{action.run}</button>
                 </div>
-            )}
+                <div className="lr-pa-quick">
+                    {QUICK[action.tab].map((q) => (
+                        <button key={q.label} type="button" onClick={() => ctx.runPara(q.action, q.question)}>{q.label}</button>
+                    ))}
+                </div>
+            </form>
+        );
+    }
+
+    return (
+        <div className="lr-pa" role="region" aria-label={action.label}>
+            <div className="lr-pa-head">
+                {[['ask', 'Ask'], ['rewrite', 'Rewrite']].map(([tab, label]) => (
+                    <button key={tab} type="button" className={`lr-pa-tab${action.tab === tab ? ' is-on' : ''}`}
+                            aria-pressed={action.tab === tab} disabled={working} onClick={() => switchTab(tab)}>
+                        {label}
+                    </button>
+                ))}
+                <span className="lr-pa-spacer" />
+                <span className="lr-pa-scope" title={selected ? para.selection : undefined}>
+                    {selected ? 'Selected text only' : 'This paragraph only'}
+                </span>
+                <button type="button" className="lr-pa-x" aria-label="Close" disabled={para.status === 'saving'} onClick={close}>×</button>
+            </div>
+            {body}
         </div>
     );
 }
 
-/** One paragraph of prose: the actions over it, and the panel under it while it is worked on. */
+/** One paragraph of prose, and the panel under it while the reader's selection in it is worked on. */
 function Paragraph({ id, source, children }) {
     const ctx = useContext(ParaContext);
     const actionable = Boolean(ctx?.onParagraph && source && source.length > 40);
-    const busy = ctx?.para && ['loading', 'saving'].includes(ctx.para.status);
+    if (actionable) ctx.sources.set(id, source);
     const open = ctx?.para?.id === id;
-    // An action opens its box first: the reader says what they want (or leaves it empty). Switching
-    // to another action on the same paragraph keeps what they typed.
-    const start = (action) => {
-        if (busy) return;
-        ctx.setPara((p) => (p?.id === id && p.action === action.id ? p
-            : { id, source, action: action.id, status: 'input', text: p?.id === id ? (p.text || '') : '', turns: [] }));
-    };
-    const tools = actionable && (
-        <div className="lr-para-tools" role="toolbar" aria-label="Paragraph actions">
-            {PARAGRAPH_ACTIONS.map((a) => {
-                const active = open && ctx.para.action === a.id;
-                return (
-                    <button key={a.id} type="button" disabled={busy} aria-pressed={active}
-                            className={active ? 'is-active' : undefined} onClick={() => start(a)}>{a.label}</button>
-                );
-            })}
-        </div>
-    );
-    // A phone has no hover: a tap on the paragraph shows its actions under it.
-    const selected = ctx?.phone && ctx.selected === id;
+    const edited = ctx?.edited?.id === id;
     return (
-        <div className={`lr-para${open ? ' is-open' : ''}${selected ? ' is-selected' : ''}`}>
-            {/* A zero-height sticky anchor: on a paragraph taller than the window the
-                toolbar stays at the top of what is visible of it. */}
-            {tools && !ctx.phone && <div className="lr-para-anchor">{tools}</div>}
-            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
-            <p onClick={actionable && ctx.phone ? () => ctx.setSelected(selected ? null : id) : undefined}>{children}</p>
-            {tools && (selected || (ctx.phone && open)) && <div className="lr-para-inline">{tools}</div>}
+        <div className={`lr-para${open ? ' is-open' : ''}`} data-para-id={actionable ? id : undefined}>
+            <p>{children}</p>
+            {edited && !open && (
+                <div className="lr-pa-edited">
+                    Edited
+                    {ctx.onUndo && (
+                        <> · <button type="button" disabled={ctx.edited.busy} onClick={ctx.undo}>Undo</button></>
+                    )}
+                    {ctx.edited.error && <span className="lr-pa-error" role="alert"> {ctx.edited.error}</span>}
+                </div>
+            )}
             {open && <ParagraphPanel id={id} source={source} />}
         </div>
     );
 }
+
+/** The text of a range as the reader saw it, without the citations' own text (pills or author–year). */
+const rangeText = (range) => {
+    const fragment = range.cloneContents();
+    fragment.querySelectorAll('.lr-cite').forEach((n) => n.remove());
+    return fragment.textContent || '';
+};
+
+/** Where a selection is: the actionable paragraph it lies in (both ends), and what of its markdown it is. */
+const readSelection = (root, sources) => {
+    const sel = window.getSelection?.();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
+    const range = sel.getRangeAt(0);
+    const paraOf = (node) => (node?.nodeType === 1 ? node : node?.parentElement)?.closest?.('[data-para-id]') || null;
+    const para = paraOf(range.startContainer);
+    if (!para || para !== paraOf(range.endContainer) || !root?.contains(para)) return null;
+    const p = Array.from(para.children).find((n) => n.tagName === 'P');
+    if (!p || !p.contains(range.startContainer) || !p.contains(range.endContainer)) return null;
+    const id = para.getAttribute('data-para-id');
+    const source = sources.get(id);
+    if (!source) return null;
+    const pre = document.createRange();
+    pre.setStart(p, 0);
+    pre.setEnd(range.startContainer, range.startOffset);
+    const found = locateSelection(source, rangeText(pre), rangeText(range));
+    if (!found) return null;
+    return { id, source, ...found, range: range.cloneRange() };
+};
+
+/** Where the toolbar goes: above the selection, or under it near the top of the window (and on a phone,
+ *  whose own copy menu sits above a selection). */
+const TOOLBAR_WIDTH = 300;
+const toolbarAt = (range, phone) => {
+    const r = typeof range?.getBoundingClientRect === 'function' ? range.getBoundingClientRect() : null;
+    if (!r) return { top: 0, left: 0 };
+    const below = phone || r.top < 120;
+    const half = TOOLBAR_WIDTH / 2;
+    const width = window.innerWidth || 1024;
+    const center = Math.min(Math.max(r.left + r.width / 2, half + 8), Math.max(half + 8, width - half - 8));
+    return { top: below ? r.bottom + 8 : r.top - 42, left: center };
+};
 
 function ReferenceCard({ entry, authorDate, highlighted, refEl, position }) {
     const reference = entry.reference;
@@ -269,7 +338,7 @@ function ReferenceCard({ entry, authorDate, highlighted, refEl, position }) {
  * review — are left out otherwise rather than estimated.
  */
 export default function ReviewDocument({
-    markdown, references: given, records, citationStyle, onCitationStyle, meta, onParagraph, onAccept,
+    markdown, references: given, records, citationStyle, onCitationStyle, meta, onParagraph, onAccept, onUndo,
     phone = false,
 }) {
     const review = useMemo(() => parseReview(markdown, given), [markdown, given]);
@@ -286,10 +355,20 @@ export default function ReviewDocument({
     const [highlight, setHighlight] = useState(null);
     const refEls = useRef(new Map());
     const hideTimer = useRef(null);
-    // The paragraph being worked on: {id, source, action, status (input | loading | ready | error |
-    // saving), text (being typed), pending (being run), turns: [{question, result}], error?}.
+    // The paragraph being worked on: {id, source, selection (its markdown the reader selected, '' for
+    // all of it), start, action, status (idle | loading | ready | error | saving), text (being typed),
+    // pending (being run), turns: [{question, result}], error?}.
     const [para, setPara] = useState(null);
-    const [selected, setSelected] = useState(null);
+    const paraRef = useRef(null);
+    paraRef.current = para;
+    // The reader's selection, while the toolbar over it shows: {id, source, text, start, whole, range, top, left}.
+    const [selTool, setSelTool] = useState(null);
+    // The paragraph last edited here, which can be put back: {id, busy?, error?}.
+    const [edited, setEdited] = useState(null);
+    const sources = useRef(new Map());
+    const articleRef = useRef(null);
+    const draggingRef = useRef(false);
+    const actionable = Boolean(onParagraph && onAccept);
 
     // Three columns need the width: the app's sidebar folds to its rail while the review is open.
     useEffect(() => {
@@ -372,26 +451,95 @@ export default function ReviewDocument({
         (md) => <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={components}>{linkCitations(md)}</ReactMarkdown>,
         [components],
     );
-    // Runs the open panel's action with what the reader typed, sending the panel's earlier turns, and
-    // adds the result as its newest turn.
-    const runPara = useCallback((question) => {
-        if (!para || !onParagraph) return;
-        const { id, action, source } = para;
-        const history = (para.turns || []).map((t) => ({ question: t.question, answer: turnAnswer(t, source) }));
-        setPara((p) => ({ ...p, status: 'loading', pending: question, error: null, saveFailed: false }));
-        onParagraph(action, source, question, history)
-            .then((result) => setPara((p) => (p?.id === id && p.action === action ? {
-                ...p, status: 'ready', text: '', pending: null,
-                turns: [...(p.turns || []), { question, result }],
+    /* Runs an action on the open panel's paragraph (or `base`, a panel just opened) with the reader's
+       words, sending the panel's earlier turns of the same action, and adds the result as its newest
+       turn. An Ask with nothing typed asks the design's first suggestion. */
+    const runPara = useCallback((actionId, question, base) => {
+        const p0 = base || paraRef.current;
+        if (!p0 || !onParagraph) return;
+        const action = actionId || p0.action;
+        const typed = String(question ?? '').trim();
+        const q = typed || (action === 'ask' ? ASK_DEFAULT : '');
+        const turns = action === p0.action ? (p0.turns || []) : [];
+        const history = turns.map((t) => ({ question: t.question, answer: turnAnswer(t, p0.source) }));
+        setPara({ ...p0, action, status: 'loading', pending: q, error: null, saveFailed: false, turns });
+        const mine = (p) => p && p.id === p0.id && p.action === action && p.status === 'loading';
+        onParagraph(action, p0.source, q, history, p0.selection ? { text: p0.selection, start: p0.start } : null)
+            .then((result) => setPara((p) => (mine(p) ? {
+                ...p, status: 'ready', text: '', pending: null, turns: [...turns, { question: q, result }],
             } : p)))
-            .catch((err) => setPara((p) => (p?.id === id && p.action === action ? {
-                ...p, status: 'error', text: question, pending: null, error: errorText(err),
+            .catch((err) => setPara((p) => (mine(p) ? {
+                ...p, status: 'error', text: typed, pending: null, error: errorText(err),
             } : p)));
-    }, [para, onParagraph]);
+    }, [onParagraph]);
+
+    // The toolbar's actions: open the panel on the selection (Shorten and Add evidence run at once).
+    const startAction = (actionId) => {
+        const t = selTool;
+        if (!t) return;
+        const base = { id: t.id, source: t.source, selection: t.whole ? '' : t.text, start: t.whole ? null : t.start,
+                       action: actionId, status: 'idle', text: '', turns: [] };
+        setPara(base);
+        setSelTool(null);
+        markRange(t.range);
+        window.getSelection?.()?.removeAllRanges?.();
+        if (RUNS_AT_ONCE.has(actionId)) runPara(actionId, '', base);
+    };
+    useEffect(() => { if (!para) unmarkRange(); }, [para]);
+    useEffect(() => () => unmarkRange(), []);
+
+    /* The selection, read when the reader lets go of the mouse, after a keyboard selection, and (a
+       phone's handles have no mouse) whenever it changes while no mouse button is down. */
+    const busy = para && ['loading', 'saving'].includes(para.status);
+    useEffect(() => {
+        if (!actionable) return undefined;
+        let timer = null;
+        const read = (delay = 0) => {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                const found = readSelection(articleRef.current, sources.current);
+                setSelTool(found ? { ...found, ...toolbarAt(found.range, phone) } : null);
+            }, delay);
+        };
+        const onDown = (e) => { if (!e.target.closest?.('.lr-seltools')) draggingRef.current = true; };
+        const onUp = () => { draggingRef.current = false; read(0); };
+        const onKey = (e) => {
+            if (e.key === 'Escape') { setSelTool(null); return; }
+            if (e.shiftKey || e.key.startsWith('Arrow') || ((e.metaKey || e.ctrlKey) && e.key === 'a')) read(0);
+        };
+        const onChange = () => { if (!draggingRef.current) read(150); };
+        const onScroll = () => setSelTool((t) => (t ? { ...t, ...toolbarAt(t.range, phone) } : t));
+        document.addEventListener('mousedown', onDown);
+        document.addEventListener('mouseup', onUp);
+        document.addEventListener('keyup', onKey);
+        document.addEventListener('selectionchange', onChange);
+        window.addEventListener('scroll', onScroll, true);
+        window.addEventListener('resize', onScroll);
+        return () => {
+            clearTimeout(timer);
+            document.removeEventListener('mousedown', onDown);
+            document.removeEventListener('mouseup', onUp);
+            document.removeEventListener('keyup', onKey);
+            document.removeEventListener('selectionchange', onChange);
+            window.removeEventListener('scroll', onScroll, true);
+            window.removeEventListener('resize', onScroll);
+        };
+    }, [actionable, phone]);
+
+    // The last accepted edit can be put back (the backend keeps every version it replaced).
+    const markEdited = useCallback((id) => setEdited({ id }), []);
+    const undo = useCallback(() => {
+        if (!onUndo || !edited) return;
+        setEdited((e) => ({ ...e, busy: true, error: null }));
+        onUndo()
+            .then(() => setEdited(null))
+            .catch((err) => setEdited((e) => (e ? { ...e, busy: false, error: errorText(err) } : e)));
+    }, [onUndo, edited]);
+
     const paraContext = useMemo(() => ({
-        para, setPara, selected, setSelected, phone, renderPlain, runPara,
-        onParagraph: onParagraph && onAccept ? onParagraph : null, onAccept,
-    }), [para, selected, phone, renderPlain, runPara, onParagraph, onAccept]);
+        para, setPara, renderPlain, runPara, sources: sources.current, markEdited, edited, undo,
+        onUndo: onUndo || null, onParagraph: actionable ? onParagraph : null, onAccept,
+    }), [para, renderPlain, runPara, markEdited, edited, undo, onUndo, actionable, onParagraph, onAccept]);
 
     const jump = (id) => {
         setActiveId(id);
@@ -399,7 +547,7 @@ export default function ReviewDocument({
     };
     const styleSelect = onCitationStyle ? (
         <OptionSelect label={`Citation style: ${styled.style.label}`} panelLabel="Citation style"
-                      className="lr-style-select" placement="bottom-start"
+                      className="lr-style-select" panelClassName="lr-pop" placement="bottom-start"
                       value={styled.style.id} onChange={onCitationStyle}
                       options={REVIEW_STYLES.map((st) => ({
                           id: st.id, label: st.label,
@@ -434,7 +582,7 @@ export default function ReviewDocument({
                 </ol>
             </nav>
 
-            <article className="lr-document">
+            <article className="lr-document" ref={articleRef}>
                 {/* The phone design: what the audit found as one badge, then a one-line meta. The badge
                     needs the pipeline's audit; without it nothing is claimed. */}
                 {phone ? review.audit && (
@@ -492,7 +640,7 @@ export default function ReviewDocument({
                     )}
                 </div>
                 <p className="lr-hint">
-                    Hover a citation to preview the paper.{PARAGRAPH_ACTIONS_ENABLED && onParagraph && ' Hover a paragraph to ask about it, or to rewrite, shorten or add evidence to it the way you want.'}
+                    Hover a citation to preview the paper.{PARAGRAPH_ACTIONS_ENABLED && actionable && ' Select text to ask about it, or to rewrite, shorten or add evidence to it.'}
                 </p>
                 </>)}
                 <ParaContext.Provider value={paraContext}>
@@ -521,6 +669,18 @@ export default function ReviewDocument({
                     <p className="lr-disclaimer">AI-generated draft. Verify all citations against primary sources before submission.</p>
                 )}
             </aside>
+
+            {selTool && !busy && (
+                // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+                <div className="lr-seltools" role="toolbar" aria-label="Selection actions"
+                     style={{ top: selTool.top, left: selTool.left }}
+                     // Keeps the selection while a button is pressed.
+                     onMouseDown={(e) => e.preventDefault()}>
+                    {PARAGRAPH_ACTIONS.map((a) => (
+                        <button key={a.id} type="button" onClick={() => startAction(a.id)}>{a.label}</button>
+                    ))}
+                </div>
+            )}
 
             {hover && hoverRefs.length > 0 && (
                 <div

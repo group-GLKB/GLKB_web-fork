@@ -24,7 +24,7 @@
  */
 import './LiteratureReview.css';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Alert, LinearProgress, useMediaQuery } from '@mui/material';
 
@@ -47,13 +47,14 @@ import { effectiveSources, initialScope } from '../HomePage/ReviewScope';
 import { useAttachments } from '../Units/AttachmentChips';
 import { OptionItem, OptionPanel } from '../Units/OptionMenu';
 import { REVIEW_PAPER_LIMITS } from '../../service/attachments';
-import { setStylePref, styleMarkdown } from './citationStyle';
+import { setStylePref, styleById, styleMarkdown } from './citationStyle';
 import { PhoneTopBar, TopBar } from './Chrome';
 import OutlineStep from './OutlineStep';
 import ScopeStep from './ScopeStep';
 import WritingStep from './WritingStep';
 import ReviewDocument from './ReviewDocument';
-import { renumberReview, replaceParagraph } from './reviewModel';
+import ExportDialog from './ExportDialog';
+import { countWords, parseReview, renumberReview, replaceParagraph } from './reviewModel';
 
 const PENDING_RECHECK_MS = 15000;
 
@@ -94,6 +95,7 @@ export default function LiteratureReview() {
     // The papers a saved review was written from (its prompt's attachments), and how many a run uses.
     const [savedPapers, setSavedPapers] = useState([]);
     const [exportAnchor, setExportAnchor] = useState(null);
+    const [exportOpen, setExportOpen] = useState(false);
     const [copied, setCopied] = useState(false);
     const runIdRef = useRef(null);
     // The app's phone breakpoint (Layout): the phone design's own bar and pages below it.
@@ -397,22 +399,35 @@ export default function LiteratureReview() {
         setStatus('idle'); setReview(null); setError(''); setTopic(''); navigate('/literature-review');
     };
 
-    /* The paragraph actions (Ask / Rewrite / Shorten / Add evidence) of a saved review: the review
-       service suggests, the reader accepts or not. Accepting replaces the paragraph, numbers the
-       citations again by first appearance (new evidence included), and saves the whole review;
-       the backend keeps the version it replaced. */
-    const paragraphAction = useCallback((action, paragraph, question, history) => {
-        trackGtagEvent('literature_review_paragraph_action', { action, directed: Boolean(question), turn: (history?.length || 0) + 1 });
-        return runParagraphAction(publicId, { action, paragraph, question, history });
+    /* The paragraph actions (Ask / Rewrite / Shorten / Add evidence) of a saved review, on the text the
+       reader selected: the review service suggests, the reader accepts or not. Accepting replaces the
+       paragraph (the selection within it), numbers the citations again by first appearance (new
+       evidence included), and saves the whole review; the backend keeps the version it replaced, and
+       the last edit can be put back (Undo). */
+    const [lastEdit, setLastEdit] = useState(null);
+    const paragraphAction = useCallback((action, paragraph, question, history, selection) => {
+        trackGtagEvent('literature_review_paragraph_action', {
+            action, directed: Boolean(question), turn: (history?.length || 0) + 1, selection: Boolean(selection),
+        });
+        return runParagraphAction(publicId, { action, paragraph, question, history, selection });
     }, [publicId]);
     const acceptParagraph = useCallback(async (paragraph, result) => {
         const replaced = replaceParagraph(review.markdown, paragraph, result.paragraph);
         if (replaced == null) throw new Error('This paragraph changed. Reload the review and try again.');
         const next = renumberReview(replaced, [...(review.references || []), ...(result.new_references || [])]);
         await saveReview(publicId, { ...next, baseSha: await sha256Hex(review.markdown) });
-        trackGtagEvent('literature_review_paragraph_accept', { action: result.action });
+        trackGtagEvent('literature_review_paragraph_accept', { action: result.action, selection: Boolean(result.replacement) });
+        setLastEdit({ markdown: review.markdown, references: review.references, after: next.markdown });
         setReview((r) => ({ ...r, markdown: next.markdown, references: next.references }));
     }, [publicId, review]);
+    const undoParagraph = useCallback(async () => {
+        if (!lastEdit || review?.markdown !== lastEdit.after) throw new Error('This review changed since; the edit cannot be put back.');
+        await saveReview(publicId, { markdown: lastEdit.markdown, references: lastEdit.references,
+                                     baseSha: await sha256Hex(review.markdown) });
+        trackGtagEvent('literature_review_paragraph_undo', {});
+        setReview((r) => ({ ...r, markdown: lastEdit.markdown, references: lastEdit.references }));
+        setLastEdit(null);
+    }, [publicId, review, lastEdit]);
 
     const share = async () => {
         try {
@@ -434,7 +449,7 @@ export default function LiteratureReview() {
     ];
     const exportMenu = (items) => (
         <OptionPanel anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}
-                     label="Export" role="menu">
+                     label="Export" role="menu" className="lr-pop">
             {items.map((x) => (
                 <OptionItem key={x.id} role="menuitem" label={x.label} hint={x.hint}
                             onClick={() => { setExportAnchor(null); x.run(); }} />
@@ -455,14 +470,26 @@ export default function LiteratureReview() {
         </>
     ) : null;
 
+    // The export dialog's line: what is being exported.
+    const exportSummary = useMemo(() => {
+        if (!review?.markdown) return '';
+        const parsed = parseReview(review.markdown, review.references);
+        const words = parsed.audit?.words ?? countWords(parsed);
+        const n = parsed.references.length;
+        return [`${words.toLocaleString('en-US')} words`, `${n} reference${n === 1 ? '' : 's'}`,
+                styleById(scope.citationStyle).label].join(' · ');
+    }, [review, scope.citationStyle]);
+    const runExport = (format) => ({ latex: downloadLatex, word: downloadWord, pdf: downloadPdf }[format] || downloadLatex)();
+    const changeStyle = (id) => { setScope((s) => ({ ...s, citationStyle: id })); setStylePref(id); };
+
     const actions = status === 'done' && review ? (
         <>
-            <button type="button" className="lr-secondary" onClick={share}>{copied ? 'Link copied' : 'Share'}</button>
-            <button type="button" className="lr-primary is-small" aria-haspopup="menu" aria-expanded={Boolean(exportAnchor)}
-                    onClick={(e) => setExportAnchor(exportAnchor ? null : e.currentTarget)}>
+            <button type="button" className="lr-btn-secondary" onClick={share}>{copied ? 'Link copied' : 'Share'}</button>
+            <button type="button" className="lr-btn-primary" aria-haspopup="dialog" onClick={() => setExportOpen(true)}>
                 Export
             </button>
-            {exportMenu(exportItems)}
+            <ExportDialog open={exportOpen} onClose={() => setExportOpen(false)} summary={exportSummary}
+                          citationStyle={scope.citationStyle} onCitationStyle={changeStyle} onExport={runExport} />
         </>
     ) : null;
 
@@ -549,7 +576,7 @@ export default function LiteratureReview() {
                         references={review.references}
                         records={records}
                         citationStyle={scope.citationStyle}
-                        onCitationStyle={(id) => { setScope((s) => ({ ...s, citationStyle: id })); setStylePref(id); }}
+                        onCitationStyle={changeStyle}
                         meta={{
                             topic: savedQuestion,
                             targetWords: scope.targetWords,
@@ -561,6 +588,7 @@ export default function LiteratureReview() {
                         }}
                         onParagraph={publicId ? paragraphAction : undefined}
                         onAccept={publicId ? acceptParagraph : undefined}
+                        onUndo={publicId && lastEdit ? undoParagraph : undefined}
                         phone={isPhone}
                     />
                 </>

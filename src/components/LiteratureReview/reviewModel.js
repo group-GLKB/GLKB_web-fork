@@ -213,3 +213,78 @@ export const renumberReview = (markdown, references) => {
     }
     return { markdown: out, references: refs };
 };
+
+// ── Selecting text in a paragraph: where the reader's selection lies in the paragraph's markdown ──
+
+/* What a rendered paragraph shows and its markdown does not, or the other way round: the citations
+   (pills, or author–year phrases), and markdown's own marks. Neither is compared: a character is
+   compared only when it is neither whitespace nor one of these marks. */
+const SKIPPED = /[\s*_`\\]/;
+
+/** The comparable characters of `text`, and (with `from`) where each one is in the original. */
+const keyOf = (text, from = null) => {
+    let key = '';
+    const at = [];
+    for (let i = 0; i < text.length; i += 1) {
+        if (!SKIPPED.test(text[i])) {
+            key += text[i];
+            if (from) at.push(from[i]);
+        }
+    }
+    return { key, at };
+};
+
+const TRAILING_CITE_RE = /^[ \t]*\[(\d+(?:\s*[,–-]\s*\d+)*)\](?!\()/;
+const WORD_CHAR = /[\p{L}\p{N}]/u;
+
+/**
+ * The part of a paragraph's markdown (`source`, citations as `[n]`) that the reader selected, from
+ * the text the page showed: `before` — the paragraph's text before the selection — and `inside` —
+ * the selected text — both without the citations' own text (the caller leaves the citation
+ * elements out). Returns `{ text, start, whole }`: the exact substring of `source`, its offset, and
+ * whether it is the whole paragraph; or null when the selection cannot be found in it.
+ *
+ * The span is widened to whole words, and over a citation right after it: a citation belongs to
+ * the clause it ends, so a rewritten clause keeps (or drops) its own.
+ */
+export const locateSelection = (source, before, inside) => {
+    const src = String(source || '');
+    // The source without its citations, each kept character pointing back to where it was.
+    const plainIdx = [];
+    let plain = '';
+    let last = 0;
+    for (const m of src.matchAll(CITE_RE)) {
+        for (let i = last; i < m.index; i += 1) { plain += src[i]; plainIdx.push(i); }
+        last = m.index + m[0].length;
+    }
+    for (let i = last; i < src.length; i += 1) { plain += src[i]; plainIdx.push(i); }
+    const { key: sKey, at: sAt } = keyOf(plain, plainIdx);
+    const want = keyOf(String(inside || '')).key;
+    if (!want || !sKey) return null;
+    let from = keyOf(String(before || '')).key.length;
+    if (sKey.slice(from, from + want.length) !== want) {
+        // The page and the markdown disagree before the selection (a link, an escape): look for it.
+        from = sKey.indexOf(want);
+        if (from < 0) return null;
+    }
+    let start = sAt[from];
+    let end = sAt[from + want.length - 1] + 1;
+    while (start > 0 && WORD_CHAR.test(src[start - 1]) && WORD_CHAR.test(src[start])) start -= 1;
+    while (end < src.length && WORD_CHAR.test(src[end]) && WORD_CHAR.test(src[end - 1])) end += 1;
+    // Markdown marks around the span go with it, so emphasis is not cut in half.
+    while (start > 0 && /[*_`]/.test(src[start - 1])) start -= 1;
+    while (end < src.length && /[*_`]/.test(src[end])) end += 1;
+    const cite = TRAILING_CITE_RE.exec(src.slice(end));
+    if (cite) end += cite[0].length;
+    const text = src.slice(start, end);
+    const trimmedStart = start + (text.length - text.trimStart().length);
+    const trimmed = text.trim();
+    if (!trimmed) return null;
+    // All of it, but for the closing full stop (or a quote mark), is the whole paragraph.
+    const rest = (src.slice(0, start) + src.slice(end)).replace(/[\s.!?;:,)"'”’]/g, '');
+    return { text: trimmed, start: trimmedStart, whole: rest === '' };
+};
+
+/** Words of prose, citations left out (the paragraph actions' "N fewer words"). */
+export const proseWords = (text) => String(text || '').replace(CITE_RE, ' ')
+    .split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
