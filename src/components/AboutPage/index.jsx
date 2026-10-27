@@ -64,14 +64,14 @@ const TRUSTED_LOGOS = [
 /* Figma 604:7362 */
 const STEPS = [
     ['Ask', 'Type any biomedical query: a gene, variant, drug target, or disease.'],
-    ['Retrieve', 'GLKB searches 263M terms and 14.6M relationships, surfacing the most relevant PubMed papers.'],
+    ['Retrieve', 'GLKB searches 3.17M biomedical terms and 149,168 relationships, surfacing the most relevant PubMed papers.'],
     ['Reason', 'The AI synthesizes retrieved evidence into a structured, concise, cited answer.'],
     ['Verify', 'Every claim links to a PubMed ID. Gaps are labeled "none found" and never fabricated.'],
 ];
 
 /* Figma 604:7399 — the three cards under the wide one. */
 const DIFFERENTIATORS = [
-    ['Biomedical-native', 'Built on the full PubMed corpus: 263M biomedical terms and 14.6M relationships across gene-disease associations, pathways, and ontology hierarchies.'],
+    ['Biomedical-native', 'Built on the full PubMed corpus: 3.17M biomedical terms and 149,168 relationships across gene-disease associations, pathways, and ontology hierarchies.'],
     ['Reproducible by design', 'Same query, same results. Outputs are structured, machine-readable, and consistent across, making them suitable for publication-grade workflows.'],
     ['Built for scale', 'Analyze hundreds of targets, variants, or genes in parallel. Structured, cited outputs feed directly into your downstream pipeline.'],
 ];
@@ -79,8 +79,8 @@ const DIFFERENTIATORS = [
 /* Figma 604:7600 */
 const STATS = [
     ['+24.8%', 'Accuracy improvement\non PubMedQA-HC'],
-    ['263M', 'Biomedical terms in\nthe knowledge graph'],
-    ['14.6M', 'Relationships\nencoded'],
+    ['3.17M', 'Biomedical terms in\nthe knowledge graph'],
+    ['149,168', 'Relationships\nencoded'],
     ['~30 min', 'To process 1,500 candidate\ngenes with full citations'],
 ];
 
