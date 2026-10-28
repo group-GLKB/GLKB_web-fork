@@ -62,7 +62,7 @@ export const SiteNav = ({ active, onGetStarted }) => {
                     className="site-nav-cta"
                     onClick={onGetStarted || (() => navigate(CHAT_HOME_PATH))}
                 >
-                    Get Started
+                    Try GLKB
                 </button>
             </nav>
         </header>

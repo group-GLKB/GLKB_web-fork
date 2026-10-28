@@ -105,7 +105,7 @@ async function main() {
             assert.equal(new URL(page.url()).pathname, '/', 'the GLKB logo inside the app opens About, and it stays');
             assert.equal(await landsOn(page, '/?source=test#faq'), '/', 'a section of About stays');
             assert.equal(await landsOn(page, null, true), '/', 'and stays on refresh');
-            await page.getByRole('button', { name: 'Get Started', exact: true }).click();
+            await page.getByRole('navigation').getByRole('button', { name: 'Try GLKB', exact: true }).click();
             await page.waitForURL('**/chat');
             await context.close();
         }
