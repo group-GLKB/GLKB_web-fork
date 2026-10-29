@@ -323,6 +323,15 @@ export const inferFunnelFromText = (lines = []) => {
  * answer (`trace` on a history message) and `replayTrace` feeds them back through here, so a
  * reloaded turn is built by the same mapping as the live one rather than by a copy of it.
  */
+/** `{figures?: true, graph?: true}` from an agent's `answer_options`; `{}` for anything else. */
+export const answerOptionsOf = (value) => {
+    if (!value || typeof value !== 'object') return {};
+    const out = {};
+    if (value.figures === true) out.figures = true;
+    if (value.graph === true) out.graph = true;
+    return out;
+};
+
 export const frameToUpdate = (data) => {
     if (!data || typeof data !== 'object') return null;
     const detail = data.detail && typeof data.detail === 'object' ? data.detail : {};
@@ -419,6 +428,9 @@ export const frameToUpdate = (data) => {
             // The statements the answer's in-text knowledge graph is drawn from
             // (components/AnswerGraph). Empty when the agent resolved no entity.
             kgQueryList: Array.isArray(data.kg_query_list) ? data.kg_query_list : [],
+            // What an AI Chat turn asked for beyond the answer ({figures, graph}), echoed by the
+            // agent; the graph under a chat answer is drawn only when it asked for one.
+            answerOptions: answerOptionsOf(data.answer_options),
             messages: data.messages || [],
             sessionId: data.session_id || null,
             trajectory: data.trajectory || null,
@@ -564,6 +576,10 @@ export class LLMAgentService {
                 if (attachmentIds.length) {
                     payload.attachments = attachmentIds;
                 }
+                // The answer options (the composer's Options → Include in the answer), only
+                // when on: figures embedded from the cited papers, and the knowledge graph.
+                if (options.figures) payload.figures = true;
+                if (options.graph) payload.graph = true;
             }
             // The service tier (service/serviceTiers.js), on BOTH paths: the backend prices the
             // query by it and the agent picks the model. Omitted when blank, which the backend

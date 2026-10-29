@@ -100,7 +100,7 @@ export const SiteFooter = ({ withCta = true }) => {
                         <Link to="/terms">Terms of Use</Link>
                         <Link to="/privacy">Privacy Policy</Link>
                         <button type="button">Refund &amp; Cancellation</button>
-                        <button type="button">Contact Us</button>
+                        <Link to="/contact">Contact Us</Link>
                     </div>
                     <span className="site-footer-copyright">© 2026 Liu Lab</span>
                 </div>

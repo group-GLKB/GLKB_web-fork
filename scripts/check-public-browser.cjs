@@ -36,7 +36,7 @@ async function main() {
             for (const pathname of ['/', ...BLOG_PATHS, '/api-docs/quickstart']) {
                 await page.goto(origin + pathname, { waitUntil: 'networkidle' });
                 await page.locator('h1').first().waitFor();
-                assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'index, follow');
+                assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), pathname.startsWith('/api-docs') ? 'noindex, nofollow' : 'index, follow');
                 assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), `https://glkb.org${pathname}`);
                 assert.ok((await page.locator('body').innerText()).length > 300);
                 if (BLOG_PATHS.includes(pathname)) {
@@ -113,32 +113,78 @@ async function main() {
             await context.close();
             console.log(`Saved ${investigate ? 'Investigate' : 'ordinary chat'} answer and live account plan verified with mocked APIs.`);
         }
-        const signedIn = await browser.newContext();
-        await signedIn.addInitScript(() => {
-            localStorage.setItem('access_token', 'local-smoke-test');
-            localStorage.setItem('user', JSON.stringify({ id: 999999, email: 'local-smoke@example.invalid' }));
-            // A returning reader may still have the key written by the previous release.
-            localStorage.setItem('glkb-about-seen-v1', '1');
-        });
-        await signedIn.route('**/*', route => {
-            const url = route.request().url();
-            if (!url.startsWith(origin) || url.startsWith(`${origin}/api/`)) return route.fulfill({ status: 403, body: '{}' });
-            return route.continue();
-        });
-        const signedInPage = await signedIn.newPage();
-        for (const path of ['/', '/about', '/?source=test#faq']) {
-            await signedInPage.goto(origin + path, { waitUntil: 'networkidle' });
-            await signedInPage.locator('h1').first().waitFor();
-            assert.equal(new URL(signedInPage.url()).pathname, '/');
-            await signedInPage.reload({ waitUntil: 'networkidle' });
-            await signedInPage.locator('h1').first().waitFor();
-            assert.equal(new URL(signedInPage.url()).pathname, '/');
+        // `/` (config/entryRoutes.js): every visitor sees About first; after that a signed-in reader
+        // ENTERING the site there goes on to the chat. A guest always stays; so does About reached
+        // from inside the app (the GLKB logo) or a #section of it.
+        const reader = async ({ signedIn, seenAbout }) => {
+            const context = await browser.newContext();
+            await context.addInitScript(({ signedIn, seenAbout }) => {
+                if (signedIn) {
+                    localStorage.setItem('access_token', 'local-smoke-test');
+                    localStorage.setItem('user', JSON.stringify({ id: 999999, email: 'local-smoke@example.invalid' }));
+                }
+                if (seenAbout) localStorage.setItem('glkb-about-seen-v1', '1');
+            }, { signedIn, seenAbout });
+            await context.route('**/*', route => {
+                const url = route.request().url();
+                if (!url.startsWith(origin) || url.startsWith(`${origin}/api/`)) return route.fulfill({ status: 403, body: '{}' });
+                return route.continue();
+            });
+            return { context, page: await context.newPage() };
+        };
+        const landsOn = async (page, path, reload = false) => {
+            if (reload) await page.reload({ waitUntil: 'networkidle' });
+            else await page.goto(origin + path, { waitUntil: 'networkidle' });
+            await page.waitForTimeout(300);
+            return new URL(page.url()).pathname;
+        };
+        {
+            const { context, page } = await reader({ signedIn: true, seenAbout: false });
+            assert.equal(await landsOn(page, '/'), '/', 'a signed-in reader sees About once');
+            await page.locator('h1').first().waitFor();
+            assert.equal(await landsOn(page, '/'), '/chat', 'then entering at / goes on to the chat');
+            await context.close();
         }
-        await signedInPage.getByRole('button', { name: 'Get Started', exact: true }).click();
-        await signedInPage.waitForURL('**/chat');
-        assert.equal(new URL(signedInPage.url()).pathname, '/chat');
-        await signedIn.close();
-        console.log('Signed-in About direct visits, legacy URL and refresh stay on About; Get Started opens chat.');
+        {
+            const { context, page } = await reader({ signedIn: true, seenAbout: true });
+            assert.equal(await landsOn(page, '/'), '/chat');
+            // The old /about is a hosting redirect (amplify-redirects.json), so it arrives as a
+            // fresh load of / -- an entry like any other.
+            assert.equal(await landsOn(page, '/about'), '/chat');
+            await page.locator('a[href="/"]:visible').first().click();
+            await page.waitForURL(url => new URL(url).pathname === '/');
+            await page.locator('h1').first().waitFor();
+            assert.equal(new URL(page.url()).pathname, '/', 'the GLKB logo inside the app opens About, and it stays');
+            assert.equal(await landsOn(page, '/?source=test#faq'), '/', 'a section of About stays');
+            assert.equal(await landsOn(page, null, true), '/', 'and stays on refresh');
+            await page.getByRole('button', { name: 'Get Started', exact: true }).click();
+            await page.waitForURL('**/chat');
+            await context.close();
+        }
+        {
+            const { context, page } = await reader({ signedIn: false, seenAbout: true });
+            assert.equal(await landsOn(page, '/'), '/', 'a guest always stays on About');
+            assert.equal(await landsOn(page, null, true), '/');
+            await context.close();
+        }
+        console.log('Entry: About first for everyone, then a signed-in reader entering at / goes to the chat; guests, the in-app logo link and #sections stay on About.');
+
+        // Before the app has run (its bundle held back), what is painted: a signed-in reader the app
+        // will send to the chat sees nothing of About; a guest sees About.
+        const paintedBeforeTheApp = async ({ signedIn, path = '/' }) => {
+            const { context, page } = await reader({ signedIn, seenAbout: true });
+            await context.route(/\/static\/js\//, route => route.abort());
+            await page.goto(origin + path, { waitUntil: 'domcontentloaded' });
+            const visibility = await page.locator('#root').evaluate(el => getComputedStyle(el).visibility);
+            const hasAbout = await page.locator('#root h1').count() > 0;
+            await context.close();
+            return { visibility, hasAbout };
+        };
+        assert.deepEqual(await paintedBeforeTheApp({ signedIn: true }), { visibility: 'hidden', hasAbout: true },
+            'About must not flash for a signed-in reader entering at /');
+        assert.deepEqual(await paintedBeforeTheApp({ signedIn: false }), { visibility: 'visible', hasAbout: true });
+        assert.equal((await paintedBeforeTheApp({ signedIn: true, path: '/#faq' })).visibility, 'visible');
+        console.log('Nothing of About is painted for a visit the app sends to the chat; guests see it at once.');
     } finally {
         if (browser) await browser.close();
         await new Promise(resolve => server.close(resolve));

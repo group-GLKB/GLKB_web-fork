@@ -10,15 +10,17 @@ metadata, schema, links, assets, sitemap and the private application fallback.
 
 ## Amplify action required
 
+New public routes need their own rules before the SPA fallback. The Contact Us page uses
+`/contact` → `/contact/index.html` (200 rewrite) and `/contact/` → `/contact` (301).
+These are included in the generated `build/amplify-redirects.json`.
+
 Repository files cannot change Amplify's saved **Rewrites and redirects** settings.
-Build settings saved in the console and rewrite rules are app-wide. Our dev and production
-branches share one Amplify app, so changing rewrites also changes routing on glkb.org.
-First deploy this code to every branch that uses the shared rules, including production,
-and confirm their builds finish with `Validated 17 public pages`. Only then import
-`build/amplify-redirects.json` in the app's redirect editor. Back up the existing JSON first.
-Replace the old catch-all rewrite to `/index.html` with the generated rules. Keep existing
-API reverse proxies, domain-level/HTTPS redirects and other intentional rules before the
-extensionless fallback. Do not discard them when importing the generated rules.
+Dev and production share an Amplify app: its rewrite rules affect both branches. Deploy the
+new route to both before adding these two Contact rules, ahead of the existing SPA fallback.
+The generated `build/amplify-redirects.json` is the complete reference. Preserve existing API
+proxies, domain/HTTPS redirects and unrelated rules rather than replacing the saved JSON.
+On an app that still rewrites all routes to `/index.html`, replace that old SPA fallback with
+the generated public-page rules and `/app.html` fallback after all branches have those files.
 
 Before changing shared rules, check `/app.html` on each deployed branch: it must contain
 the new app shell with `noindex, nofollow` and the current build's JS assets. HTTP 200 alone
@@ -37,6 +39,9 @@ Verify actual hosting, not only the browser UI:
 - `/about` returns HTTP 301 to `/`; `/blog` to `/#from-the-lab`.
 - `/chat/<id>` still boots the application, with no public conversation HTML or index permission.
 - `/sitemap.xml` contains canonical content URLs, not app dashboards or redirect aliases.
+- API Docs and its subpages remain accessible and prerendered, but carry `noindex, nofollow`
+  in both initial HTML and the client app, and are excluded from the sitemap. Keep their
+  hosting rewrites; do not block crawling in robots.txt, so crawlers can read the noindex.
 
 Canonical URLs deliberately remain `https://glkb.org`, including on dev. Do not submit the
 dev hostname to Search Console. Consider hosting-level noindex/access protection for the dev
@@ -46,10 +51,11 @@ by prerendering. Text claims and pricing policy were not changed in this technic
 ## Search Console (after production deployment, not after dev push)
 
 1. Submit/resubmit `https://glkb.org/sitemap.xml` in Sitemaps.
-2. URL Inspection → Test live URL for `/`, both blog URLs, `/api-docs` and a document.
+2. URL Inspection → Test live URL for `/` and both blog URLs.
    Check fetched HTML, index permission, declared canonical and rendered content.
 3. Request indexing for those representative pages after the live checks pass.
-4. If a noindex exclusion issue is listed, use Validate fix after deployment.
+4. API Docs should be excluded by noindex; do not request indexing for those pages.
+   Verify `/api-docs` and a document report noindex after production deployment.
 5. Review indexing/crawl reports later. Submission is not a guarantee of indexing/ranking.
 
 No new Search Console property, robots permission, GPTBot permission or special AI schema is

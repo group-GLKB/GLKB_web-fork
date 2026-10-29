@@ -77,7 +77,7 @@ const typeQuestion = (text) => {
 };
 
 describe('a guest at the home composer', () => {
-    it('is taken to the chat with their question, on Standard', () => {
+    it('is taken to the chat with their question, on the guest tier (GPT-6.1 Terra)', () => {
         renderBar();
         typeQuestion('What is BRCA1?');
         startChat();
@@ -86,17 +86,17 @@ describe('a guest at the home composer', () => {
         expect(mockNavigate).toHaveBeenCalledWith('/chat/new', expect.objectContaining({
             state: expect.objectContaining({
                 initialQuery: 'What is BRCA1?',
-                initialSearchOptions: expect.objectContaining({ serviceTier: 'standard' }),
+                initialSearchOptions: expect.objectContaining({ serviceTier: 'advanced' }),
             }),
         }));
     });
 
-    it('is sent on Standard even with Premium stored from a signed-in session', () => {
+    it('is sent on the guest tier even with Premium stored from a signed-in session', () => {
         mockStoredTier = 'premium';
         renderBar();
         typeQuestion('What is BRCA1?');
         startChat();
-        expect(mockNavigate.mock.calls[0][1].state.initialSearchOptions.serviceTier).toBe('standard');
+        expect(mockNavigate.mock.calls[0][1].state.initialSearchOptions.serviceTier).toBe('advanced');
     });
 
     it('can open the search options', () => {
@@ -119,9 +119,20 @@ describe('a guest at the home composer', () => {
 
     it('picking GPT-6.1 Sol asks them to sign in', async () => {
         renderBar();
-        fireEvent.click(await screen.findByRole('button', { name: 'Model: GPT-6 Luna' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Model: GPT-6.1 Terra' }));
         fireEvent.click(screen.getByRole('option', { name: /GPT-6.1 Sol/ }));
         expect(mockAuth.openLoginModal).toHaveBeenCalledWith(expect.stringMatching(/GPT-6.1 Sol is available to signed-in users/));
+    });
+
+    it('may pick GPT-6 Luna, and the question is sent on Standard', async () => {
+        renderBar();
+        fireEvent.click(await screen.findByRole('button', { name: 'Model: GPT-6.1 Terra' }));
+        fireEvent.click(screen.getByRole('option', { name: /GPT-6 Luna/ }));
+        expect(mockAuth.openLoginModal).not.toHaveBeenCalled();
+        expect(await screen.findByRole('button', { name: 'Model: GPT-6 Luna' })).toBeInTheDocument();
+        typeQuestion('What is BRCA1?');
+        startChat();
+        expect(mockNavigate.mock.calls[0][1].state.initialSearchOptions.serviceTier).toBe('standard');
     });
 
     it('turning on Investigate asks them to sign in, and the question stays AI Chat', () => {
