@@ -262,9 +262,68 @@
   cursor: pointer;
 }
 .lr-para-tools button:hover { background: var(--color-background-muted, #E5E9F0); }
-/* Not open yet (PARAGRAPH_ACTIONS_ENABLED): shown, greyed out, not clickable. */
+/* While another paragraph's action runs, the others wait. */
 .lr-para-tools button:disabled { color: var(--color-grey-300, #A8B3C8); cursor: not-allowed; }
 .lr-para-tools button:disabled:hover { background: none; }
+.lr-para.is-open { background: var(--color-background-subtle, #F5F7FA); }
+/* The suggestion, answer or question under the paragraph being worked on. */
+.lr-para-panel {
+  margin: 4px 0 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border-default, #E5E9F0);
+  border-left: 3px solid var(--color-brand-primary, #1F5EFF);
+  border-radius: 10px;
+  background: var(--color-background-surface, #fff);
+  font-size: 15px;
+  line-height: 24px;
+}
+.lr-para-panel-label {
+  margin-bottom: 6px;
+  font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--color-text-tertiary, #5E6E87);
+}
+.lr-para-suggestion p { margin: 0 0 8px; font-size: 16px; line-height: 28px; color: var(--color-text-primary, #0B1220); }
+.lr-para-newrefs { margin: 6px 0 4px; padding-left: 0; list-style: none; font-size: 14px; color: var(--color-text-secondary, #222A38); }
+.lr-para-newrefs li { margin: 2px 0; }
+.lr-para-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.lr-para-buttons button, .lr-para-ask button {
+  height: 32px; padding: 0 14px;
+  border: 1px solid var(--color-border-default, #E5E9F0); border-radius: 8px;
+  background: var(--color-background-surface, #fff);
+  font: inherit; font-size: 14px; font-weight: 600;
+  color: var(--color-text-primary, #0B1220);
+  cursor: pointer;
+}
+.lr-para-buttons button.is-primary, .lr-para-ask button.is-primary {
+  border-color: var(--color-brand-primary, #1F5EFF);
+  background: var(--color-brand-primary, #1F5EFF);
+  color: #fff;
+}
+.lr-para-buttons button:disabled, .lr-para-ask button:disabled { opacity: .5; cursor: not-allowed; }
+/* The reader's question or direction: a box that grows with what is typed, its buttons under it. */
+.lr-para-ask { display: flex; flex-direction: column; gap: 8px; }
+.lr-para-ask textarea {
+  width: 100%; min-height: 56px; max-height: 180px; padding: 8px 10px; box-sizing: border-box;
+  border: 1px solid var(--color-border-default, #E5E9F0); border-radius: 8px;
+  background: var(--color-background-surface, #fff);
+  font: inherit; font-size: 15px; line-height: 22px;
+  color: var(--color-text-primary, #0B1220);
+  resize: vertical; field-sizing: content;
+}
+.lr-para-ask textarea:focus { outline: none; border-color: var(--color-brand-primary, #1F5EFF); box-shadow: 0 0 0 3px var(--color-brand-soft, #EEF3FF); }
+.lr-para-ask textarea::placeholder { color: var(--color-text-tertiary, #5E6E87); }
+.lr-para-ask-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.lr-para-next { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-border-default, #E5E9F0); }
+.lr-para-turn + .lr-para-turn { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--color-border-default, #E5E9F0); }
+.lr-para-q { margin-bottom: 4px; font-weight: 600; color: var(--color-text-primary, #0B1220); }
+.lr-para-q.is-pending { margin-top: 10px; }
+.lr-para-direction { margin-bottom: 6px; font-size: 14px; font-style: italic; color: var(--color-text-tertiary, #5E6E87); }
+.lr-para-note { color: var(--color-text-secondary, #222A38); }
+.lr-para-working { display: flex; align-items: center; gap: 10px; color: var(--color-text-tertiary, #5E6E87); }
+.lr-para-error { margin: 6px 0 8px; color: var(--color-status-error-text, #A10902); }
+.lr-para-tools button.is-active { background: var(--color-brand-soft, #EEF3FF); color: var(--color-brand-primary, #1F5EFF); }
+/* A phone: the actions show under a paragraph tapped (no hover), in the flow of the text. */
+.lr-para-inline .lr-para-tools { position: static; display: flex; flex-wrap: wrap; margin: 0 0 12px; box-shadow: none; }
 .lr-cite {
   display: inline-flex;
   align-items: center;
@@ -613,6 +672,8 @@
   .lr-para { margin: 0; padding: 0; }
   .lr-para:hover { background: none; }
   .lr-para-anchor { display: none; }
+  .lr-para.is-selected, .lr-para.is-open { margin: 0 -8px; padding: 0 8px; border-radius: 8px; background: var(--color-background-subtle, #F5F7FA); }
+  .lr-para-ask textarea { font-size: 16px; }
   .lr-para p { margin-bottom: 12px; font-size: 17px; line-height: 30px; }
   .lr-cite.is-author-date {
     padding: 1px 6px;

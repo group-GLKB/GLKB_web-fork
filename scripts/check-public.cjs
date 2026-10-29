@@ -10,6 +10,17 @@ const titles = new Set();
 const redirects = JSON.parse(fs.readFileSync(path.join(root, 'amplify-redirects.json')));
 const blogUrls = urls.filter(url => new URL(url).pathname.startsWith('/blog/'));
 assert.ok(blogUrls.length > 0, 'sitemap must include blog articles');
+assert.ok(!urls.some(url => new URL(url).pathname.startsWith('/api-docs')), 'API docs must not appear in the sitemap');
+const docsRoot = path.join(root, 'api-docs');
+if (fs.existsSync(docsRoot)) {
+    const docFiles = ['index.html', ...fs.readdirSync(docsRoot, { withFileTypes: true })
+        .filter(entry => entry.isDirectory()).map(entry => `${entry.name}/index.html`)];
+    for (const file of docFiles) {
+        const html = fs.readFileSync(path.join(docsRoot, file), 'utf8');
+        assert.match(html, /name="robots" content="noindex, (?:no)?follow"/, `API docs must be noindex: ${file}`);
+        assert.equal((html.match(/name="robots"/g) || []).length, 1, `single robots directive: ${file}`);
+    }
+}
 const home = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 for (const url of urls) {
     const pathname = new URL(url).pathname;

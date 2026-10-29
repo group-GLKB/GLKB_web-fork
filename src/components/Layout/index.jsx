@@ -39,6 +39,7 @@ const getPageTitleByPath = (pathname) => {
     if (pathname.startsWith('/account')) return 'Settings | GLKB';
     if (pathname.startsWith('/privacy')) return 'Privacy Policy | GLKB';
     if (pathname.startsWith('/terms')) return 'Terms of Service | GLKB';
+    if (pathname.replace(/\/+$/, '') === '/contact') return 'Contact Us | GLKB';
     if (pathname.startsWith('/blog')) return 'Our Blog | GLKB';
     if (pathname.startsWith('/search')) return 'Search | GLKB';
     if (pathname.startsWith('/history')) return 'History | GLKB';
@@ -56,6 +57,7 @@ const AppLayout = () => {
     // About is the landing page at `/` (/about only redirects there)
     const isAboutPage = location.pathname === '/' || location.pathname.startsWith('/about');
     const isBlogPage = location.pathname.startsWith('/blog');
+    const isContactPage = location.pathname.replace(/\/+$/, '') === '/contact';
     // the legal notices stand on their own, as About and the blog do
     const isLegalPage = location.pathname.startsWith('/privacy')
         || location.pathname.startsWith('/terms');
@@ -67,9 +69,9 @@ const AppLayout = () => {
     // Desktop Settings has its own section rail, so a second permanent app rail
     // would duplicate it. On phones that section rail is intentionally hidden;
     // keep the app's temporary drawer mounted so the mobile header menu is live.
-    const hideSidebar = isAboutPage || isBlogPage || isLegalPage
+    const hideSidebar = isAboutPage || isBlogPage || isLegalPage || isContactPage
         || (isAccountPage && !isPhoneDevice);
-    const showMobileHeader = isPhoneDevice && !isAboutPage && !isBlogPage && !isLegalPage
+    const showMobileHeader = isPhoneDevice && !isAboutPage && !isBlogPage && !isLegalPage && !isContactPage
         && !isLiteratureReviewPage && !isMobileHeaderHidden;
 
     useLayoutEffect(() => {
