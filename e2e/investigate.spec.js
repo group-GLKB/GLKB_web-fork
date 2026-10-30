@@ -14,6 +14,11 @@ import { test, expect } from '@playwright/test';
  */
 
 const INVESTIGATE_TIMEOUT_MS = 20 * 60 * 1000;
+// Shared by everything that happens after the answer's text lands: waiting for citations,
+// for the backend's finalize step (no SLA — see the comment at its use below), and for the
+// graph card. One pool, not a separate guess per step, so a slow step doesn't starve the ones
+// after it of time the outer test.setTimeout never gave them to begin with.
+const POST_ANSWER_BUDGET_MS = 5 * 60 * 1000;
 
 // The backend caches by exact query text — a fixed question every hour would quietly start
 // serving a cached answer instead of exercising a real run.
@@ -22,7 +27,7 @@ const withCacheBuster = (text) => `${text} (ignore the trailing digits: ${Math.f
 test.use({ viewport: { width: 1600, height: 900 } });
 
 test('Investigate mode reaches an answer, clicking through any clarifying questions', async ({ page }) => {
-  test.setTimeout(INVESTIGATE_TIMEOUT_MS + 2 * 60 * 1000);
+  test.setTimeout(INVESTIGATE_TIMEOUT_MS + POST_ANSWER_BUDGET_MS);
 
   await page.goto('/chat');
 
@@ -90,7 +95,16 @@ test('Investigate mode reaches an answer, clicking through any clarifying questi
 
   // The graph belongs to a completed Investigate answer, not to an ordinary answer.
   // Reuse this run rather than spending another research query just to check the card.
-  await expect(page.getByRole('button', { name: 'Copy response', exact: true })).toBeVisible({ timeout: 60000 });
+  //
+  // The answer's text can land well before the run is actually done — the backend still has
+  // to finalize references, citations and the graph query list (LLMAgent/index.jsx's 'answer'
+  // vs 'final' stream events), and that finalize step carries no SLA. A fixed add-on timeout
+  // here would be a second guess layered on top of the run's own budget; reusing what's left
+  // of POST_ANSWER_BUDGET_MS instead means a fast answer gets most of it to finalize, and a
+  // slow one gets whatever's left — minus a reserve for the graph-card checks still to come,
+  // so a slow finalize fails cleanly here instead of running the outer test.setTimeout dry.
+  const remainingForFinalize = Math.max(60000, deadline + POST_ANSWER_BUDGET_MS - Date.now() - 2 * 60 * 1000);
+  await expect(page.getByRole('button', { name: 'Copy response', exact: true })).toBeVisible({ timeout: remainingForFinalize });
   const card = page.locator('.ag-card');
   // Text-derived graphs are fetched only when their placeholder enters the viewport.
   const placeholder = response.locator(':scope > span[aria-hidden="true"]').first();
