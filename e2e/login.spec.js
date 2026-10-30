@@ -15,7 +15,9 @@ const ADMIN_CODE = '111111';
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
-test('email-code login signs the monitoring admin in, end to end', async ({ page }) => {
+// Paused 2026-10-30: backend changed the database and this logs a real account in/out
+// against it. Re-enable (drop .skip) once the backend confirms the change is settled.
+test.skip('email-code login signs the monitoring admin in, end to end', async ({ page }) => {
     test.setTimeout(120000);
 
     await page.goto('/chat');
