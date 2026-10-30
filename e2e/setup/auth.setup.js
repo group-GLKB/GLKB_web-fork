@@ -52,6 +52,10 @@ async function globalSetup() {
     localStorage.setItem('access_token', token);
     localStorage.setItem('token_type', 'bearer');
     localStorage.setItem('user', JSON.stringify(user));
+    // Pin the cheapest tier (src/service/serviceTiers.js: SERVICE_TIER_KEY) so monitoring's
+    // real paid runs (ai-chat.spec.js, investigate.spec.js) don't silently ride whatever tier
+    // the app defaults to — that default moved from standard to the pricier advanced on 2026-10-26.
+    localStorage.setItem('glkb_service_tier', 'standard');
   }, { token, user });
   await context.storageState({ path: AUTH_FILE });
   await browser.close();
