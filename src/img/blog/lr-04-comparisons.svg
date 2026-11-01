@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 760 266" xmlns="http://www.w3.org/2000/svg" font-family="Geist,Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+<defs><pattern id="lr4h" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#FE9989" stroke-width="2"/></pattern></defs>
+<text x="0" y="18" font-size="12" font-weight="700" letter-spacing="1.4" fill="#5E6E87">21 HEAD-TO-HEAD COMPARISONS AMONG 7 PUBLISHED SYSTEMS</text>
+<path d="M300 58 V50 H624 V58" fill="none" stroke="#A10902" stroke-width="1.4"/>
+<text x="462.0" y="42" font-size="12.5" font-weight="600" fill="#A10902" text-anchor="middle">11 comparisons with unequal inputs</text>
+<text x="0" y="84" font-size="14" font-weight="700" fill="#0C1018">Careful conventional statistics</text>
+<rect x="0" y="94" width="24" height="24" rx="4" fill="#5E6E87"/>
+<rect x="30" y="94" width="24" height="24" rx="4" fill="#5E6E87"/>
+<rect x="60" y="94" width="24" height="24" rx="4" fill="#5E6E87"/>
+<rect x="90" y="94" width="24" height="24" rx="4" fill="#5E6E87"/>
+<rect x="120" y="94" width="24" height="24" rx="4" fill="#5E6E87"/>
+<rect x="150" y="94" width="24" height="24" rx="4" fill="#5E6E87"/>
+<rect x="180" y="94" width="24" height="24" rx="4" fill="#5E6E87"/>
+<rect x="210.75" y="94.75" width="22.5" height="22.5" rx="4" fill="#FFFFFF" stroke="#8090AB" stroke-width="1.5"/>
+<rect x="240.75" y="94.75" width="22.5" height="22.5" rx="4" fill="#FFFFFF" stroke="#8090AB" stroke-width="1.5"/>
+<rect x="270.75" y="94.75" width="22.5" height="22.5" rx="4" fill="#FFFFFF" stroke="#8090AB" stroke-width="1.5"/>
+<rect x="300" y="94" width="24" height="24" rx="4" fill="#5E6E87"/>
+<rect x="330" y="94" width="24" height="24" rx="4" fill="#5E6E87"/>
+<rect x="360" y="94" width="24" height="24" rx="4" fill="#5E6E87"/>
+<rect x="390" y="94" width="24" height="24" rx="4" fill="#5E6E87"/>
+<rect x="420" y="94" width="24" height="24" rx="4" fill="#5E6E87"/>
+<rect x="450" y="94" width="24" height="24" rx="4" fill="#5E6E87"/>
+<rect x="480" y="94" width="24" height="24" rx="4" fill="#5E6E87"/>
+<rect x="510.75" y="94.75" width="22.5" height="22.5" rx="4" fill="#FFFFFF" stroke="#8090AB" stroke-width="1.5"/>
+<rect x="540.75" y="94.75" width="22.5" height="22.5" rx="4" fill="#FFFFFF" stroke="#8090AB" stroke-width="1.5"/>
+<rect x="570.75" y="94.75" width="22.5" height="22.5" rx="4" fill="#FFFFFF" stroke="#8090AB" stroke-width="1.5"/>
+<rect x="600.75" y="94.75" width="22.5" height="22.5" rx="4" fill="#FFFFFF" stroke="#8090AB" stroke-width="1.5"/>
+<text x="760" y="104" font-size="13" font-weight="600" fill="#0C1018" text-anchor="end">14 winners</text>
+<text x="760" y="120" font-size="12" fill="#5E6E87" text-anchor="end">7 from unequal inputs</text>
+<text x="0" y="160" font-size="14" font-weight="700" fill="#0C1018">Our test: check the inputs first</text>
+<rect x="0" y="170" width="24" height="24" rx="4" fill="#155DFC"/>
+<rect x="30" y="170" width="24" height="24" rx="4" fill="#155DFC"/>
+<rect x="60" y="170" width="24" height="24" rx="4" fill="#155DFC"/>
+<rect x="90" y="170" width="24" height="24" rx="4" fill="#155DFC"/>
+<rect x="120" y="170" width="24" height="24" rx="4" fill="#155DFC"/>
+<rect x="150" y="170" width="24" height="24" rx="4" fill="#155DFC"/>
+<rect x="180" y="170" width="24" height="24" rx="4" fill="#155DFC"/>
+<rect x="210.75" y="170.75" width="22.5" height="22.5" rx="4" fill="#FFFFFF" stroke="#8090AB" stroke-width="1.5"/>
+<rect x="240.75" y="170.75" width="22.5" height="22.5" rx="4" fill="#FFFFFF" stroke="#8090AB" stroke-width="1.5"/>
+<rect x="270.75" y="170.75" width="22.5" height="22.5" rx="4" fill="#FFFFFF" stroke="#8090AB" stroke-width="1.5"/>
+<rect x="300.75" y="170.75" width="22.5" height="22.5" rx="4" fill="url(#lr4h)" stroke="#A10902" stroke-width="1.5"/>
+<rect x="330.75" y="170.75" width="22.5" height="22.5" rx="4" fill="url(#lr4h)" stroke="#A10902" stroke-width="1.5"/>
+<rect x="360.75" y="170.75" width="22.5" height="22.5" rx="4" fill="url(#lr4h)" stroke="#A10902" stroke-width="1.5"/>
+<rect x="390.75" y="170.75" width="22.5" height="22.5" rx="4" fill="url(#lr4h)" stroke="#A10902" stroke-width="1.5"/>
+<rect x="420.75" y="170.75" width="22.5" height="22.5" rx="4" fill="url(#lr4h)" stroke="#A10902" stroke-width="1.5"/>
+<rect x="450.75" y="170.75" width="22.5" height="22.5" rx="4" fill="url(#lr4h)" stroke="#A10902" stroke-width="1.5"/>
+<rect x="480.75" y="170.75" width="22.5" height="22.5" rx="4" fill="url(#lr4h)" stroke="#A10902" stroke-width="1.5"/>
+<rect x="510.75" y="170.75" width="22.5" height="22.5" rx="4" fill="url(#lr4h)" stroke="#A10902" stroke-width="1.5"/>
+<rect x="540.75" y="170.75" width="22.5" height="22.5" rx="4" fill="url(#lr4h)" stroke="#A10902" stroke-width="1.5"/>
+<rect x="570.75" y="170.75" width="22.5" height="22.5" rx="4" fill="url(#lr4h)" stroke="#A10902" stroke-width="1.5"/>
+<rect x="600.75" y="170.75" width="22.5" height="22.5" rx="4" fill="url(#lr4h)" stroke="#A10902" stroke-width="1.5"/>
+<text x="760" y="180" font-size="13" font-weight="600" fill="#155DFC" text-anchor="end">7 confirmed</text>
+<text x="760" y="196" font-size="12" fill="#5E6E87" text-anchor="end">11 refused</text>
+<rect x="0" y="238" width="16" height="16" rx="4" fill="#5E6E87"/>
+<text x="24" y="251" font-size="12.5" fill="#323E52">winner declared</text>
+<rect x="159" y="238" width="16" height="16" rx="4" fill="#155DFC"/>
+<text x="183" y="251" font-size="12.5" fill="#323E52">winner confirmed</text>
+<rect x="325.75" y="238.75" width="14.5" height="14.5" rx="4" fill="#FFFFFF" stroke="#8090AB" stroke-width="1.5"/>
+<text x="349" y="251" font-size="12.5" fill="#323E52">too close to call</text>
+<rect x="498.75" y="238.75" width="14.5" height="14.5" rx="4" fill="url(#lr4h)" stroke="#A10902" stroke-width="1.5"/>
+<text x="522" y="251" font-size="12.5" fill="#323E52">refused: not comparable</text>
+</svg>

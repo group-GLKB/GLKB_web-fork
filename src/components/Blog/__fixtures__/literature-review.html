@@ -1,0 +1,232 @@
+<nav class="blog-toc" aria-label="On this page">
+<button type="button" class="blog-toc-brand">
+<svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium blog-toc-brand-icon css-i4bv87-MuiSvgIcon-root" focusable="false" aria-hidden="true" viewBox="0 0 24 24" data-testid="ChevronLeftIcon">
+<path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg>GLKB Blog</button>
+<div class="blog-toc-group">
+<button type="button" class="blog-toc-link">At a Glance</button></div>
+<div class="blog-toc-group">
+<button type="button" class="blog-toc-link">What It Does</button>
+<button type="button" class="blog-toc-link is-child">How It Works</button>
+<button type="button" class="blog-toc-link is-child">What You Receive</button></div>
+<div class="blog-toc-group">
+<button type="button" class="blog-toc-link">How We Tested It</button>
+<button type="button" class="blog-toc-link is-child">The Problem</button>
+<button type="button" class="blog-toc-link is-child">A Fair Test</button>
+<button type="button" class="blog-toc-link is-child">The Answer Key</button></div>
+<div class="blog-toc-group">
+<button type="button" class="blog-toc-link">Results</button>
+<button type="button" class="blog-toc-link is-child">Same Papers</button>
+<button type="button" class="blog-toc-link is-child">Same Library</button>
+<button type="button" class="blog-toc-link is-child">Why Fairness Matters</button></div>
+<div class="blog-toc-group">
+<button type="button" class="blog-toc-link">Built for Real Reviews</button>
+<button type="button" class="blog-toc-link is-child">Using Your Draft</button></div>
+<div class="blog-toc-group">
+<button type="button" class="blog-toc-link is-active">Get Started</button></div></nav>
+<div class="blog-content">
+<header class="blog-hero">
+<div class="blog-meta">
+<span>GLKB · product article</span>
+<span>Nov 1, 2026</span></div>
+<h1 class="blog-title">GLKB Literature Review: Weeks of Groundwork, Done in Minutes</h1>
+<p class="blog-lede">Enter a biomedical topic and GLKB writes you a structured, fully cited draft review. Graded against 2,042 reviews published by experts, the agent behind it outscored every review-writing tool we tested, including leading commercial agents.</p>
+<button type="button" class="blog-hero-cta">Try Literature Review →</button></header>
+<article class="blog-article">
+<h2 class="blog-h2" id="at-a-glance">At a Glance</h2>
+<p class="blog-p">A good literature review takes weeks. Most of that time goes into three tasks: finding the right papers, reading them, and working out how their findings fit together. GLKB Literature Review does all three for you.</p>
+<p class="blog-p">You enter a topic, for example "mechanisms of osimertinib resistance in EGFR-mutant lung cancer". About ten to fifteen minutes later, you have a draft review. It is organized into sections like a published review, and every statement is linked to the papers behind it.</p>
+<p class="blog-p">Behind it is SCRIBE, a review-writing agent developed by our lab at the University of Michigan. To find out how good it really is, we built the most demanding test we could: 2,042 reviews already published in PubMed Central, used as an answer key. The results are in our new paper on arXiv (2609.32318). When every tool worked from the same papers, SCRIBE scored highest, and it was confirmed ahead of every commercial and academic tool in the comparison.</p>
+<div class="blog-table-wrap">
+<table class="blog-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th></tr></thead>
+<tbody>
+<tr>
+<td>Published biomedical reviews used as the answer key</td>
+<td>2,042</td></tr>
+<tr>
+<td>Claims extracted from those reviews</td>
+<td>246,102</td></tr>
+<tr>
+<td>SCRIBE's overall score, all tools given the same papers</td>
+<td>0.606</td></tr>
+<tr>
+<td>Best score among the other tools</td>
+<td>0.541</td></tr>
+<tr>
+<td>SCRIBE's rank range among 13 systems</td>
+<td>1–2</td></tr></tbody></table></div>
+<h2 class="blog-h2" id="what-it-does">What It Does</h2>
+<p class="blog-p">Most AI writing tools read a batch of papers and produce text in one pass. The result often sounds right, but you cannot see which papers were used, or why a claim sits where it does. SCRIBE works differently. It follows the same steps an experienced reviewer would, one at a time, and each step builds on a fixed result from the step before.</p>
+<h3 class="blog-h3" id="how-it-works">How It Works</h3>
+<figure class="blog-figure">
+<span class="blog-figure-plate">
+<img src="lr-01-pipeline.svg" alt="Four steps, in a fixed order. Each step works only from what the previous step handed over, so no new material can slip into the review halfway through." loading="lazy"></span>
+<figcaption>Four steps, in a fixed order. Each step works only from what the previous step handed over, so no new material can slip into the review halfway through.</figcaption></figure>
+<p class="blog-p">
+<strong>Step 1: Lock the evidence.</strong> SCRIBE searches a library of more than 26 million biomedical papers and adds recent PubMed results. Where PubMed Central allows it, it reads the full text, not just the abstract. Then it locks the set of papers. From this point on, nothing new can be added, so every citation in your draft comes from a known, fixed list.</p>
+<p class="blog-p">
+<strong>Step 2: Map the claims.</strong> Before writing a single sentence, SCRIBE records what each paper claims. It also records how those claims relate to each other. For example, one finding may explain the mechanism behind another, contradict it, or hold only in a specific patient group.</p>
+<p class="blog-p">
+<strong>Step 3: Plan the outline.</strong> SCRIBE assigns each claim, together with the papers that support it, to one section of the review. This is the step that turns a pile of findings into an argument. It is also where most AI tools struggle, and where SCRIBE leads most clearly.</p>
+<p class="blog-p">
+<strong>Step 4: Write each section.</strong> SCRIBE writes every section only from the material assigned to it. A section on resistance mechanisms is therefore built from the papers on resistance mechanisms, not from the whole pile.</p>
+<h3 class="blog-h3" id="what-you-receive">What You Receive</h3>
+<ul class="blog-list">
+<li>
+<strong>A structured draft review</strong>, divided into sections, the way a published review is.</li>
+<li>
+<strong>Numbered citations</strong> for each statement, with a full reference list at the end.</li>
+<li>
+<strong>Your own papers, if you want them.</strong> Add the papers you already rely on, and SCRIBE works them into the review.</li>
+<li>
+<strong>A saved copy in your History</strong>, so you can come back to it at any time.</li></ul>
+<p class="blog-p">In GLKB today, SCRIBE runs on OpenAI models through our own review harness. Our own model, trained specifically for review writing, is coming soon.</p>
+<h2 class="blog-h2" id="how-we-tested">How We Tested It</h2>
+<p class="blog-p">Many AI tools claim to write better reviews than their competitors. Most of those claims rest on comparisons that are not controlled. We wanted a test that a biomedical researcher could trust, and then we wanted to win it.</p>
+<h3 class="blog-h3" id="the-problem">The Problem With Most Comparisons</h3>
+<p class="blog-p">A review can only be as good as the papers it is built from. If one tool is given a better reading list, its review will score higher, even if its writing is worse.</p>
+<p class="blog-p">Think of a western blot. If one lane holds twice as much protein as the other, a brighter band tells you nothing about the antibody. You first check the loading control. Comparisons of AI review tools have the same problem. The "protein" is the set of papers each tool worked from, and most published comparisons never check it.</p>
+<p class="blog-p">The example below, taken from our paper, shows how easily this reverses a result.</p>
+<figure class="blog-figure">
+<span class="blog-figure-plate">
+<img src="lr-02-unfair.svg" alt="Tool A is the better writer, but it has the weaker search. When each tool uses its own search, B appears to win. When both receive the same papers, A wins clearly. More test topics would not fix this; only matching the inputs does." loading="lazy"></span>
+<figcaption>Tool A is the better writer, but it has the weaker search. When each tool uses its own search, B appears to win. When both receive the same papers, A wins clearly. More test topics would not fix this; only matching the inputs does.</figcaption></figure>
+<h3 class="blog-h3" id="fair-test">Our Approach: Check the Inputs First</h3>
+<p class="blog-p">Our method, which the paper calls compositional controllability, follows three rules that any experimentalist will recognize.</p>
+<ol>
+<li>
+<strong>Decide what you are comparing.</strong> You can compare whole tools, from question to finished review. In that case, a better search is part of a better tool. Or you can compare one step, such as the writing. In that case, differences in the papers each tool received are a confounder.</li>
+<li>
+<strong>Check the inputs before reading any score.</strong> We measure how different the inputs are and how much that difference could move the score. If it could move the score too much, the comparison is refused. Like a pre-registered analysis, the decision cannot depend on which tool we hoped would win.</li>
+<li>
+<strong>Declare a winner only when the gap is clearly larger.</strong> A winner is confirmed only when the score gap exceeds both random variation and any remaining difference in inputs. Otherwise, the result is "too close to call".</li></ol>
+<p class="blog-p">The outcome is a leaderboard with controls. Each tool receives a rank range instead of a single rank, which works like a confidence interval for its position.</p>
+<h3 class="blog-h3" id="answer-key">The Answer Key: 2,042 Published Reviews</h3>
+<p class="blog-p">To grade a review, you need to know what human experts concluded and which papers they relied on. We built this answer key, called BioLitBench, from open-access reviews in PubMed Central. The reviews were published between 2016 and 2025 and cover 6 fields and 48 subfields of biomedicine.</p>
+<p class="blog-p">Each review was broken down into individual claims, 246,102 in total. For each claim, we recorded which papers it cites and how it connects to other claims. This lets us check far more than wording. We can check whether an AI review reaches the same conclusions, from the same evidence, organized in the same way.</p>
+<p class="blog-p">There is rarely only one correct review of a topic. Each test topic therefore comes with 4 to 9 other published reviews on the same subject. Scores are placed on a human scale: 0 is roughly the level of the weaker human reviews on that topic, and 1 matches the published review being graded against.</p>
+<div class="blog-table-wrap">
+<table class="blog-table">
+<thead>
+<tr>
+<th>Score</th>
+<th>The question it answers</th></tr></thead>
+<tbody>
+<tr>
+<td>Retrieval</td>
+<td>Did the tool find the papers the human authors cited?</td></tr>
+<tr>
+<td>Synthesis</td>
+<td>Does the review make the same claims as the human review?</td></tr>
+<tr>
+<td>Reasoning</td>
+<td>Does it connect claims the same way, for example by mechanism, contrast or condition?</td></tr>
+<tr>
+<td>Planning</td>
+<td>Is it organized like a human review, with claims and papers in the right sections?</td></tr>
+<tr>
+<td>Writing</td>
+<td>How do its sections compare with those written by human experts?</td></tr>
+<tr>
+<td>Form</td>
+<td>Do its structure and style fall within the range of human reviews?</td></tr></tbody></table></div>
+<p class="blog-p">We ran the test under two conditions. Under <strong>same papers</strong>, every tool receives the human review's own reference list. Under <strong>same library</strong>, every tool must find its own papers in one shared collection of 26.6 million papers.</p>
+<h2 class="blog-h2" id="results">Results</h2>
+<h3 class="blog-h3" id="same-papers">Same Papers: Highest Score, Ahead of Every Other Tool</h3>
+<p class="blog-p">This condition isolates what a tool does with the evidence: how it extracts claims, organizes them and writes them up. Every tool starts from the same reference list, so the comparison is fully controlled.</p>
+<figure class="blog-figure">
+<span class="blog-figure-plate">
+<img src="lr-03-leaderboard.svg" alt="Overall scores when every tool works from the human review's reference list. Rank range shows every position a tool could hold, given the results that were confirmed. 13 systems were ranked; one commercial system is not reported in the paper." loading="lazy"></span>
+<figcaption>Overall scores when every tool works from the human review's reference list. Rank range shows every position a tool could hold, given the results that were confirmed. 13 systems were ranked; one commercial system is not reported in the paper.</figcaption></figure>
+<ul class="blog-list">
+<li>
+<strong>SCRIBE scored 0.606, the highest of any system.</strong></li>
+<li>
+<strong>It was confirmed ahead of every other tool</strong>, including Claude Science, Claude Code, an OpenAI agent, Elicit's Systematic Review and every published academic system. The only system it could not be separated from was its own untrained version.</li>
+<li>
+<strong>The design is what wins.</strong> On an open 27-billion-parameter model, SCRIBE scored 0.606. The same design running on gpt-5.6-luna scored 0.564, still higher on average than every other tool tested.</li></ul>
+<h3 class="blog-h3" id="same-library">Same Library: Still First When Each Tool Finds Its Own Papers</h3>
+<p class="blog-p">In everyday use, nobody hands you the reference list. This condition tests the whole workflow, search included. Finding the right papers is much harder, so every score is lower.</p>
+<div class="blog-table-wrap">
+<table class="blog-table">
+<thead>
+<tr>
+<th>System</th>
+<th>Overall</th>
+<th>Retrieval</th>
+<th>Rank range</th></tr></thead>
+<tbody>
+<tr>
+<td>SCRIBE (GLKB)</td>
+<td>
+<strong>0.487</strong></td>
+<td>0.335</td>
+<td>1–7</td></tr>
+<tr>
+<td>SurveyGen-I</td>
+<td>0.460</td>
+<td>0.336</td>
+<td>1–9</td></tr>
+<tr>
+<td>Claude Code</td>
+<td>0.458</td>
+<td>0.227</td>
+<td>1–8</td></tr>
+<tr>
+<td>Claude Science</td>
+<td>0.456</td>
+<td>0.287</td>
+<td>1–8</td></tr>
+<tr>
+<td>OpenAI tool loop</td>
+<td>0.437</td>
+<td>0.172</td>
+<td>3–10</td></tr>
+<tr>
+<td>AutoSurvey</td>
+<td>0.419</td>
+<td>0.238</td>
+<td>5–11</td></tr></tbody></table></div>
+<p class="blog-p">SCRIBE again had the highest overall score. It was confirmed ahead of the OpenAI agent, AutoSurvey, SurveyG and LLM×MapReduce. At finding the papers that human authors actually cited, it matched the best academic system, and it found more of them than any commercial agent.</p>
+<h3 class="blog-h3" id="why-fairness-matters">Why a Fair Test Matters</h3>
+<p class="blog-p">To show what the input check changes, we applied it to seven published academic systems. Together they form 21 head-to-head comparisons.</p>
+<p class="blog-p">A careful conventional analysis, with paired tests and corrections for multiple comparisons, declared a winner in 14 of them. Our test refused 11 of the 21 before looking at any score, because the systems had not received comparable inputs. One system was the only one given the human review's own reference list. Another ran on a different underlying model from the rest.</p>
+<figure class="blog-figure">
+<span class="blog-figure-plate">
+<img src="lr-04-comparisons.svg" alt="Each square is one comparison. Statistics can tell you that a difference is real, but not that the comparison was fair. Half of the conventional verdicts came from comparisons that should never have been made." loading="lazy"></span>
+<figcaption>Each square is one comparison. Statistics can tell you that a difference is real, but not that the comparison was fair. Half of the conventional verdicts came from comparisons that should never have been made.</figcaption></figure>
+<p class="blog-p">The conventional analysis ranked first the one system that had been handed the reading list. Its verdict was statistically sound, but it measured the setup, not the system. That is why every SCRIBE result above comes from matched inputs.</p>
+<aside class="blog-callout">
+<p class="blog-callout-title">Can the confirmed results be trusted?</p>
+<p class="blog-callout-text">We checked the test on cases where no real difference exists. Three runs of the same model, compared against each other, produced no confirmed differences at all (0 of 114). Removing any one subfield from the test set never reversed a confirmed result.</p></aside>
+<h2 class="blog-h2" id="built-for-real-reviews">Built for How Real Reviews Fail</h2>
+<p class="blog-p">Grading each step separately showed us where AI-written reviews break down. SCRIBE is designed around exactly these weak points.</p>
+<ul class="blog-list">
+<li>
+<strong>Organizing the evidence is the hardest step.</strong> Planning had the lowest scores of all six measures, for every tool. Human reviewers place a given paper in about 14% of their sections, while many AI tools cite the whole evidence set in nearly every section. SCRIBE assigns each paper to the sections where it belongs, and it had the best planning score of any tool given the same papers.</li>
+<li>
+<strong>Polishing can delete findings.</strong> Many tools finish with a pass that improves the wording. In three cases, that pass also removed findings the earlier draft had covered. SCRIBE grades every step on its own, so a loss like this cannot hide behind better prose.</li>
+<li>
+<strong>Finding the right papers separates tools most.</strong> When tools search for themselves, retrieval is what separates them. Because SCRIBE grades its search on its own, we could see exactly where to improve it. Our rebuilt search more than doubled its retrieval score, from 0.156 to 0.335.</li>
+<li>
+<strong>Fluent text is not the same as cited text.</strong> Large language models already know a great deal of biology and can write convincing text from memory. SCRIBE locks its papers first and writes each section only from the papers assigned to it, so the review is built on the evidence in front of it.</li></ul>
+<h3 class="blog-h3" id="using-your-draft">Getting the Most From Your Draft</h3>
+<p class="blog-p">Your draft gives you weeks of groundwork in minutes. You stay the expert, and a few quick checks make the most of it.</p>
+<ul class="blog-list">
+<li>
+<strong>Spot-check the key citations.</strong> Open the papers behind your most important claims and confirm they say what you need.</li>
+<li>
+<strong>Add what you know.</strong> If a paper you rely on is missing, add it as one of your own papers and run the review again.</li>
+<li>
+<strong>Shape the argument.</strong> Use the outline as a starting point, then reorder, merge or expand sections to tell your story.</li>
+<li>
+<strong>Review before you publish.</strong> As with any draft, read it carefully before using it in a manuscript, a grant, or a clinical or policy decision.</li></ul>
+<h2 class="blog-h2" id="get-started">Get Started</h2>
+<p class="blog-p">GLKB Literature Review is available now with a free GLKB account. On the home page, select the Literature Review tab above the search bar and enter your topic. Your draft will be ready in about ten to fifteen minutes.</p>
+<p class="blog-p">Want the details? The full study, "What Can a Leaderboard Certify? Compositional Controllability for Fair Evaluation and Training of Biomedical Literature-Review Agents", is on <a href="https://arxiv.org/abs/2609.32318">arXiv (2609.32318)</a>. The code, the benchmark inputs and the analysis scripts are public in the <a href="https://github.com/shawnzhg/LitReview-SCRIBE">project repository</a>.</p>
+<aside class="blog-callout">
+<p class="blog-callout-title">Tested against the experts</p>
+<p class="blog-callout-text">SCRIBE was graded against 2,042 reviews written by experts, under conditions where every tool had a fair chance. It came out on top. Try it on your next review.</p></aside></article></div>

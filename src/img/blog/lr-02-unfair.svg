@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" font-family="Geist,Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+  <!-- Scale shared by both panels: a score of 0.5 is 250 px wide. -->
+
+  <!-- left panel: each tool with its own search -->
+  <rect x="0" y="0" width="370" height="300" rx="12" fill="#FFFFFF" stroke="#E5E9F0" stroke-width="1.4"/>
+  <text x="20" y="34" font-size="12" font-weight="700" letter-spacing="1.2" fill="#5E6E87">TYPICAL LEADERBOARD</text>
+  <text x="20" y="60" font-size="17" font-weight="700" fill="#0C1018">Each tool finds its own papers</text>
+  <text font-size="13" fill="#5E6E87">
+    <tspan x="20" y="84">Tool A finds 20% of the papers it needs.</tspan>
+    <tspan x="20" y="103">Tool B finds 40%.</tspan>
+  </text>
+
+  <text x="20" y="144" font-size="13" font-weight="600" fill="#0C1018">Tool A</text>
+  <rect x="80" y="130" width="80" height="20" rx="4" fill="#155DFC"/>
+  <text x="168" y="145" font-size="13" font-weight="600" fill="#0C1018">0.16</text>
+  <text x="20" y="184" font-size="13" font-weight="600" fill="#0C1018">Tool B</text>
+  <rect x="80" y="170" width="100" height="20" rx="4" fill="#8090AB"/>
+  <text x="188" y="185" font-size="13" font-weight="600" fill="#0C1018">0.20</text>
+
+  <line x1="20" y1="222" x2="350" y2="222" stroke="#E5E9F0"/>
+  <text x="20" y="250" font-size="14" font-weight="600" fill="#0C1018">Result: B looks better, by 0.04</text>
+  <text x="20" y="272" font-size="13" fill="#5E6E87">But B simply started with more papers.</text>
+
+  <!-- right panel: same papers -->
+  <rect x="390" y="0" width="370" height="300" rx="12" fill="#FFFFFF" stroke="#155DFC" stroke-width="1.6"/>
+  <text x="410" y="34" font-size="12" font-weight="700" letter-spacing="1.2" fill="#155DFC">CONTROLLED TEST</text>
+  <text x="410" y="60" font-size="17" font-weight="700" fill="#0C1018">Both tools get the same papers</text>
+  <text font-size="13" fill="#5E6E87">
+    <tspan x="410" y="84">Each tool receives the same 50% of</tspan>
+    <tspan x="410" y="103">the papers it needs.</tspan>
+  </text>
+
+  <text x="410" y="144" font-size="13" font-weight="600" fill="#0C1018">Tool A</text>
+  <rect x="470" y="130" width="200" height="20" rx="4" fill="#155DFC"/>
+  <text x="678" y="145" font-size="13" font-weight="600" fill="#0C1018">0.40</text>
+  <text x="410" y="184" font-size="13" font-weight="600" fill="#0C1018">Tool B</text>
+  <rect x="470" y="170" width="125" height="20" rx="4" fill="#8090AB"/>
+  <text x="603" y="185" font-size="13" font-weight="600" fill="#0C1018">0.25</text>
+
+  <line x1="410" y1="222" x2="740" y2="222" stroke="#E5E9F0"/>
+  <text x="410" y="250" font-size="14" font-weight="600" fill="#0A47D6">Result: A is better, by 0.15</text>
+  <text x="410" y="272" font-size="13" fill="#5E6E87">With the input matched, the order flips.</text>
+</svg>

@@ -1,5 +1,6 @@
 /**
- * The two articles, from Figma 707:2703 (GLKB) and 732:8445 (Investigate).
+ * The articles. Two are from Figma 707:2703 (GLKB) and 732:8445 (Investigate);
+ * the Literature Review article was written for the site, with no frame.
  *
  * The prose lives in content/*.md — see markdown.js for the dialect. This file
  * only turns those files into post objects and resolves the image names the
@@ -21,9 +22,14 @@ import fig06 from '../../img/blog/fig-06-verification.svg';
 import fig07 from '../../img/blog/fig-07-report-anatomy.svg';
 import fig08 from '../../img/blog/fig-08-positioning.svg';
 import fig09 from '../../img/blog/fig-09-search-mode.svg';
+import lr01 from '../../img/blog/lr-01-pipeline.svg';
+import lr02 from '../../img/blog/lr-02-unfair.svg';
+import lr03 from '../../img/blog/lr-03-leaderboard.svg';
+import lr04 from '../../img/blog/lr-04-comparisons.svg';
 
 import glkbArticle from './content/glkb-knowledge-graph.md';
 import investigateArticle from './content/investigate-auditable-research.md';
+import literatureReviewArticle from './content/literature-review.md';
 import { parseArticle } from './markdown';
 
 /** Markdown names an image by file name; webpack knows it by URL. */
@@ -43,9 +49,13 @@ export const IMAGES = {
     'fig-07-report-anatomy.svg': fig07,
     'fig-08-positioning.svg': fig08,
     'fig-09-search-mode.svg': fig09,
+    'lr-01-pipeline.svg': lr01,
+    'lr-02-unfair.svg': lr02,
+    'lr-03-leaderboard.svg': lr03,
+    'lr-04-comparisons.svg': lr04,
 };
 
-export const posts = [investigateArticle, glkbArticle].map((source) => {
+export const posts = [literatureReviewArticle, investigateArticle, glkbArticle].map((source) => {
     const post = parseArticle(source);
     // Reuse the first body figure for cards everywhere (About and Read next).
     const firstImage = source.match(/!\[[^\]]*\]\(([^)]+)\)/)?.[1];

@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require('@playwright/test');
-const BLOG_PATHS = ['/blog/glkb-knowledge-graph', '/blog/investigate-auditable-research'];
+const BLOG_PATHS = ['/blog/glkb-knowledge-graph', '/blog/investigate-auditable-research', '/blog/literature-review'];
 const root = path.resolve(__dirname, '../build');
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.md': 'text/plain', '.json': 'application/json' };
 async function main() {
