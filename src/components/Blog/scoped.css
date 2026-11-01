@@ -375,6 +375,47 @@
     background-color: var(--color-brand-primary);
 }
 
+/* Numbered steps and the BibTeX block: no Figma frame has either, so they
+   borrow the bullet list's rhythm and the table's border and fill. */
+.blog-article ol {
+    margin: 0 0 16px;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.blog-article ol li {
+    padding-left: 4px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 22px;
+    color: var(--color-text-secondary);
+}
+
+.blog-article ol li::marker {
+    font-weight: 600;
+    color: var(--color-brand-primary);
+}
+
+.blog-article ol strong {
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.blog-article pre {
+    margin: 0 0 16px;
+    padding: 16px;
+    overflow-x: auto;
+    border: 1px solid var(--color-border-default);
+    border-radius: 8px;
+    background-color: var(--color-background-subtle);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--color-text-secondary);
+}
+
 .blog-list strong {
     font-weight: 600;
     color: var(--color-text-primary);

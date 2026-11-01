@@ -7,11 +7,13 @@
 <div class="blog-toc-group">
 <button type="button" class="blog-toc-link">What It Does</button>
 <button type="button" class="blog-toc-link is-child">How It Works</button>
+<button type="button" class="blog-toc-link is-child">Under the Hood</button>
 <button type="button" class="blog-toc-link is-child">What You Receive</button></div>
 <div class="blog-toc-group">
 <button type="button" class="blog-toc-link">How We Tested It</button>
 <button type="button" class="blog-toc-link is-child">The Problem</button>
 <button type="button" class="blog-toc-link is-child">A Fair Test</button>
+<button type="button" class="blog-toc-link is-child">The Math</button>
 <button type="button" class="blog-toc-link is-child">The Answer Key</button></div>
 <div class="blog-toc-group">
 <button type="button" class="blog-toc-link">Results</button>
@@ -22,7 +24,9 @@
 <button type="button" class="blog-toc-link">Built for Real Reviews</button>
 <button type="button" class="blog-toc-link is-child">Using Your Draft</button></div>
 <div class="blog-toc-group">
-<button type="button" class="blog-toc-link is-active">Get Started</button></div></nav>
+<button type="button" class="blog-toc-link">Get Started</button>
+<button type="button" class="blog-toc-link is-child">Open and Reproducible</button>
+<button type="button" class="blog-toc-link is-child is-active">Cite This Work</button></div></nav>
 <div class="blog-content">
 <header class="blog-hero">
 <div class="blog-meta">
@@ -35,7 +39,7 @@
 <h2 class="blog-h2" id="at-a-glance">At a Glance</h2>
 <p class="blog-p">A good literature review takes weeks. Most of that time goes into three tasks: finding the right papers, reading them, and working out how their findings fit together. GLKB Literature Review does all three for you.</p>
 <p class="blog-p">You enter a topic, for example "mechanisms of osimertinib resistance in EGFR-mutant lung cancer". About ten to fifteen minutes later, you have a draft review. It is organized into sections like a published review, and every statement is linked to the papers behind it.</p>
-<p class="blog-p">Behind it is SCRIBE, a review-writing agent developed by our lab at the University of Michigan. To find out how good it really is, we built the most demanding test we could: 2,042 reviews already published in PubMed Central, used as an answer key. The results are in our new paper on arXiv (2609.32318). When every tool worked from the same papers, SCRIBE scored highest, and it was confirmed ahead of every commercial and academic tool in the comparison.</p>
+<p class="blog-p">Behind it is SCRIBE, a review-writing agent developed by our lab at the University of Michigan. To find out how good it really is, we built the most demanding test we could: 2,042 reviews already published in PubMed Central, used as an answer key. When every tool worked from the same papers, SCRIBE scored highest, and it was confirmed ahead of every commercial and academic tool in the comparison.</p>
 <div class="blog-table-wrap">
 <table class="blog-table">
 <thead>
@@ -58,6 +62,7 @@
 <tr>
 <td>SCRIBE's rank range among 13 systems</td>
 <td>1–2</td></tr></tbody></table></div>
+<p class="blog-p">The full study is "What Can a Leaderboard Certify? Compositional Controllability for Fair Evaluation and Training of Biomedical Literature-Review Agents" by Zhaowei Han, Xiang Zhang, Lingxiao Guan, Danqi Hu, Kai Liu, Kevin Chang and Jie Liu, University of Michigan. It is available on <a href="https://arxiv.org/abs/2609.32318">arXiv (2609.32318)</a>.</p>
 <h2 class="blog-h2" id="what-it-does">What It Does</h2>
 <p class="blog-p">Most AI writing tools read a batch of papers and produce text in one pass. The result often sounds right, but you cannot see which papers were used, or why a claim sits where it does. SCRIBE works differently. It follows the same steps an experienced reviewer would, one at a time, and each step builds on a fixed result from the step before.</p>
 <h3 class="blog-h3" id="how-it-works">How It Works</h3>
@@ -73,6 +78,36 @@
 <strong>Step 3: Plan the outline.</strong> SCRIBE assigns each claim, together with the papers that support it, to one section of the review. This is the step that turns a pile of findings into an argument. It is also where most AI tools struggle, and where SCRIBE leads most clearly.</p>
 <p class="blog-p">
 <strong>Step 4: Write each section.</strong> SCRIBE writes every section only from the material assigned to it. A section on resistance mechanisms is therefore built from the papers on resistance mechanisms, not from the whole pile.</p>
+<h3 class="blog-h3" id="under-the-hood">Under the Hood</h3>
+<p class="blog-p">Three engineering choices make this design work.</p>
+<ul class="blog-list">
+<li>
+<strong>The evidence lock is enforced, not requested.</strong> SCRIBE fixes its paper set before the first writing call. If any search tool is still reachable after that point, the run fails rather than continuing. The writer cannot quietly pull in new papers.</li>
+<li>
+<strong>Every hand-off carries a fingerprint.</strong> Each step's output is fingerprinted, and that fingerprint becomes the next step's input record. A run can therefore be audited step by step, like a lab notebook.</li>
+<li>
+<strong>Every step can be graded and trained on its own.</strong> Because two versions of a step see exactly the same input, the difference in their scores is a clean measure of that step. We use this signal to train the outline step directly with reinforcement learning, instead of crediting or blaming everything on the final review.</li></ul>
+<p class="blog-p">In the paper, SCRIBE runs on an open 27-billion-parameter model whose weights are never changed. What is trained is a small add-on for the outline step. The table below summarizes the setup.</p>
+<div class="blog-table-wrap">
+<table class="blog-table">
+<thead>
+<tr>
+<th>Component</th>
+<th>Setup in the paper</th></tr></thead>
+<tbody>
+<tr>
+<td>Base model</td>
+<td>Qwen3.8-27B, frozen (greedy decoding, 65,536-token generation context)</td></tr>
+<tr>
+<td>What is trained</td>
+<td>A 14–16M-parameter KV-Skill module for the outline step; it adds no prompt tokens and leaves the model's weights unchanged</td></tr>
+<tr>
+<td>Training method</td>
+<td>GRPO on 192 tasks, rewarded by BioLitBench scores at the outline step's output</td></tr>
+<tr>
+<td>Data separation</td>
+<td>Training uses only the 1,842 training reviews, never the test topics, their references or their peer reviews</td></tr></tbody></table></div>
+<p class="blog-p">In GLKB today, SCRIBE runs on OpenAI models through our own review harness. Our own model, trained specifically for review writing, is coming soon.</p>
 <h3 class="blog-h3" id="what-you-receive">What You Receive</h3>
 <ul class="blog-list">
 <li>
@@ -83,13 +118,13 @@
 <strong>Your own papers, if you want them.</strong> Add the papers you already rely on, and SCRIBE works them into the review.</li>
 <li>
 <strong>A saved copy in your History</strong>, so you can come back to it at any time.</li></ul>
-<p class="blog-p">In GLKB today, SCRIBE runs on OpenAI models through our own review harness. Our own model, trained specifically for review writing, is coming soon.</p>
 <h2 class="blog-h2" id="how-we-tested">How We Tested It</h2>
 <p class="blog-p">Many AI tools claim to write better reviews than their competitors. Most of those claims rest on comparisons that are not controlled. We wanted a test that a biomedical researcher could trust, and then we wanted to win it.</p>
 <h3 class="blog-h3" id="the-problem">The Problem With Most Comparisons</h3>
 <p class="blog-p">A review can only be as good as the papers it is built from. If one tool is given a better reading list, its review will score higher, even if its writing is worse.</p>
 <p class="blog-p">Think of a western blot. If one lane holds twice as much protein as the other, a brighter band tells you nothing about the antibody. You first check the loading control. Comparisons of AI review tools have the same problem. The "protein" is the set of papers each tool worked from, and most published comparisons never check it.</p>
-<p class="blog-p">The example below, taken from our paper, shows how easily this reverses a result.</p>
+<p class="blog-p">This happens in practice. One production screening assistant reported 96.9% sensitivity across 108 Cochrane reviews and described this as better than a single human screener. The human figures, however, came from a different study, with different reviews and a different reference standard. It is like comparing a drug's response rate in one trial with the placebo arm of another.</p>
+<p class="blog-p">The example below, taken from our paper, shows how easily an uncontrolled comparison reverses a result.</p>
 <figure class="blog-figure">
 <span class="blog-figure-plate">
 <img src="lr-02-unfair.svg" alt="Tool A is the better writer, but it has the weaker search. When each tool uses its own search, B appears to win. When both receive the same papers, A wins clearly. More test topics would not fix this; only matching the inputs does." loading="lazy"></span>
@@ -98,16 +133,67 @@
 <p class="blog-p">Our method, which the paper calls compositional controllability, follows three rules that any experimentalist will recognize.</p>
 <ol>
 <li>
-<strong>Decide what you are comparing.</strong> You can compare whole tools, from question to finished review. In that case, a better search is part of a better tool. Or you can compare one step, such as the writing. In that case, differences in the papers each tool received are a confounder.</li>
+<strong>Decide what you are comparing.</strong> You can compare whole tools, from question to finished review. In that case, a better search is part of a better tool. Or you can compare one step, such as the writing. The paper calls the stretch being compared a comparison window. Differences in what enters that window are a confounder.</li>
 <li>
-<strong>Check the inputs before reading any score.</strong> We measure how different the inputs are and how much that difference could move the score. If it could move the score too much, the comparison is refused. Like a pre-registered analysis, the decision cannot depend on which tool we hoped would win.</li>
+<strong>Check the inputs before reading any score.</strong> We measure how different the inputs are and how much that difference could move the score. If it could move the score by more than a tolerance fixed in advance, the comparison is refused. Like a pre-registered analysis, the decision cannot depend on which tool we hoped would win.</li>
 <li>
-<strong>Declare a winner only when the gap is clearly larger.</strong> A winner is confirmed only when the score gap exceeds both random variation and any remaining difference in inputs. Otherwise, the result is "too close to call".</li></ol>
-<p class="blog-p">The outcome is a leaderboard with controls. Each tool receives a rank range instead of a single rank, which works like a confidence interval for its position.</p>
+<strong>Declare a winner only when the gap is clearly larger.</strong> A winner is confirmed only when the score gap exceeds both random variation across topics and the largest distortion any remaining input difference could cause. Otherwise, the result is "too close to call".</li></ol>
+<p class="blog-p">The outcome is a leaderboard with controls. Each tool receives a rank range instead of a single rank: every position it could hold in some ordering consistent with the confirmed results. It works like a confidence interval for a rank.</p>
+<h3 class="blog-h3" id="the-math">The Math Behind the Test</h3>
+<p class="blog-p">The paper's central result (Theorem 1) bounds how far an observed score gap can sit from the gap you would see with perfectly matched inputs:</p>
+<blockquote>
+<p class="blog-p">|Δobs − Δ*| ≤ ε_outside</p></blockquote>
+<p class="blog-p">Here Δobs is the gap you measure, Δ* is the gap under matched inputs, and ε_outside is computed only from differences outside the comparison window. It adds up four kinds of mismatch, each scaled by how strongly the pipeline amplifies it:</p>
+<ul class="blog-list">
+<li>
+<strong>Input distance:</strong> how far each tool's actual inputs are from the common input, measured as a Wasserstein distance.</li>
+<li>
+<strong>Discontinuities:</strong> slack for jumps such as truncation, charged only when the inputs differ.</li>
+<li>
+<strong>Output handling:</strong> differences in how each tool's output is turned into the text that gets scored.</li>
+<li>
+<strong>Protocol:</strong> any remaining imbalance in budget, alignment or annotation.</li></ul>
+<p class="blog-p">A comparison is refused when ε_outside exceeds the declared tolerance. A direction is confirmed when the estimated gap exceeds the sampling radius plus ε_outside. As a result, a confirmed direction is wrong with probability at most δ + δ′, the two error rates fixed in advance. Nothing inside the window is constrained, so the two tools are free to work in completely different ways.</p>
 <h3 class="blog-h3" id="answer-key">The Answer Key: 2,042 Published Reviews</h3>
-<p class="blog-p">To grade a review, you need to know what human experts concluded and which papers they relied on. We built this answer key, called BioLitBench, from open-access reviews in PubMed Central. The reviews were published between 2016 and 2025 and cover 6 fields and 48 subfields of biomedicine.</p>
-<p class="blog-p">Each review was broken down into individual claims, 246,102 in total. For each claim, we recorded which papers it cites and how it connects to other claims. This lets us check far more than wording. We can check whether an AI review reaches the same conclusions, from the same evidence, organized in the same way.</p>
-<p class="blog-p">There is rarely only one correct review of a topic. Each test topic therefore comes with 4 to 9 other published reviews on the same subject. Scores are placed on a human scale: 0 is roughly the level of the weaker human reviews on that topic, and 1 matches the published review being graded against.</p>
+<p class="blog-p">To grade a review, you need to know what human experts concluded and which papers they relied on. We built this answer key, called BioLitBench, from 2,063 open-access articles in PubMed Central, mostly reviews, published between 2016 and 2025. A language model broke each one into sentence-level claims, recorded which papers each claim cites, and labeled how claims relate. 2,042 articles came through cleanly.</p>
+<figure class="blog-figure">
+<span class="blog-figure-plate">
+<img src="lr-05-claim-map.svg" alt="A review becomes a map of claims. Each claim sits in a section, cites papers, and connects to other claims through labeled relationships." loading="lazy"></span>
+<figcaption>A review becomes a map of claims. Each claim sits in a section, cites papers, and connects to other claims through labeled relationships.</figcaption></figure>
+<div class="blog-table-wrap">
+<table class="blog-table">
+<thead>
+<tr>
+<th>BioLitBench</th>
+<th>Count</th></tr></thead>
+<tbody>
+<tr>
+<td>Reviews in the answer key</td>
+<td>2,042</td></tr>
+<tr>
+<td>Claims (median 108 per review)</td>
+<td>246,102</td></tr>
+<tr>
+<td>Labeled relationships between claims (8 types)</td>
+<td>832,487</td></tr>
+<tr>
+<td>Look-alike claim pairs that are unrelated (hard negatives)</td>
+<td>103,242</td></tr>
+<tr>
+<td>Unique cited papers</td>
+<td>224,140</td></tr>
+<tr>
+<td>Fields, subfields and topics</td>
+<td>6, 48 and 230</td></tr>
+<tr>
+<td>Reviews for training and held out for testing</td>
+<td>1,842 and 200</td></tr>
+<tr>
+<td>Test topics (spread across 23 subfields)</td>
+<td>50</td></tr></tbody></table></div>
+<p class="blog-p">Two quality checks support the answer key. On average, 87.4% of each review's references resolved to a PubMed record. An automated reader judged 87.6% of claims to be supported by at least one cited abstract.</p>
+<p class="blog-p">The hard negatives matter. They are pairs of claims that look alike but are unrelated. They act as traps, so a tool cannot score well just by writing anything on-topic.</p>
+<p class="blog-p">There is rarely only one correct review of a topic. Each test topic therefore comes with 4 to 9 other published reviews on the same subject. Scores are placed on a human scale: 0 is the 10th percentile of those human reviews, and 1 matches the published review being graded against. A score of 0.6 means a tool got about 60% of the way from a weak human review to the real one.</p>
 <div class="blog-table-wrap">
 <table class="blog-table">
 <thead>
@@ -133,8 +219,10 @@
 <tr>
 <td>Form</td>
 <td>Do its structure and style fall within the range of human reviews?</td></tr></tbody></table></div>
-<p class="blog-p">We ran the test under two conditions. Under <strong>same papers</strong>, every tool receives the human review's own reference list. Under <strong>same library</strong>, every tool must find its own papers in one shared collection of 26.6 million papers.</p>
+<p class="blog-p">The six scores combine 34 measurements. These were kept from 52 candidates after dropping any that could not tell tools apart, or that rewarded following instructions rather than quality. The overall score weights the six equally.</p>
+<p class="blog-p">We ran the test under two conditions. Under <strong>same papers</strong>, every tool receives the human review's own reference list. Under <strong>same library</strong>, every tool must find its own papers in one frozen collection of 26.6 million papers. In both, only papers published before the review's cutoff date are available.</p>
 <h2 class="blog-h2" id="results">Results</h2>
+<p class="blog-p">All results use the 50 held-out test topics across 23 subfields. Winners are confirmed against random variation across subfields, corrected for multiple comparisons. Every review was trimmed to its topic's target length, so a longer review does not win just by being longer.</p>
 <h3 class="blog-h3" id="same-papers">Same Papers: Highest Score, Ahead of Every Other Tool</h3>
 <p class="blog-p">This condition isolates what a tool does with the evidence: how it extracts claims, organizes them and writes them up. Every tool starts from the same reference list, so the comparison is fully controlled.</p>
 <figure class="blog-figure">
@@ -147,9 +235,12 @@
 <li>
 <strong>It was confirmed ahead of every other tool</strong>, including Claude Science, Claude Code, an OpenAI agent, Elicit's Systematic Review and every published academic system. The only system it could not be separated from was its own untrained version.</li>
 <li>
-<strong>The design is what wins.</strong> On an open 27-billion-parameter model, SCRIBE scored 0.606. The same design running on gpt-5.6-luna scored 0.564, still higher on average than every other tool tested.</li></ul>
+<strong>It led on planning by a wide margin.</strong> SCRIBE's planning score was 0.319. The best commercial tool reached 0.185.</li>
+<li>
+<strong>The design is what wins.</strong> On the open model, SCRIBE scored 0.606. The same design running on gpt-5.6-luna scored 0.564, still higher on average than every other tool tested. Even untrained, SCRIBE scored 0.583.</li></ul>
+<p class="blog-p">For reference, Claude Science and Claude Code ran on claude-sonnet-5, and the OpenAI tool loop on gpt-5.6-luna. All three reached papers only through the benchmark's tools. Elicit's Systematic Review reads full text where the others read abstracts, and cites at most 80 papers.</p>
 <h3 class="blog-h3" id="same-library">Same Library: Still First When Each Tool Finds Its Own Papers</h3>
-<p class="blog-p">In everyday use, nobody hands you the reference list. This condition tests the whole workflow, search included. Finding the right papers is much harder, so every score is lower.</p>
+<p class="blog-p">In everyday use, nobody hands you the reference list. This condition tests the whole workflow, search included. Finding the right papers is much harder, so every score is lower. Search budgets were capped at the largest any other system used on that topic.</p>
 <div class="blog-table-wrap">
 <table class="blog-table">
 <thead>
@@ -157,6 +248,8 @@
 <th>System</th>
 <th>Overall</th>
 <th>Retrieval</th>
+<th>Synthesis</th>
+<th>Planning</th>
 <th>Rank range</th></tr></thead>
 <tbody>
 <tr>
@@ -164,55 +257,69 @@
 <td>
 <strong>0.487</strong></td>
 <td>0.335</td>
+<td>0.523</td>
+<td>0.250</td>
 <td>1–7</td></tr>
 <tr>
 <td>SurveyGen-I</td>
 <td>0.460</td>
-<td>0.336</td>
+<td>
+<strong>0.336</strong></td>
+<td>0.535</td>
+<td>0.181</td>
 <td>1–9</td></tr>
 <tr>
 <td>Claude Code</td>
 <td>0.458</td>
 <td>0.227</td>
+<td>0.573</td>
+<td>0.188</td>
 <td>1–8</td></tr>
 <tr>
 <td>Claude Science</td>
 <td>0.456</td>
 <td>0.287</td>
+<td>0.598</td>
+<td>0.164</td>
 <td>1–8</td></tr>
 <tr>
 <td>OpenAI tool loop</td>
 <td>0.437</td>
 <td>0.172</td>
+<td>
+<strong>0.665</strong></td>
+<td>0.126</td>
 <td>3–10</td></tr>
 <tr>
 <td>AutoSurvey</td>
 <td>0.419</td>
 <td>0.238</td>
+<td>0.540</td>
+<td>0.117</td>
 <td>5–11</td></tr></tbody></table></div>
 <p class="blog-p">SCRIBE again had the highest overall score. It was confirmed ahead of the OpenAI agent, AutoSurvey, SurveyG and LLM×MapReduce. At finding the papers that human authors actually cited, it matched the best academic system, and it found more of them than any commercial agent.</p>
 <h3 class="blog-h3" id="why-fairness-matters">Why a Fair Test Matters</h3>
-<p class="blog-p">To show what the input check changes, we applied it to seven published academic systems. Together they form 21 head-to-head comparisons.</p>
-<p class="blog-p">A careful conventional analysis, with paired tests and corrections for multiple comparisons, declared a winner in 14 of them. Our test refused 11 of the 21 before looking at any score, because the systems had not received comparable inputs. One system was the only one given the human review's own reference list. Another ran on a different underlying model from the rest.</p>
+<p class="blog-p">To show what the input check changes, we applied it to seven published academic systems: AutoSurvey, SurveyG, SurveyGen-I, SurveyForge, LLM×MapReduce, LiRA and DR-Tulu. Together they form 21 head-to-head comparisons.</p>
+<p class="blog-p">A careful conventional analysis declared a winner in 14 of them. It used paired tests, clustering by subfield and correction for multiple comparisons. Our test refused 11 of the 21 before looking at any score.</p>
 <figure class="blog-figure">
 <span class="blog-figure-plate">
 <img src="lr-04-comparisons.svg" alt="Each square is one comparison. Statistics can tell you that a difference is real, but not that the comparison was fair. Half of the conventional verdicts came from comparisons that should never have been made." loading="lazy"></span>
 <figcaption>Each square is one comparison. Statistics can tell you that a difference is real, but not that the comparison was fair. Half of the conventional verdicts came from comparisons that should never have been made.</figcaption></figure>
-<p class="blog-p">The conventional analysis ranked first the one system that had been handed the reading list. Its verdict was statistically sound, but it measured the setup, not the system. That is why every SCRIBE result above comes from matched inputs.</p>
+<p class="blog-p">The reasons were measurable. LiRA was the only system handed the human review's own bibliography. That head start could move a score by up to 0.70–0.73, more than three times the tolerance fixed in advance (median 0.21). DR-Tulu ran on a different underlying model from the other six, a difference outside the comparison window that cannot be bounded at all.</p>
+<p class="blog-p">The conventional analysis ranked LiRA first. Its verdict was statistically sound, but it measured the setup, not the system. That is why every SCRIBE result above comes from matched inputs.</p>
 <aside class="blog-callout">
 <p class="blog-callout-title">Can the confirmed results be trusted?</p>
-<p class="blog-callout-text">We checked the test on cases where no real difference exists. Three runs of the same model, compared against each other, produced no confirmed differences at all (0 of 114). Removing any one subfield from the test set never reversed a confirmed result.</p></aside>
+<p class="blog-callout-text">We checked the test on cases where no real difference exists. Three runs of the same model, compared against each other, produced no confirmed differences at all (0 of 114). On randomized data, false confirmations occurred at or below the intended rate. Removing any one subfield never reversed a confirmed result.</p></aside>
 <h2 class="blog-h2" id="built-for-real-reviews">Built for How Real Reviews Fail</h2>
 <p class="blog-p">Grading each step separately showed us where AI-written reviews break down. SCRIBE is designed around exactly these weak points.</p>
-<ul class="blog-list">
-<li>
-<strong>Organizing the evidence is the hardest step.</strong> Planning had the lowest scores of all six measures, for every tool. Human reviewers place a given paper in about 14% of their sections, while many AI tools cite the whole evidence set in nearly every section. SCRIBE assigns each paper to the sections where it belongs, and it had the best planning score of any tool given the same papers.</li>
-<li>
-<strong>Polishing can delete findings.</strong> Many tools finish with a pass that improves the wording. In three cases, that pass also removed findings the earlier draft had covered. SCRIBE grades every step on its own, so a loss like this cannot hide behind better prose.</li>
-<li>
-<strong>Finding the right papers separates tools most.</strong> When tools search for themselves, retrieval is what separates them. Because SCRIBE grades its search on its own, we could see exactly where to improve it. Our rebuilt search more than doubled its retrieval score, from 0.156 to 0.335.</li>
-<li>
-<strong>Fluent text is not the same as cited text.</strong> Large language models already know a great deal of biology and can write convincing text from memory. SCRIBE locks its papers first and writes each section only from the papers assigned to it, so the review is built on the evidence in front of it.</li></ul>
+<p class="blog-p">
+<strong>Organizing the evidence is the hardest step.</strong> Planning had the lowest scores of all six measures, for every tool. Human reviewers place a given paper in about 14% of their top-level sections. Many AI pipelines hand their entire evidence set to 94–100% of sections. On a naive measure this looks excellent, because putting every paper everywhere guarantees perfect recall. Corrected for chance, SCRIBE scores 0.15–0.17 on paper placement, against 0.10 for the best other system.</p>
+<p class="blog-p">
+<strong>Polishing can delete findings.</strong> Many tools finish with a refinement pass that improves the wording. When we graded the draft and the final version separately, that pass raised writing by 0.068 and form by 0.115. In three cases, however, it also cut synthesis by 0.072 to 0.113, removing findings the draft had covered. SCRIBE grades every step on its own, so a loss like this cannot hide behind better prose.</p>
+<p class="blog-p">
+<strong>Finding the right papers separates tools most.</strong> When tools search for themselves, retrieval is what separates them. It was also our own weak spot. With an earlier search step, SCRIBE found 50 papers per topic instead of 109, and its claim map shrank from 118 claims to 52. Because each step is graded on its own, the cause was obvious. Our rebuilt search more than doubled the retrieval score, from 0.156 to 0.335.</p>
+<p class="blog-p">
+<strong>Fluent text is not the same as cited text.</strong> We ran one pipeline's writing step with no papers at all. It scored higher on synthesis, reasoning and form than it did with the papers. Large language models already know a great deal of biology and can write convincing text from memory. SCRIBE locks its papers first and writes each section only from the papers assigned to it, so the review is built on the evidence in front of it.</p>
 <h3 class="blog-h3" id="using-your-draft">Getting the Most From Your Draft</h3>
 <p class="blog-p">Your draft gives you weeks of groundwork in minutes. You stay the expert, and a few quick checks make the most of it.</p>
 <ul class="blog-list">
@@ -226,7 +333,23 @@
 <strong>Review before you publish.</strong> As with any draft, read it carefully before using it in a manuscript, a grant, or a clinical or policy decision.</li></ul>
 <h2 class="blog-h2" id="get-started">Get Started</h2>
 <p class="blog-p">GLKB Literature Review is available now with a free GLKB account. On the home page, select the Literature Review tab above the search bar and enter your topic. Your draft will be ready in about ten to fifteen minutes.</p>
-<p class="blog-p">Want the details? The full study, "What Can a Leaderboard Certify? Compositional Controllability for Fair Evaluation and Training of Biomedical Literature-Review Agents", is on <a href="https://arxiv.org/abs/2609.32318">arXiv (2609.32318)</a>. The code, the benchmark inputs and the analysis scripts are public in the <a href="https://github.com/shawnzhg/LitReview-SCRIBE">project repository</a>.</p>
+<h3 class="blog-h3" id="reproducible">Open and Reproducible</h3>
+<p class="blog-p">The paper, BioLitBench and SCRIBE are all public. The <a href="https://github.com/shawnzhg/LitReview-SCRIBE">project repository</a> holds the code, the frozen leaderboard inputs and the analysis scripts. Every academic system ran behind a recorder that logged each model call, and a guard that allowed access only to the shared library. Those logs, fingerprints of each system's code and the cost records are part of the release, so anyone can rerun the analysis.</p>
+<p class="blog-p">BioLitBench is built from PubMed Central open-access articles under mixed licences. The 1,119 source articles licensed CC BY or CC0 will be shared directly, with scripts that rebuild the rest from PubMed Central.</p>
+<h3 class="blog-h3" id="cite">Cite This Work</h3>
+<pre>
+<code>@misc{han2026leaderboardcertify,
+  title         = {What Can a Leaderboard Certify? Compositional Controllability
+                   for Fair Evaluation and Training of Biomedical
+                   Literature-Review Agents},
+  author        = {Zhaowei Han and Xiang Zhang and Lingxiao Guan and Danqi Hu
+                   and Kai Liu and Kevin Chang and Jie Liu},
+  year          = {2026},
+  eprint        = {2609.32318},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  url           = {https://arxiv.org/abs/2609.32318}
+}</code></pre>
 <aside class="blog-callout">
 <p class="blog-callout-title">Tested against the experts</p>
 <p class="blog-callout-text">SCRIBE was graded against 2,042 reviews written by experts, under conditions where every tool had a fair chance. It came out on top. Try it on your next review.</p></aside></article></div>

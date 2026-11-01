@@ -26,6 +26,7 @@ import lr01 from '../../img/blog/lr-01-pipeline.svg';
 import lr02 from '../../img/blog/lr-02-unfair.svg';
 import lr03 from '../../img/blog/lr-03-leaderboard.svg';
 import lr04 from '../../img/blog/lr-04-comparisons.svg';
+import lr05 from '../../img/blog/lr-05-claim-map.svg';
 
 import glkbArticle from './content/glkb-knowledge-graph.md';
 import investigateArticle from './content/investigate-auditable-research.md';
@@ -53,6 +54,7 @@ export const IMAGES = {
     'lr-02-unfair.svg': lr02,
     'lr-03-leaderboard.svg': lr03,
     'lr-04-comparisons.svg': lr04,
+    'lr-05-claim-map.svg': lr05,
 };
 
 export const posts = [literatureReviewArticle, investigateArticle, glkbArticle].map((source) => {
