@@ -3,7 +3,7 @@ slug: literature-review
 kicker: GLKB · product article
 date: Nov 1, 2026
 cta: [Try Literature Review →](/literature-review)
-cardTitle: Literature Review: weeks of groundwork, done in minutes
+cardTitle: Literature Review: biomedical reviews, built claim by claim
 readNext: investigate-auditable-research
 toc:
   - [At a Glance](#at-a-glance)
@@ -27,7 +27,7 @@ toc:
     - [Cite This Work](#cite)
 ---
 
-# GLKB Literature Review: Weeks of Groundwork, Done in Minutes
+# GLKB Literature Review: Biomedical Reviews, Built Claim by Claim
 
 Enter a biomedical topic and GLKB writes you a structured, fully cited draft review. Graded against 2,042 reviews published by experts, the agent behind it outscored every review-writing tool we tested, including leading commercial agents.
 
@@ -230,7 +230,7 @@ Grading each step separately showed us where AI-written reviews break down. SCRI
 
 ### Getting the Most From Your Draft {#using-your-draft}
 
-Your draft gives you weeks of groundwork in minutes. You stay the expert, and a few quick checks make the most of it.
+Your draft takes care of the searching, reading and organizing. You stay the expert, and a few quick checks make the most of it.
 
 - **Spot-check the key citations.** Open the papers behind your most important claims and confirm they say what you need.
 - **Add what you know.** If a paper you rely on is missing, add it as one of your own papers and run the review again.
