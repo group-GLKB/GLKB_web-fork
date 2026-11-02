@@ -1,7 +1,7 @@
 /**
- * What the Options drawer's choices send. In Chat, Auto means the knowledge graph on and figures
- * off — what the chat agent was sent at the old "Medium" effort, so a Chat question sends what it
- * did. Investigate (deep research) is sent neither: it does both on its own.
+ * What the Options drawer's choices send. Both tools start Off, so a Chat question at the defaults
+ * asks for neither. Auto means the knowledge graph on and figures off — what the chat agent was sent
+ * at the old "Medium" effort. Investigate (deep research) is sent neither: it does both on its own.
  */
 import {
     answerFlags,
@@ -11,9 +11,10 @@ import {
 } from './index';
 
 describe('answerFlags', () => {
-    it('sends the knowledge graph and no figures for the defaults in Chat', () => {
-        expect(answerFlags(DEFAULT_COMPOSER_OPTIONS)).toEqual({ graph: true });
-        expect(answerFlags(undefined)).toEqual({ graph: true });
+    it('sends neither the knowledge graph nor figures for the defaults in Chat', () => {
+        expect(DEFAULT_COMPOSER_OPTIONS).toMatchObject({ kg: 'off', fig: 'off' });
+        expect(answerFlags(DEFAULT_COMPOSER_OPTIONS)).toEqual({});
+        expect(answerFlags(undefined)).toEqual({});
     });
 
     it('follows Off and On, and Auto leaves figures out', () => {
@@ -41,5 +42,6 @@ describe('optionsChanged', () => {
     it('is false at the defaults and true once anything moves', () => {
         expect(optionsChanged(DEFAULT_COMPOSER_OPTIONS)).toBe(false);
         expect(optionsChanged({ ...DEFAULT_COMPOSER_OPTIONS, fig: 'auto' })).toBe(true);
+        expect(optionsChanged({ ...DEFAULT_COMPOSER_OPTIONS, kg: 'auto' })).toBe(true);
     });
 });

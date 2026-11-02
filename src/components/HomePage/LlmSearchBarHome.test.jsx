@@ -168,7 +168,7 @@ describe('with Investigate off (Chat)', () => {
         expect(screen.getAllByText('Reviews only').length).toBeGreaterThan(0);
     });
 
-    it('sends the chosen filter, and the knowledge graph Auto turns on in Chat', () => {
+    it('sends the chosen filter, and neither the graph nor figures at the defaults', () => {
         setup();
         chooseReviewsOnly();
         expect(optionsTrigger()).toHaveAttribute('aria-label', 'Options (changed)');
@@ -179,7 +179,6 @@ describe('with Investigate off (Chat)', () => {
             // Empty: these submits happen before the picker's prices resolve, and an absent
             // tier is exactly what the chat then omits, leaving the server's default.
             serviceTier: '',
-            graph: true,
         });
     });
 });
@@ -516,7 +515,7 @@ describe('Research tools (Options)', () => {
         fireEvent.click(within(group).getByRole('radio', { name: choice, hidden: true }));
     };
 
-    it('sends figures and the graph as chosen, and Reset goes back to Auto', () => {
+    it('sends figures and the graph as chosen, and Reset turns both off again', () => {
         setup();
         fireEvent.click(optionsTrigger());
         choose('Figures', 'On');
@@ -530,6 +529,14 @@ describe('Research tools (Options)', () => {
         mockNavigate.mockClear();
         fireEvent.click(optionsTrigger());
         fireEvent.click(screen.getAllByText('Reset')[0]);
+        fireEvent.click(screen.getAllByText('Done')[0]);
+        expect(submit()).toEqual({
+            filters: [], rankingMode: 'default', investigateEnabled: false, serviceTier: '',
+        });
+
+        mockNavigate.mockClear();
+        fireEvent.click(optionsTrigger());
+        choose('Knowledge Graph', 'On');
         fireEvent.click(screen.getAllByText('Done')[0]);
         expect(submit()).toEqual({
             filters: [], rankingMode: 'default', investigateEnabled: false, serviceTier: '',

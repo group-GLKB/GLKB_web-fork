@@ -6,6 +6,8 @@
  * What the choices send in Chat (`answerFlags`, `searchFilters`):
  *   Knowledge Graph  -> `graph: true`   (the answer's knowledge-graph view). Auto: on.
  *   Figures          -> `figures: true` (figures from the cited papers). Auto: off.
+ * Both start Off (product decision, 2026-11-02): a Chat question asks for neither unless the
+ * reader turns one on here.
  * Investigate (deep research) always includes both and runs its own retrieval, so in Investigate
  * the tools say so, the filters give way to a note, and neither is sent.
  *
@@ -24,7 +26,8 @@ import { ReactComponent as SearchOptionsIcon } from '../../../img/llm/search_opt
 import { trackGtagEvent } from '../../../utils/gtag';
 
 export const DEFAULT_COMPOSER_OPTIONS = {
-    kg: 'auto',
+    // Off by default, like Figures (2026-11-02; it was Auto, i.e. on in Chat).
+    kg: 'off',
     fig: 'off',
     paperType: 'All types',
     sortBy: 'Default',
