@@ -172,11 +172,13 @@ We ran the test under two conditions. Under **same papers**, every tool receives
 
 All results use the 50 held-out test topics across 23 subfields. Winners are confirmed against random variation across subfields, corrected for multiple comparisons. Every review was trimmed to its topic's target length, so a longer review does not win just by being longer.
 
+The paper's headline figure shows both conditions at once. Each bar spans every rank a tool could still hold, given the head-to-head results that were confirmed. A short bar near 1 means a tool is settled at the top.
+
+![Figure 1 of the paper, redrawn with the scores from its result tables. In both conditions, SCRIBE has the highest overall score. With the same papers, its rank is pinned to 1–2, ahead of every commercial agent and published system. 13 systems were ranked in (a) and 12 in (b); one commercial system is not reported in the paper.](lr-03-leaderboard.svg)
+
 ### Same Papers: Highest Score, Ahead of Every Other Tool {#same-papers}
 
 This condition isolates what a tool does with the evidence: how it extracts claims, organizes them and writes them up. Every tool starts from the same reference list, so the comparison is fully controlled.
-
-![Overall scores when every tool works from the human review's reference list. Rank range shows every position a tool could hold, given the results that were confirmed. 13 systems were ranked; one commercial system is not reported in the paper.](lr-03-leaderboard.svg)
 
 - **SCRIBE scored 0.606, the highest of any system.**
 - **It was confirmed ahead of every other tool**, including Claude Science, Claude Code, an OpenAI agent, Elicit's Systematic Review and every published academic system. The only system it could not be separated from was its own untrained version.

@@ -1,79 +1,189 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg viewBox="0 0 760 578" xmlns="http://www.w3.org/2000/svg" font-family="Geist,Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
-<text x="0" y="18" font-size="12" font-weight="700" letter-spacing="1.4" fill="#5E6E87">SAME PAPERS: EVERY TOOL GETS THE HUMAN REVIEW'S REFERENCE LIST</text>
-<text x="230" y="44" font-size="12" font-weight="600" fill="#5E6E87">Overall score</text>
-<text x="760" y="44" font-size="12" font-weight="600" fill="#5E6E87" text-anchor="end">Rank range</text>
-<line x1="230.0" x2="230.0" y1="54" y2="514" stroke="#E5E9F0" stroke-width="1"/>
-<text x="230.0" y="532" font-size="12" fill="#5E6E87" text-anchor="middle">0.0</text>
-<line x1="342.0" x2="342.0" y1="54" y2="514" stroke="#E5E9F0" stroke-width="1"/>
-<text x="342.0" y="532" font-size="12" fill="#5E6E87" text-anchor="middle">0.2</text>
-<line x1="454.0" x2="454.0" y1="54" y2="514" stroke="#E5E9F0" stroke-width="1"/>
-<text x="454.0" y="532" font-size="12" fill="#5E6E87" text-anchor="middle">0.4</text>
-<line x1="566.0" x2="566.0" y1="54" y2="514" stroke="#E5E9F0" stroke-width="1"/>
-<text x="566.0" y="532" font-size="12" fill="#5E6E87" text-anchor="middle">0.6</text>
-<rect x="-8" y="56" width="776" height="36" rx="6" fill="#EEF3FF"/>
-<text x="0" y="73" font-size="14" font-weight="700" fill="#0C1018">SCRIBE</text>
-<text x="0" y="88" font-size="11.5" fill="#5E6E87">GLKB agent</text>
-<path d="M230 66 H565.4 Q569.4 66 569.4 70 V82 Q569.4 86 565.4 86 H230 Z" fill="#155DFC"/>
-<text x="577.4" y="81" font-size="13" font-weight="700" fill="#0C1018">0.606</text>
-<text x="760" y="81" font-size="13" font-weight="700" fill="#323E52" text-anchor="end">1–2</text>
-<rect x="-8" y="94" width="776" height="36" rx="6" fill="#EEF3FF"/>
-<text x="0" y="111" font-size="14" font-weight="700" fill="#0C1018">SCRIBE, untrained</text>
-<text x="0" y="126" font-size="11.5" fill="#5E6E87">GLKB agent</text>
-<path d="M230 104 H552.5 Q556.5 104 556.5 108 V120 Q556.5 124 552.5 124 H230 Z" fill="#155DFC"/>
-<text x="564.5" y="119" font-size="13" font-weight="700" fill="#0C1018">0.583</text>
-<text x="760" y="119" font-size="13" font-weight="700" fill="#323E52" text-anchor="end">1–3</text>
-<rect x="-8" y="132" width="776" height="36" rx="6" fill="#EEF3FF"/>
-<text x="0" y="149" font-size="14" font-weight="700" fill="#0C1018">SCRIBE on gpt-5.6-luna</text>
-<text x="0" y="164" font-size="11.5" fill="#5E6E87">GLKB agent</text>
-<path d="M230 142 H541.8 Q545.8 142 545.8 146 V158 Q545.8 162 541.8 162 H230 Z" fill="#155DFC"/>
-<text x="553.8" y="157" font-size="13" font-weight="700" fill="#0C1018">0.564</text>
-<text x="760" y="157" font-size="13" font-weight="700" fill="#323E52" text-anchor="end">2–6</text>
-<text x="0" y="187" font-size="14" font-weight="500" fill="#0C1018">Claude Science</text>
-<text x="0" y="202" font-size="11.5" fill="#5E6E87">commercial</text>
-<path d="M230 180 H529.0 Q533.0 180 533.0 184 V196 Q533.0 200 529.0 200 H230 Z" fill="#A8B3C8"/>
-<text x="541.0" y="195" font-size="13" font-weight="500" fill="#0C1018">0.541</text>
-<text x="760" y="195" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">3–10</text>
-<text x="0" y="225" font-size="14" font-weight="500" fill="#0C1018">Elicit Systematic Review</text>
-<text x="0" y="240" font-size="11.5" fill="#5E6E87">commercial</text>
-<path d="M230 218 H525.6 Q529.6 218 529.6 222 V234 Q529.6 238 525.6 238 H230 Z" fill="#A8B3C8"/>
-<text x="537.6" y="233" font-size="13" font-weight="500" fill="#0C1018">0.535</text>
-<text x="760" y="233" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">3–10</text>
-<text x="0" y="263" font-size="14" font-weight="500" fill="#0C1018">Claude Code</text>
-<text x="0" y="278" font-size="11.5" fill="#5E6E87">commercial</text>
-<path d="M230 256 H525.0 Q529.0 256 529.0 260 V272 Q529.0 276 525.0 276 H230 Z" fill="#A8B3C8"/>
-<text x="537.0" y="271" font-size="13" font-weight="500" fill="#0C1018">0.534</text>
-<text x="760" y="271" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">3–12</text>
-<text x="0" y="301" font-size="14" font-weight="500" fill="#0C1018">SurveyG</text>
-<text x="0" y="316" font-size="11.5" fill="#5E6E87">academic</text>
-<path d="M230 294 H515.0 Q519.0 294 519.0 298 V310 Q519.0 314 515.0 314 H230 Z" fill="#A8B3C8"/>
-<text x="527.0" y="309" font-size="13" font-weight="500" fill="#0C1018">0.516</text>
-<text x="760" y="309" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">4–12</text>
-<text x="0" y="339" font-size="14" font-weight="500" fill="#0C1018">OpenAI tool loop</text>
-<text x="0" y="354" font-size="11.5" fill="#5E6E87">commercial</text>
-<path d="M230 332 H514.4 Q518.4 332 518.4 336 V348 Q518.4 352 514.4 352 H230 Z" fill="#A8B3C8"/>
-<text x="526.4" y="347" font-size="13" font-weight="500" fill="#0C1018">0.515</text>
-<text x="760" y="347" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">4–12</text>
-<text x="0" y="377" font-size="14" font-weight="500" fill="#0C1018">SurveyGen-I</text>
-<text x="0" y="392" font-size="11.5" fill="#5E6E87">academic</text>
-<path d="M230 370 H503.8 Q507.8 370 507.8 374 V386 Q507.8 390 503.8 390 H230 Z" fill="#A8B3C8"/>
-<text x="515.8" y="385" font-size="13" font-weight="500" fill="#0C1018">0.496</text>
-<text x="760" y="385" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">6–13</text>
-<text x="0" y="415" font-size="14" font-weight="500" fill="#0C1018">AutoSurvey</text>
-<text x="0" y="430" font-size="11.5" fill="#5E6E87">academic</text>
-<path d="M230 408 H503.2 Q507.2 408 507.2 412 V424 Q507.2 428 503.2 428 H230 Z" fill="#A8B3C8"/>
-<text x="515.2" y="423" font-size="13" font-weight="500" fill="#0C1018">0.495</text>
-<text x="760" y="423" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">6–13</text>
-<text x="0" y="453" font-size="14" font-weight="500" fill="#0C1018">LiRA</text>
-<text x="0" y="468" font-size="11.5" fill="#5E6E87">academic</text>
-<path d="M230 446 H497.0 Q501.0 446 501.0 450 V462 Q501.0 466 497.0 466 H230 Z" fill="#A8B3C8"/>
-<text x="509.0" y="461" font-size="13" font-weight="500" fill="#0C1018">0.484</text>
-<text x="760" y="461" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">4–13</text>
-<text x="0" y="491" font-size="14" font-weight="500" fill="#0C1018">LLM×MapReduce</text>
-<text x="0" y="506" font-size="11.5" fill="#5E6E87">academic</text>
-<path d="M230 484 H488.6 Q492.6 484 492.6 488 V500 Q492.6 504 488.6 504 H230 Z" fill="#A8B3C8"/>
-<text x="500.6" y="499" font-size="13" font-weight="500" fill="#0C1018">0.469</text>
-<text x="760" y="499" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">10–13</text>
-<rect x="0" y="550" width="12" height="12" rx="3" fill="#155DFC"/><text x="18" y="560" font-size="12" fill="#323E52">SCRIBE, the agent behind GLKB Literature Review, and its variants</text>
-<rect x="420" y="550" width="12" height="12" rx="3" fill="#A8B3C8"/><text x="438" y="560" font-size="12" fill="#323E52">Other tools</text>
+<svg viewBox="0 0 760 966" xmlns="http://www.w3.org/2000/svg" font-family="Geist,Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+<text x="0" y="18" font-size="12" font-weight="700" letter-spacing="1.4" fill="#5E6E87">(a) SAME PAPERS</text>
+<text x="0" y="38" font-size="13" fill="#5E6E87">Every tool gets the human review’s reference list</text>
+<text x="760" y="38" font-size="12" font-weight="600" fill="#5E6E87" text-anchor="end">Overall</text>
+<line x1="196.0" x2="196.0" y1="58" y2="418" stroke="#E5E9F0"/>
+<line x1="235.7" x2="235.7" y1="58" y2="418" stroke="#E5E9F0"/>
+<line x1="275.3" x2="275.3" y1="58" y2="418" stroke="#E5E9F0"/>
+<line x1="315.0" x2="315.0" y1="58" y2="418" stroke="#E5E9F0"/>
+<line x1="354.7" x2="354.7" y1="58" y2="418" stroke="#E5E9F0"/>
+<line x1="394.3" x2="394.3" y1="58" y2="418" stroke="#E5E9F0"/>
+<line x1="434.0" x2="434.0" y1="58" y2="418" stroke="#E5E9F0"/>
+<line x1="473.7" x2="473.7" y1="58" y2="418" stroke="#E5E9F0"/>
+<line x1="513.3" x2="513.3" y1="58" y2="418" stroke="#E5E9F0"/>
+<line x1="553.0" x2="553.0" y1="58" y2="418" stroke="#E5E9F0"/>
+<line x1="592.7" x2="592.7" y1="58" y2="418" stroke="#E5E9F0"/>
+<line x1="632.3" x2="632.3" y1="58" y2="418" stroke="#E5E9F0"/>
+<line x1="672.0" x2="672.0" y1="58" y2="418" stroke="#E5E9F0"/>
+<rect x="-8" y="59.0" width="776" height="28" rx="6" fill="#EEF3FF"/>
+<text x="0" y="78.0" font-size="14" font-weight="700" fill="#0C1018">SCRIBE</text>
+<line x1="196.0" x2="235.7" y1="73.0" y2="73.0" stroke="#155DFC" stroke-width="6" stroke-linecap="round"/>
+<circle cx="196.0" cy="73.0" r="6.5" fill="#155DFC" stroke="#FFFFFF" stroke-width="2"/>
+<circle cx="235.7" cy="73.0" r="6.5" fill="#155DFC" stroke="#FFFFFF" stroke-width="2"/>
+<text x="760" y="78.0" font-size="13" font-weight="700" fill="#0C1018" text-anchor="end">0.606</text>
+<text x="0" y="108.0" font-size="14" font-weight="500" fill="#0C1018">SCRIBE (untrained)</text>
+<line x1="196.0" x2="275.3" y1="103.0" y2="103.0" stroke="#155DFC" stroke-width="6" stroke-linecap="round"/>
+<circle cx="196.0" cy="103.0" r="6.5" fill="#155DFC" stroke="#FFFFFF" stroke-width="2"/>
+<circle cx="275.3" cy="103.0" r="6.5" fill="#155DFC" stroke="#FFFFFF" stroke-width="2"/>
+<text x="760" y="108.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.583</text>
+<text x="0" y="138.0" font-size="14" font-weight="500" fill="#0C1018">SCRIBE-Luna</text>
+<line x1="235.7" x2="394.3" y1="133.0" y2="133.0" stroke="#155DFC" stroke-width="6" stroke-linecap="round"/>
+<circle cx="235.7" cy="133.0" r="6.5" fill="#155DFC" stroke="#FFFFFF" stroke-width="2"/>
+<circle cx="394.3" cy="133.0" r="6.5" fill="#155DFC" stroke="#FFFFFF" stroke-width="2"/>
+<text x="760" y="138.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.564</text>
+<text x="0" y="168.0" font-size="14" font-weight="500" fill="#0C1018">Claude Science</text>
+<line x1="275.3" x2="553.0" y1="163.0" y2="163.0" stroke="#FC9015" stroke-width="6" stroke-linecap="round"/>
+<rect x="268.8" y="156.5" width="13.0" height="13.0" rx="2" fill="#FC9015" stroke="#FFFFFF" stroke-width="2"/>
+<rect x="546.5" y="156.5" width="13.0" height="13.0" rx="2" fill="#FC9015" stroke="#FFFFFF" stroke-width="2"/>
+<text x="760" y="168.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.541</text>
+<text x="0" y="198.0" font-size="14" font-weight="500" fill="#0C1018">Elicit SR</text>
+<line x1="275.3" x2="553.0" y1="193.0" y2="193.0" stroke="#FC9015" stroke-width="6" stroke-linecap="round"/>
+<rect x="268.8" y="186.5" width="13.0" height="13.0" rx="2" fill="#FC9015" stroke="#FFFFFF" stroke-width="2"/>
+<rect x="546.5" y="186.5" width="13.0" height="13.0" rx="2" fill="#FC9015" stroke="#FFFFFF" stroke-width="2"/>
+<text x="760" y="198.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.535</text>
+<text x="0" y="228.0" font-size="14" font-weight="500" fill="#0C1018">Claude Code</text>
+<line x1="275.3" x2="632.3" y1="223.0" y2="223.0" stroke="#FC9015" stroke-width="6" stroke-linecap="round"/>
+<rect x="268.8" y="216.5" width="13.0" height="13.0" rx="2" fill="#FC9015" stroke="#FFFFFF" stroke-width="2"/>
+<rect x="625.8" y="216.5" width="13.0" height="13.0" rx="2" fill="#FC9015" stroke="#FFFFFF" stroke-width="2"/>
+<text x="760" y="228.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.534</text>
+<text x="0" y="258.0" font-size="14" font-weight="500" fill="#0C1018">SurveyG</text>
+<line x1="315.0" x2="632.3" y1="253.0" y2="253.0" stroke="#03722C" stroke-width="6" stroke-linecap="round"/>
+<path d="M315.0 245.5 L322.5 258.6 L307.5 258.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<path d="M632.3 245.5 L639.8 258.6 L624.9 258.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<text x="760" y="258.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.516</text>
+<text x="0" y="288.0" font-size="14" font-weight="500" fill="#0C1018">OpenAI tool loop</text>
+<line x1="315.0" x2="632.3" y1="283.0" y2="283.0" stroke="#FC9015" stroke-width="6" stroke-linecap="round"/>
+<rect x="308.5" y="276.5" width="13.0" height="13.0" rx="2" fill="#FC9015" stroke="#FFFFFF" stroke-width="2"/>
+<rect x="625.8" y="276.5" width="13.0" height="13.0" rx="2" fill="#FC9015" stroke="#FFFFFF" stroke-width="2"/>
+<text x="760" y="288.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.515</text>
+<text x="0" y="318.0" font-size="14" font-weight="500" fill="#0C1018">SurveyGen-I</text>
+<line x1="394.3" x2="672.0" y1="313.0" y2="313.0" stroke="#03722C" stroke-width="6" stroke-linecap="round"/>
+<path d="M394.3 305.5 L401.8 318.6 L386.9 318.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<path d="M672.0 305.5 L679.5 318.6 L664.5 318.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<text x="760" y="318.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.496</text>
+<text x="0" y="348.0" font-size="14" font-weight="500" fill="#0C1018">AutoSurvey</text>
+<line x1="394.3" x2="672.0" y1="343.0" y2="343.0" stroke="#03722C" stroke-width="6" stroke-linecap="round"/>
+<path d="M394.3 335.5 L401.8 348.6 L386.9 348.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<path d="M672.0 335.5 L679.5 348.6 L664.5 348.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<text x="760" y="348.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.495</text>
+<text x="0" y="378.0" font-size="14" font-weight="500" fill="#0C1018">LiRA</text>
+<line x1="315.0" x2="672.0" y1="373.0" y2="373.0" stroke="#03722C" stroke-width="6" stroke-linecap="round"/>
+<path d="M315.0 365.5 L322.5 378.6 L307.5 378.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<path d="M672.0 365.5 L679.5 378.6 L664.5 378.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<text x="760" y="378.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.484</text>
+<text x="0" y="408.0" font-size="14" font-weight="500" fill="#0C1018">LLM×MR</text>
+<line x1="553.0" x2="672.0" y1="403.0" y2="403.0" stroke="#03722C" stroke-width="6" stroke-linecap="round"/>
+<path d="M553.0 395.5 L560.5 408.6 L545.5 408.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<path d="M672.0 395.5 L679.5 408.6 L664.5 408.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<text x="760" y="408.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.469</text>
+<line x1="186" x2="682" y1="418" y2="418" stroke="#A8B3C8"/>
+<text x="196.0" y="436" font-size="12" fill="#5E6E87" text-anchor="middle">1</text>
+<text x="235.7" y="436" font-size="12" fill="#5E6E87" text-anchor="middle">2</text>
+<text x="275.3" y="436" font-size="12" fill="#5E6E87" text-anchor="middle">3</text>
+<text x="315.0" y="436" font-size="12" fill="#5E6E87" text-anchor="middle">4</text>
+<text x="354.7" y="436" font-size="12" fill="#5E6E87" text-anchor="middle">5</text>
+<text x="394.3" y="436" font-size="12" fill="#5E6E87" text-anchor="middle">6</text>
+<text x="434.0" y="436" font-size="12" fill="#5E6E87" text-anchor="middle">7</text>
+<text x="473.7" y="436" font-size="12" fill="#5E6E87" text-anchor="middle">8</text>
+<text x="513.3" y="436" font-size="12" fill="#5E6E87" text-anchor="middle">9</text>
+<text x="553.0" y="436" font-size="12" fill="#5E6E87" text-anchor="middle">10</text>
+<text x="592.7" y="436" font-size="12" fill="#5E6E87" text-anchor="middle">11</text>
+<text x="632.3" y="436" font-size="12" fill="#5E6E87" text-anchor="middle">12</text>
+<text x="672.0" y="436" font-size="12" fill="#5E6E87" text-anchor="middle">13</text>
+<text x="434.0" y="456" font-size="12" fill="#5E6E87" text-anchor="middle">possible rank (1 = best)</text>
+<text x="0" y="504" font-size="12" font-weight="700" letter-spacing="1.4" fill="#5E6E87">(b) SAME LIBRARY</text>
+<text x="0" y="524" font-size="13" fill="#5E6E87">Every tool searches one frozen collection of papers</text>
+<text x="760" y="524" font-size="12" font-weight="600" fill="#5E6E87" text-anchor="end">Overall</text>
+<line x1="196.0" x2="196.0" y1="544" y2="874" stroke="#E5E9F0"/>
+<line x1="239.3" x2="239.3" y1="544" y2="874" stroke="#E5E9F0"/>
+<line x1="282.5" x2="282.5" y1="544" y2="874" stroke="#E5E9F0"/>
+<line x1="325.8" x2="325.8" y1="544" y2="874" stroke="#E5E9F0"/>
+<line x1="369.1" x2="369.1" y1="544" y2="874" stroke="#E5E9F0"/>
+<line x1="412.4" x2="412.4" y1="544" y2="874" stroke="#E5E9F0"/>
+<line x1="455.6" x2="455.6" y1="544" y2="874" stroke="#E5E9F0"/>
+<line x1="498.9" x2="498.9" y1="544" y2="874" stroke="#E5E9F0"/>
+<line x1="542.2" x2="542.2" y1="544" y2="874" stroke="#E5E9F0"/>
+<line x1="585.5" x2="585.5" y1="544" y2="874" stroke="#E5E9F0"/>
+<line x1="628.7" x2="628.7" y1="544" y2="874" stroke="#E5E9F0"/>
+<line x1="672.0" x2="672.0" y1="544" y2="874" stroke="#E5E9F0"/>
+<rect x="-8" y="545.0" width="776" height="28" rx="6" fill="#EEF3FF"/>
+<text x="0" y="564.0" font-size="14" font-weight="700" fill="#0C1018">SCRIBE</text>
+<line x1="196.0" x2="455.6" y1="559.0" y2="559.0" stroke="#155DFC" stroke-width="6" stroke-linecap="round"/>
+<circle cx="196.0" cy="559.0" r="6.5" fill="#155DFC" stroke="#FFFFFF" stroke-width="2"/>
+<circle cx="455.6" cy="559.0" r="6.5" fill="#155DFC" stroke="#FFFFFF" stroke-width="2"/>
+<text x="760" y="564.0" font-size="13" font-weight="700" fill="#0C1018" text-anchor="end">0.487</text>
+<text x="0" y="594.0" font-size="14" font-weight="500" fill="#0C1018">SCRIBE-Luna</text>
+<line x1="196.0" x2="412.4" y1="589.0" y2="589.0" stroke="#155DFC" stroke-width="6" stroke-linecap="round"/>
+<circle cx="196.0" cy="589.0" r="6.5" fill="#155DFC" stroke="#FFFFFF" stroke-width="2"/>
+<circle cx="412.4" cy="589.0" r="6.5" fill="#155DFC" stroke="#FFFFFF" stroke-width="2"/>
+<text x="760" y="594.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.479</text>
+<text x="0" y="624.0" font-size="14" font-weight="500" fill="#0C1018">SCRIBE (untrained)</text>
+<line x1="196.0" x2="542.2" y1="619.0" y2="619.0" stroke="#155DFC" stroke-width="6" stroke-linecap="round"/>
+<circle cx="196.0" cy="619.0" r="6.5" fill="#155DFC" stroke="#FFFFFF" stroke-width="2"/>
+<circle cx="542.2" cy="619.0" r="6.5" fill="#155DFC" stroke="#FFFFFF" stroke-width="2"/>
+<text x="760" y="624.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.464</text>
+<text x="0" y="654.0" font-size="14" font-weight="500" fill="#0C1018">SurveyGen-I</text>
+<line x1="196.0" x2="542.2" y1="649.0" y2="649.0" stroke="#03722C" stroke-width="6" stroke-linecap="round"/>
+<path d="M196.0 641.5 L203.5 654.6 L188.5 654.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<path d="M542.2 641.5 L549.7 654.6 L534.7 654.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<text x="760" y="654.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.460</text>
+<text x="0" y="684.0" font-size="14" font-weight="500" fill="#0C1018">Claude Code</text>
+<line x1="196.0" x2="498.9" y1="679.0" y2="679.0" stroke="#FC9015" stroke-width="6" stroke-linecap="round"/>
+<rect x="189.5" y="672.5" width="13.0" height="13.0" rx="2" fill="#FC9015" stroke="#FFFFFF" stroke-width="2"/>
+<rect x="492.4" y="672.5" width="13.0" height="13.0" rx="2" fill="#FC9015" stroke="#FFFFFF" stroke-width="2"/>
+<text x="760" y="684.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.458</text>
+<text x="0" y="714.0" font-size="14" font-weight="500" fill="#0C1018">Claude Science</text>
+<line x1="196.0" x2="498.9" y1="709.0" y2="709.0" stroke="#FC9015" stroke-width="6" stroke-linecap="round"/>
+<rect x="189.5" y="702.5" width="13.0" height="13.0" rx="2" fill="#FC9015" stroke="#FFFFFF" stroke-width="2"/>
+<rect x="492.4" y="702.5" width="13.0" height="13.0" rx="2" fill="#FC9015" stroke="#FFFFFF" stroke-width="2"/>
+<text x="760" y="714.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.456</text>
+<text x="0" y="744.0" font-size="14" font-weight="500" fill="#0C1018">OpenAI tool loop</text>
+<line x1="282.5" x2="585.5" y1="739.0" y2="739.0" stroke="#FC9015" stroke-width="6" stroke-linecap="round"/>
+<rect x="276.0" y="732.5" width="13.0" height="13.0" rx="2" fill="#FC9015" stroke="#FFFFFF" stroke-width="2"/>
+<rect x="579.0" y="732.5" width="13.0" height="13.0" rx="2" fill="#FC9015" stroke="#FFFFFF" stroke-width="2"/>
+<text x="760" y="744.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.437</text>
+<text x="0" y="774.0" font-size="14" font-weight="500" fill="#0C1018">SurveyForge</text>
+<line x1="282.5" x2="585.5" y1="769.0" y2="769.0" stroke="#03722C" stroke-width="6" stroke-linecap="round"/>
+<path d="M282.5 761.5 L290.0 774.6 L275.1 774.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<path d="M585.5 761.5 L592.9 774.6 L578.0 774.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<text x="760" y="774.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.431</text>
+<text x="0" y="804.0" font-size="14" font-weight="500" fill="#0C1018">SurveyG</text>
+<line x1="412.4" x2="585.5" y1="799.0" y2="799.0" stroke="#03722C" stroke-width="6" stroke-linecap="round"/>
+<path d="M412.4 791.5 L419.8 804.6 L404.9 804.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<path d="M585.5 791.5 L592.9 804.6 L578.0 804.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<text x="760" y="804.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.425</text>
+<text x="0" y="834.0" font-size="14" font-weight="500" fill="#0C1018">AutoSurvey</text>
+<line x1="369.1" x2="628.7" y1="829.0" y2="829.0" stroke="#03722C" stroke-width="6" stroke-linecap="round"/>
+<path d="M369.1 821.5 L376.6 834.6 L361.6 834.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<path d="M628.7 821.5 L636.2 834.6 L621.3 834.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<text x="760" y="834.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.419</text>
+<text x="0" y="864.0" font-size="14" font-weight="500" fill="#0C1018">LLM×MR</text>
+<line x1="628.7" x2="672.0" y1="859.0" y2="859.0" stroke="#03722C" stroke-width="6" stroke-linecap="round"/>
+<path d="M628.7 851.5 L636.2 864.6 L621.3 864.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<path d="M672.0 851.5 L679.5 864.6 L664.5 864.6 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<text x="760" y="864.0" font-size="13" font-weight="500" fill="#323E52" text-anchor="end">0.379</text>
+<line x1="186" x2="682" y1="874" y2="874" stroke="#A8B3C8"/>
+<text x="196.0" y="892" font-size="12" fill="#5E6E87" text-anchor="middle">1</text>
+<text x="239.3" y="892" font-size="12" fill="#5E6E87" text-anchor="middle">2</text>
+<text x="282.5" y="892" font-size="12" fill="#5E6E87" text-anchor="middle">3</text>
+<text x="325.8" y="892" font-size="12" fill="#5E6E87" text-anchor="middle">4</text>
+<text x="369.1" y="892" font-size="12" fill="#5E6E87" text-anchor="middle">5</text>
+<text x="412.4" y="892" font-size="12" fill="#5E6E87" text-anchor="middle">6</text>
+<text x="455.6" y="892" font-size="12" fill="#5E6E87" text-anchor="middle">7</text>
+<text x="498.9" y="892" font-size="12" fill="#5E6E87" text-anchor="middle">8</text>
+<text x="542.2" y="892" font-size="12" fill="#5E6E87" text-anchor="middle">9</text>
+<text x="585.5" y="892" font-size="12" fill="#5E6E87" text-anchor="middle">10</text>
+<text x="628.7" y="892" font-size="12" fill="#5E6E87" text-anchor="middle">11</text>
+<text x="672.0" y="892" font-size="12" fill="#5E6E87" text-anchor="middle">12</text>
+<text x="434.0" y="912" font-size="12" fill="#5E6E87" text-anchor="middle">possible rank (1 = best)</text>
+<line x1="8" x2="34" y1="948" y2="948" stroke="#155DFC" stroke-width="6" stroke-linecap="round"/>
+<circle cx="34.0" cy="948" r="5.5" fill="#155DFC" stroke="#FFFFFF" stroke-width="2"/>
+<text x="48" y="952" font-size="12" fill="#323E52">SCRIBE, the agent behind GLKB Literature Review</text>
+<line x1="380" x2="406" y1="948" y2="948" stroke="#FC9015" stroke-width="6" stroke-linecap="round"/>
+<rect x="400.5" y="942.5" width="11.0" height="11.0" rx="2" fill="#FC9015" stroke="#FFFFFF" stroke-width="2"/>
+<text x="420" y="952" font-size="12" fill="#323E52">Commercial agents</text>
+<line x1="560" x2="586" y1="948" y2="948" stroke="#03722C" stroke-width="6" stroke-linecap="round"/>
+<path d="M586.0 941.7 L592.3 952.7 L579.7 952.7 Z" fill="#03722C" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+<text x="600" y="952" font-size="12" fill="#323E52">Published academic systems</text>
 </svg>
