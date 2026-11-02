@@ -8,9 +8,11 @@
  * reload shows the attachments again from the conversation's history.
  *
  * Any type goes to the backend, which reads it as a picture or as text (see below).
- * Signed-in readers only, and AI Chat only: Investigate does not read attachments, and a guest's
- * question has no owner to keep a file for. Both composers enforce that before anything is
- * uploaded; the backend refuses it anyway.
+ * Signed-in readers only: a guest's question has no owner to keep a file for. AI Chat takes any
+ * type; Investigate (deep research, since 2026-11-02) takes documents only — it reads them as
+ * text to shape the research and relate them to the literature, and has no use for a picture
+ * (`INVESTIGATE_ATTACH_LIMITS`). Both composers enforce that before anything is uploaded or
+ * sent; the backend refuses it anyway (`INVESTIGATE_DOCUMENTS_ONLY`).
  *
  * Everything that talks to the API, checks a file, or turns an error into words lives here, so
  * the home composer and the chat composer behave the same.
@@ -60,7 +62,10 @@ export const LONG_PASTE_CHARS = 4000;
 export const PASTED_TEXT_NAME = 'Pasted text.txt';
 
 export const GUEST_ATTACH_REASON = "Sign in to attach files — it's free.";
-export const INVESTIGATE_ATTACH_NOTE = 'Attachments work in AI Chat';
+/* Investigate's "+" and the note when an image is waiting on an Investigate question (attached
+   in Chat, then the mode switched), which holds the send back until it is removed. */
+export const INVESTIGATE_ATTACH_LABEL = 'Attach a document (PDF, Word, text)';
+export const INVESTIGATE_IMAGES_NOTE = 'Images work in AI Chat — Investigate reads documents (PDF, Word, text).';
 export const UNSUPPORTED_TYPE_MESSAGE = "This file type can't be attached.";
 
 const EXTENSION_MIME = {
@@ -116,19 +121,53 @@ export const validateFile = (file) => {
    only — a picture has no text to review — and up to 50 of them. The file picker offers the
    formats a paper comes in; the backend reads any of them as text (PDF, Word including the old
    .doc, LaTeX, RTF, OpenDocument, Markdown, plain text, HTML). */
-export const REVIEW_PAPER_LIMITS = { maxFiles: 50, maxImages: 0, per: 'review' };
+export const REVIEW_PAPER_LIMITS = {
+    maxFiles: 50,
+    maxImages: 0,
+    per: 'review',
+    imageNotice: "Pictures can't be used as papers — add the paper's PDF or document.",
+};
 export const PAPER_ACCEPT = '.pdf,.doc,.docx,.tex,.latex,.rtf,.odt,.txt,.md,.markdown,.html,.htm';
 export const PAPER_FORMATS_TEXT = 'PDF, Word (.docx, .doc), LaTeX (.tex), RTF, OpenDocument or text';
+
+/* An Investigate question's files (glkb-backend: the deep-research stream's `attachments`):
+   a chat message's ten, but documents only — the backend refuses an image there. An image
+   dropped or pasted on Investigate is turned away before it is uploaded, with the reason.
+   The picker offers documents, spreadsheets, slides and the text and code formats the backend
+   names (attachment_convert.py); a file outside the list can still be dropped, and the backend
+   reads anything that decodes as text. */
+export const INVESTIGATE_ATTACH_LIMITS = {
+    maxFiles: MAX_FILES_PER_MESSAGE,
+    maxImages: 0,
+    per: 'message',
+    imageNotice: INVESTIGATE_IMAGES_NOTE,
+};
+export const DOCUMENT_ACCEPT = [
+    'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'odt', 'rtf', 'epub', 'ipynb',
+    'txt', 'md', 'markdown', 'rst', 'tex', 'latex', 'bib', 'html', 'htm', 'xml', 'log',
+    'csv', 'tsv', 'json', 'jsonl', 'yaml', 'yml', 'toml',
+    'py', 'r', 'rmd', 'qmd', 'js', 'ts', 'java', 'go', 'rs', 'c', 'h', 'cpp', 'm', 'jl', 'sh', 'sql',
+    'fasta', 'fa', 'fastq', 'vcf', 'bed', 'gff', 'gtf', 'sam', 'pdb', 'nf', 'smk',
+].map((ext) => `.${ext}`).join(',');
+// The "+" on Investigate, in both composers: what it says and which files the picker offers.
+export const INVESTIGATE_ATTACH = {
+    label: INVESTIGATE_ATTACH_LABEL,
+    itemLabel: 'Add documents',
+    itemHint: 'PDF, Word, PowerPoint, Excel or text',
+    accept: DOCUMENT_ACCEPT,
+};
 
 /**
  * Which of `files` fit beside the attachments already on the message (`existing`, each with a
  * `kind`; leave out the ones that failed). Files past the limits — a chat message's by default,
  * or `limits` ({ maxFiles, maxImages, per }) — are left out and `notice` says why. A file that
  * fails `validateFile` is still accepted, so it can be shown with its reason — but it takes none
- * of the message's places.
+ * of the message's places. Where images are not taken at all (`maxImages: 0`), `imageNotice`
+ * says why.
  */
 export const planAdditions = (existing, files, {
     maxFiles = MAX_FILES_PER_MESSAGE, maxImages = MAX_IMAGES_PER_MESSAGE, per = 'message',
+    imageNotice = REVIEW_PAPER_LIMITS.imageNotice,
 } = {}) => {
     const list = Array.from(files || []);
     let total = (existing || []).length;
@@ -142,7 +181,7 @@ export const planAdditions = (existing, files, {
         }
         const kind = kindOf(file);
         if (kind === 'image' && maxImages === 0) {
-            notice = "Pictures can't be used as papers — add the paper's PDF or document.";
+            notice = imageNotice;
             return;
         }
         if (total >= maxFiles) {

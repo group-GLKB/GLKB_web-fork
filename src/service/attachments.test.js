@@ -17,6 +17,9 @@ import {
     kindOf,
     MAX_FILES_PER_MESSAGE,
     MAX_IMAGE_BYTES,
+    DOCUMENT_ACCEPT,
+    INVESTIGATE_ATTACH_LIMITS,
+    INVESTIGATE_IMAGES_NOTE,
     MAX_FILE_BYTES,
     MAX_IMAGES_PER_MESSAGE,
     isCodeFormat,
@@ -26,6 +29,7 @@ import {
     PASTED_TEXT_NAME,
     pastedAttachments,
     planAdditions,
+    REVIEW_PAPER_LIMITS,
     resetAttachmentUrlCache,
     resizeImageIfNeeded,
     uploadAttachment,
@@ -109,6 +113,32 @@ describe('the per-message limits', () => {
         const { accepted, notice } = planAdditions(existing, [tooBig, png()]);
         expect(accepted).toEqual([tooBig, expect.objectContaining({ name: 'fig.png' })]);
         expect(notice).toBeNull();
+    });
+});
+
+describe("an Investigate question's limits (documents only, since 2026-11-02)", () => {
+    it('takes documents, and turns an image away with the reason', () => {
+        const { accepted, notice } = planAdditions([], [png(), pdf(), file('analysis.py', 'text/x-python')],
+            INVESTIGATE_ATTACH_LIMITS);
+        expect(accepted.map((f) => f.name)).toEqual(['paper.pdf', 'analysis.py']);
+        expect(notice).toBe(INVESTIGATE_IMAGES_NOTE);
+    });
+
+    it(`still takes at most ${MAX_FILES_PER_MESSAGE} files`, () => {
+        const existing = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(() => ({ kind: 'pdf' }));
+        const { accepted, notice } = planAdditions(existing, [pdf(), pdf()], INVESTIGATE_ATTACH_LIMITS);
+        expect(accepted).toHaveLength(1);
+        expect(notice).toBe('Up to 10 files per message.');
+    });
+
+    it("keeps a Literature Review's own wording for a picture", () => {
+        expect(planAdditions([], [png()], REVIEW_PAPER_LIMITS).notice)
+            .toBe("Pictures can't be used as papers — add the paper's PDF or document.");
+    });
+
+    it('offers documents and no images in the picker', () => {
+        expect(DOCUMENT_ACCEPT.split(',')).toEqual(expect.arrayContaining(['.pdf', '.docx', '.pptx', '.xlsx', '.txt', '.ipynb']));
+        expect(DOCUMENT_ACCEPT).not.toMatch(/\.(png|jpe?g|webp|gif)\b|image\//);
     });
 });
 

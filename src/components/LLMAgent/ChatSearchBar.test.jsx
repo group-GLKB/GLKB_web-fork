@@ -306,19 +306,36 @@ describe('attachments', () => {
         expect(onAttachRequireSignIn).toHaveBeenCalledTimes(1);
     });
 
-    it('is off in an Investigate conversation', () => {
+    const docButton = () => screen.getByRole('button', { name: 'Attach a document (PDF, Word, text)' });
+    const IMAGES_NOTE = 'Images work in AI Chat — Investigate reads documents (PDF, Word, text).';
+
+    it('offers documents in an Investigate conversation (since 2026-11-02), with no images in the picker', () => {
         setup({ pipelineIsDeepResearch: true, attachments: controller() });
-        expect(paperclip()).toBeDisabled();
+        expect(docButton()).toBeEnabled();
+        const accept = screen.getByTestId('attachment-file-input').getAttribute('accept');
+        expect(accept).toContain('.pdf');
+        expect(accept).not.toMatch(/\.png|\.jpe?g|image\//);
     });
 
-    it('ignores files dropped on an Investigate conversation', () => {
+    it('takes documents dropped on an Investigate conversation', () => {
         const attachments = controller();
         setup({ pipelineIsDeepResearch: true, attachments });
         const doc = new File(['%PDF'], 'paper.pdf', { type: 'application/pdf' });
         fireEvent.drop(document.querySelector('.chat-header > div'), {
             dataTransfer: { types: ['Files'], files: [doc], items: [] },
         });
-        expect(attachments.addFiles).not.toHaveBeenCalled();
+        expect(attachments.addFiles).toHaveBeenCalledWith([doc]);
+    });
+
+    it('sends an Investigate question with its documents', () => {
+        const { onSubmit } = setup({
+            userInput: 'how does this fit the literature?',
+            pipelineIsDeepResearch: true,
+            attachments: withReadyPdf(),
+        });
+        expect(screen.queryByText(IMAGES_NOTE)).toBeNull();
+        fireEvent.keyDown(field(), { key: 'Enter' });
+        expect(onSubmit).toHaveBeenCalledTimes(1);
     });
 
     it('sends a question that is only files', () => {
@@ -338,20 +355,36 @@ describe('attachments', () => {
         expect(onSubmit).not.toHaveBeenCalled();
     });
 
-    it('holds files back from an Investigate conversation, says so, and offers removing them', () => {
-        const attachments = withReadyPdf();
+    it('holds an image back from an Investigate conversation, says so, and offers removing just it', () => {
+        const readyImage = {
+            key: 'k2',
+            kind: 'image',
+            name: 'fig.png',
+            size: 3,
+            status: 'ready',
+            attachment: { id: 'i1', kind: 'image', filename: 'fig.png', size_bytes: 3 },
+        };
+        const attachments = withReadyPdf({
+            items: [readyPdf, readyImage],
+            readyAttachments: [readyPdf.attachment, readyImage.attachment],
+        });
         const { onSubmit } = setup({
             userInput: 'and this figure?',
             pipelineIsDeepResearch: true,
             attachments,
         });
-        expect(screen.getByRole('status')).toHaveTextContent("Investigate doesn't read attached files.");
+        // Said once, in the conflict row — not on the chips as well.
+        expect(screen.getAllByRole('status')).toHaveLength(1);
+        expect(screen.getByRole('status')).toHaveTextContent(IMAGES_NOTE);
         fireEvent.keyDown(field(), { key: 'Enter' });
+        fireEvent.click(screen.getByTitle('Send'));
         expect(onSubmit).not.toHaveBeenCalled();
         // The conversation's mode is fixed: there is nothing to switch to here.
         expect(screen.queryByRole('button', { name: /^Use / })).toBeNull();
-        fireEvent.click(screen.getByRole('button', { name: 'Remove file' }));
-        expect(attachments.clear).toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'Remove image' }));
+        expect(attachments.remove).toHaveBeenCalledTimes(1);
+        expect(attachments.remove).toHaveBeenCalledWith('k2');
+        expect(attachments.clear).not.toHaveBeenCalled();
     });
 
     it('takes pasted files of any type, and leaves a short text paste alone', () => {
@@ -378,9 +411,17 @@ describe('attachments', () => {
         expect(setUserInput).not.toHaveBeenCalled();
     });
 
-    it('lets a long paste land in the box where nothing can be attached (Investigate)', () => {
+    it('turns a long paste into a document on Investigate too, which reads documents', () => {
         const attachments = controller();
         setup({ attachments, pipelineIsDeepResearch: true });
+        fireEvent.paste(field(), { clipboardData: { files: [], items: [], getData: () => 'x'.repeat(5000) } });
+        expect(attachments.addFiles).toHaveBeenCalledTimes(1);
+        expect(attachments.addFiles.mock.calls[0][0][0].name).toBe('Pasted text.txt');
+    });
+
+    it('lets a long paste land in the box where nothing can be attached (the quota is gone)', () => {
+        const attachments = controller();
+        setup({ attachments, isQueryLimitReached: true });
         fireEvent.paste(field(), { clipboardData: { files: [], items: [], getData: () => 'x'.repeat(5000) } });
         expect(attachments.addFiles).not.toHaveBeenCalled();
     });

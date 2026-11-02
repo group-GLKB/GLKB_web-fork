@@ -101,10 +101,19 @@ describe('the chips', () => {
         expect(screen.getByRole('status')).toHaveTextContent('Attachments work in AI Chat.');
     });
 
-    it('blocks a failed upload, and anything on Investigate', () => {
+    it('blocks a failed upload, and an image on Investigate — which reads documents', () => {
+        const pdf = { key: 'a', kind: 'pdf', status: 'ready' };
+        const png = { key: 'b', kind: 'image', status: 'ready' };
         expect(attachmentBlockedNote({ hasItems: true, hasErrors: true })).toMatch(/Remove the files/);
-        expect(attachmentBlockedNote({ hasItems: true, hasErrors: false }, { investigate: true }))
-            .toMatch(/Attachments work in AI Chat/);
+        // Documents go to Investigate (since 2026-11-02).
+        expect(attachmentBlockedNote({ hasItems: true, hasErrors: false, items: [pdf] }, { investigate: true }))
+            .toBe('');
+        expect(attachmentBlockedNote({ hasItems: true, hasErrors: false, items: [pdf, png] }, { investigate: true }))
+            .toBe('Images work in AI Chat — Investigate reads documents (PDF, Word, text). Remove the image to send.');
+        expect(attachmentBlockedNote({ hasItems: true, hasErrors: false, items: [png, { ...png, key: 'c' }] }, { investigate: true }))
+            .toMatch(/Remove the images to send\.$/);
+        // The same image is fine in AI Chat.
+        expect(attachmentBlockedNote({ hasItems: true, hasErrors: false, items: [pdf, png] })).toBe('');
         expect(attachmentBlockedNote({ hasItems: false, hasErrors: false }, { investigate: true })).toBe('');
         expect(attachmentBlockedNote({ hasItems: true, hasErrors: false })).toBe('');
     });
@@ -126,6 +135,16 @@ describe("the note when a mode doesn't read the files", () => {
     it('offers only removing them where the mode cannot be changed', () => {
         render(<AttachConflict modeName="Investigate" count={1} onRemoveFiles={() => {}} />);
         expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Remove file']);
+    });
+
+    it('can say which files and why — the images on an Investigate question', () => {
+        render(<AttachConflict modeName="Investigate" fallbackName="Chat" count={2} noun="image"
+                               text="Images work in AI Chat — Investigate reads documents (PDF, Word, text)."
+                               onUseFallback={() => {}} onRemoveFiles={() => {}} />);
+        expect(screen.getByRole('status')).toHaveTextContent(
+            'Images work in AI Chat — Investigate reads documents (PDF, Word, text).',
+        );
+        expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Use Chat', 'Remove images']);
     });
 });
 

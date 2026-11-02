@@ -80,7 +80,12 @@ import SearchLimitNotice from './SearchLimitNotice';
 import { BuiltOnEarlierNote, FullInvestigationOffer } from './FollowupRouteNotice';
 import SelectionReply from './SelectionReply';
 import { clipQuote, withQuote } from './quoteReply';
-import { investigateHandoffState, investigateQuestionFor, showsSearchLimit } from './searchLimit';
+import {
+    investigateAttachmentsFor,
+    investigateHandoffState,
+    investigateQuestionFor,
+    showsSearchLimit,
+} from './searchLimit';
 import ReferenceHoverCard from './ReferenceHoverCard';
 import AnswerGraphForMessage from '../AnswerGraph/AnswerGraphForMessage';
 import IconButton from '../Units/HintIconButton';
@@ -172,6 +177,7 @@ import {
     attachmentIdsOf,
     defaultQuestionFor,
     GUEST_ATTACH_REASON,
+    INVESTIGATE_ATTACH_LIMITS,
     normalizeAttachmentList,
 } from '../../service/attachments';
 import {
@@ -216,7 +222,7 @@ import {
     pmidFromHref,
     stripCitationsBlock,
 } from '../../utils/directCitations';
-import { MessageAttachments, useAttachments } from '../Units/AttachmentChips';
+import { attachmentBlockedNote, MessageAttachments, useAttachments } from '../Units/AttachmentChips';
 import CiteDialog from '../Units/CiteDialog';
 import { cslFromCard, toBibTeX } from '../Units/CiteDialog/format';
 import { fetchCitations } from '../../service/Citation';
@@ -2567,13 +2573,17 @@ function LLMAgent({ isRouteActive = true }) {
     const requestPremiumSignIn = useCallback((tier) => {
         requireSignIn(`${tier?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`);
     }, [requireSignIn]);
-    /* Images and PDFs waiting on the composer (service/attachments.js). Held here, not in the
-       composer, because the send reads them: `submitOrQueue` puts them on the turn's options
-       and clears the chips once the question has left. Signed-in readers and AI Chat only. */
+    /* Files waiting on the composer (service/attachments.js). Held here, not in the composer,
+       because the send reads them: `submitOrQueue` puts them on the turn's options and clears
+       the chips once the question has left. Signed-in readers only. An Investigate conversation
+       takes documents and not images (since 2026-11-02), so its limits turn an image away. */
     const requestAttachSignIn = useCallback(() => {
         requireSignIn(GUEST_ATTACH_REASON);
     }, [requireSignIn]);
-    const composerAttachments = useAttachments({ onRequireSignIn: requestAttachSignIn });
+    const composerAttachments = useAttachments({
+        onRequireSignIn: requestAttachSignIn,
+        limits: chatInvestigateEnabled ? INVESTIGATE_ATTACH_LIMITS : undefined,
+    });
     const clearComposerAttachments = composerAttachments.clear;
     const useMobileReferencesDrawer = isPhoneDevice;
 
@@ -4512,13 +4522,17 @@ function LLMAgent({ isRouteActive = true }) {
             forceFullResearch: forceFullResearch || undefined,
         };
 
-        /* The images and PDFs this turn carries (service/attachments.js). AI Chat only: the
-           Investigate pipeline does not read them, and no composer sends them there. An explicit
-           list — a regenerate or an edited message re-sending the original's files — wins over
-           the options bag the composer filled. */
-        const turnAttachments = investigateEnabled
-            ? []
-            : normalizeAttachmentList(options.attachments ?? requestSearchOptions?.attachments);
+        /* The files this turn carries (service/attachments.js), on both pipelines: AI Chat reads
+           any type, Investigate documents (since 2026-11-02; the composers never send it an
+           image, and the backend refuses one). An explicit list — a regenerate or an edited
+           message re-sending the original's files — wins over the options bag the composer
+           filled. */
+        const turnAttachments = normalizeAttachmentList(
+            options.attachments ?? requestSearchOptions?.attachments,
+        );
+        /* Kept so a clarify retry re-asks the SAME turn: the documents go with it again, or the
+           restarted run would be researching the question without the file that shaped it. */
+        if (turnAttachments.length) lastSearchOptionsRef.current.attachments = turnAttachments;
         const turnAnswerOptions = answerOptionsForTurn(requestSearchOptions, baseHistory, investigateEnabled);
 
         // Create new user message
@@ -5902,6 +5916,8 @@ function LLMAgent({ isRouteActive = true }) {
                             serviceTier: prior.serviceTier,
                             // Nor may a forced full investigation be routed on its retry.
                             forceFullResearch: prior.forceFullResearch,
+                            // The same question, so the same documents.
+                            attachments: prior.attachments,
                         },
                     });
                 } else {
@@ -6283,8 +6299,8 @@ function LLMAgent({ isRouteActive = true }) {
 
     /* "Ask in Investigate" under a chat answer whose search the agent cut short (see
        searchLimit.js). The same question — the reader's own words for that turn, without its
-       files, which Investigate does not read — opens a NEW Investigate conversation, handed over
-       exactly as the home composer's Investigate tab hands one over, so the hand-over effect
+       files, which stay with the chat they were sent in — opens a NEW Investigate conversation,
+       handed over exactly as the home composer's Investigate tab hands one over, so the hand-over effect
        above starts it (releasing, not aborting, anything still being written). The chat
        conversation stays as it is, one click away in the sidebar. A guest gets the sign-in
        prompt instead: Investigate needs an account. */
@@ -6342,6 +6358,8 @@ function LLMAgent({ isRouteActive = true }) {
                 serviceTier: typeof serviceTier === 'string' ? serviceTier : '',
                 forceFullResearch: true,
             },
+            // The same question, so the same documents (regenerate does the same for chat).
+            attachments: investigateAttachmentsFor(chatHistory, index),
             queryMethod: 'button',
         });
     };
@@ -6833,13 +6851,15 @@ function LLMAgent({ isRouteActive = true }) {
     const submitOrQueue = useCallback((event, composerOptions, queryMethod = 'button') => {
         event?.preventDefault?.();
         /* Files on the composer ride on the turn's options, so a queued follow-up keeps its
-           own. Never while one is still uploading or failed — the composer holds the send back
-           and its chips say why — and never on Investigate, which does not read them. A
-           question that is only files asks for a summary of them. */
+           own. Never while one is still uploading or failed, or while an image waits on an
+           Investigate question (Investigate reads documents only) — the composer holds the send
+           back and says why. A question that is only files asks for a summary of them. */
         const readyAttachments = composerAttachments.readyAttachments;
         if (composerAttachments.hasItems
             && (composerAttachments.isUploading || composerAttachments.hasErrors
-                || composerOptions?.investigateEnabled)) {
+                || attachmentBlockedNote(composerAttachments, {
+                    investigate: Boolean(composerOptions?.investigateEnabled),
+                }))) {
             return;
         }
         const typed = userInput.trim();
@@ -7083,10 +7103,8 @@ function LLMAgent({ isRouteActive = true }) {
                     logDev('[LLM] background turn base refetch failed', error);
                 }
             }
-            // The files the queued follow-up was written with — AI Chat only, as in handleSubmit.
-            const turnAttachments = investigateEnabled
-                ? []
-                : normalizeAttachmentList(requestSearchOptions?.attachments);
+            // The files the queued follow-up was written with — on both pipelines, as in handleSubmit.
+            const turnAttachments = normalizeAttachmentList(requestSearchOptions?.attachments);
             const turnAnswerOptions = answerOptionsForTurn(requestSearchOptions, base, investigateEnabled);
             const userMessage = {
                 role: 'user',

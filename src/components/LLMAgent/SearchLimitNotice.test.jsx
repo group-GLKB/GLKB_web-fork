@@ -15,7 +15,12 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import SearchLimitNotice, { investigatePriceText, SEARCH_LIMIT_TEXT } from './SearchLimitNotice';
-import { investigateHandoffState, investigateQuestionFor, showsSearchLimit } from './searchLimit';
+import {
+    investigateAttachmentsFor,
+    investigateHandoffState,
+    investigateQuestionFor,
+    showsSearchLimit,
+} from './searchLimit';
 import { replayTrace } from './traceReplay';
 import { frameToUpdate, searchLimitOf } from '../../service/LLMAgent';
 import { fetchTierPricing, parsePricing } from '../../service/serviceTiers';
@@ -141,7 +146,22 @@ describe('the question it asks again', () => {
             },
             initialQueryMethod: 'button',
         });
-        // No attachments ride along: Investigate does not read them.
+        // No attachments ride along: a chat turn's files stay with the chat they were sent in.
         expect(state.initialSearchOptions).not.toHaveProperty('attachments');
+    });
+
+    it("gives that turn's documents, without its images, for a re-ask in the same conversation", () => {
+        const withImage = [
+            {
+                role: 'user',
+                content: 'q',
+                attachments: [{ id: 'f1', kind: 'pdf' }, { id: 'i1', kind: 'image' }, { id: 'n1', kind: 'file' }],
+            },
+            { role: 'assistant', content: 'a' },
+        ];
+        expect(investigateAttachmentsFor(withImage, 1).map((a) => a.id)).toEqual(['f1', 'n1']);
+        expect(investigateAttachmentsFor(history, 1)).toEqual([]);
+        expect(investigateAttachmentsFor(history, 0)).toEqual([]);
+        expect(investigateAttachmentsFor(null, 3)).toEqual([]);
     });
 });

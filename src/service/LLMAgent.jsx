@@ -633,20 +633,22 @@ export class LLMAgentService {
                 if (typeof options.rankingMode === 'string' && options.rankingMode.trim()) {
                     payload.ranking_mode = options.rankingMode.trim();
                 }
-                // Uploaded images and PDFs (service/attachments.js), by id. AI Chat only — the
-                // backend refuses them on Investigate — and omitted when there are none.
-                const attachmentIds = Array.isArray(options.attachments)
-                    ? options.attachments
-                        .map((id) => (typeof id === 'string' || typeof id === 'number' ? String(id).trim() : ''))
-                        .filter(Boolean)
-                    : [];
-                if (attachmentIds.length) {
-                    payload.attachments = attachmentIds;
-                }
                 // The answer options (the composer's Options → Include in the answer), only
                 // when on: figures embedded from the cited papers, and the knowledge graph.
                 if (options.figures) payload.figures = true;
                 if (options.graph) payload.graph = true;
+            }
+            // Uploaded files (service/attachments.js), by id, on BOTH paths, omitted when there
+            // are none. AI Chat takes any type; Investigate takes documents only (since
+            // 2026-11-02) — the backend refuses an image there with INVESTIGATE_DOCUMENTS_ONLY,
+            // and the composers never send one (attachmentBlockedNote holds the send back).
+            const attachmentIds = Array.isArray(options.attachments)
+                ? options.attachments
+                    .map((id) => (typeof id === 'string' || typeof id === 'number' ? String(id).trim() : ''))
+                    .filter(Boolean)
+                : [];
+            if (attachmentIds.length) {
+                payload.attachments = attachmentIds;
             }
             // The service tier (service/serviceTiers.js), on BOTH paths: the backend prices the
             // query by it and the agent picks the model. Omitted when blank, which the backend

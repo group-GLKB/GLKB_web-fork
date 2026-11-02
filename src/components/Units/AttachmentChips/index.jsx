@@ -27,6 +27,7 @@ import {
     attachmentMetaText,
     attachmentObjectUrl,
     formatLabelForName,
+    INVESTIGATE_IMAGES_NOTE,
     isCodeFormat,
     normalizeAttachmentList,
 } from '../../../service/attachments';
@@ -71,8 +72,8 @@ export const dragHasFiles = (event) => {
  * photos and files". Any file type — the backend reads each as a picture or as text. Pasting
  * needs no entry: Ctrl/⌘+V in the message box attaches what is on the clipboard.
  *
- * A guest is asked to sign in instead; on Investigate it is disabled, with the reason as its
- * tooltip. The panel anchors to the nearest `[data-attach-anchor]` (the composer's box), or
+ * A guest is asked to sign in instead; a composer that cannot take files right now disables it,
+ * with the reason as its tooltip. The panel anchors to the nearest `[data-attach-anchor]` (the composer's box), or
  * to the button itself when there is none.
  */
 export const AttachButton = ({
@@ -225,7 +226,7 @@ const chipMeta = (item) => {
 
 /**
  * The files waiting on a composer, with their upload state. `blockedNote` explains why the
- * question cannot be sent as it stands (a failed upload, Investigate).
+ * question cannot be sent as it stands (a failed upload, an image on Investigate).
  */
 // The design chip's tag: the file's extension, "PDF", "PNG", "CSV".
 const extensionTag = (name) => {
@@ -306,23 +307,29 @@ const DesignChips = ({ items, notice, blockedNote, onRemove }) => (
 );
 
 /**
- * The composer's warning when its mode does not read the waiting files (design: GLKB Effort A):
- * "Investigate doesn't read attached files.  [Use Chat] [Remove file]". Without `onUseFallback`
- * (a conversation whose mode is fixed) only removing them is offered.
+ * The composer's warning when its mode does not read some of the waiting files (design: GLKB
+ * Effort A). Since Investigate reads documents (2026-11-02) that is an image waiting on an
+ * Investigate question: "Images work in AI Chat — Investigate reads documents.  [Use Chat]
+ * [Remove image]". `text` says what is wrong (the default is the original wording, for a mode
+ * that reads no file at all), `count` how many files the remove button takes away and `noun`
+ * what they are. Without `onUseFallback` (a conversation whose mode is fixed) only removing them
+ * is offered.
  */
-export const AttachConflict = ({ modeName, fallbackName, onUseFallback, onRemoveFiles, count = 1 }) => (
+export const AttachConflict = ({
+    modeName, fallbackName, onUseFallback, onRemoveFiles, count = 1, text = '', noun = 'file',
+}) => (
     <div
         className="attach-conflict"
         role="status"
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
     >
-        <span className="attach-conflict-text">{modeName} doesn't read attached files.</span>
+        <span className="attach-conflict-text">{text || `${modeName} doesn't read attached files.`}</span>
         {onUseFallback && fallbackName && (
             <button type="button" className="attach-conflict-primary" onClick={onUseFallback}>Use {fallbackName}</button>
         )}
         <button type="button" className="attach-conflict-secondary" onClick={onRemoveFiles}>
-            {count > 1 ? 'Remove files' : 'Remove file'}
+            {count > 1 ? `Remove ${noun}s` : `Remove ${noun}`}
         </button>
     </div>
 );
@@ -426,14 +433,22 @@ export const AttachmentChips = ({ items = [], notice = '', blockedNote = '', onR
     );
 };
 
+/** The waiting images on a composer (`useAttachments`), which an Investigate question cannot carry. */
+export const waitingImages = (controller) => (controller?.items || []).filter((item) => item.kind === 'image');
+
 /**
  * Why a composer holding these attachments cannot send yet, or '' when it can. Uploads in
  * flight only disable the button (their chips show progress); this is for what the reader has
- * to act on.
+ * to act on. `investigate`: the question goes to Investigate, which reads documents and refuses
+ * images (INVESTIGATE_DOCUMENTS_ONLY) — an image attached in Chat before the switch holds the
+ * send back until it is removed.
  */
 export const attachmentBlockedNote = (controller, { investigate = false, review = false, maxFiles = null } = {}) => {
     if (!controller?.hasItems) return '';
-    if (investigate) return 'Attachments work in AI Chat. Remove them, or ask in a new AI Chat.';
+    const images = investigate ? waitingImages(controller).length : 0;
+    if (images) {
+        return `${INVESTIGATE_IMAGES_NOTE} Remove ${images > 1 ? 'the images' : 'the image'} to send.`;
+    }
     if (controller.hasErrors) {
         return review
             ? 'Remove the files that could not be added to start the review.'

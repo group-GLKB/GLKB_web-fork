@@ -52,3 +52,33 @@ it('carries a question\'s attachments, and leaves the others without the field',
     expect(detail.messages[1]).not.toHaveProperty('attachments');
     expect(detail.messages[2]).not.toHaveProperty('attachments');
 });
+
+it("carries an Investigate question's documents the same way (Investigate reads them since 2026-11-02)", async () => {
+    getChatHistoryDetail.mockResolvedValueOnce({
+        hid: 10,
+        public_id: 'pub-10',
+        leading_title: 'My manuscript',
+        last_accessed_time: '2026-11-02T12:00:00Z',
+        created_at: '2026-11-02T11:00:00Z',
+        is_investigate: true,
+        messages: [
+            {
+                role: 'user',
+                content: 'How does this draft fit the literature?',
+                references: [],
+                attachments: [
+                    { id: 'd1', kind: 'file', mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', filename: 'draft.docx', size_bytes: 4096, page_count: null },
+                ],
+            },
+            { role: 'assistant', content: '## Report…', references: [] },
+        ],
+    });
+
+    const detail = await fetchConversationDetail('10');
+
+    expect(detail.isInvestigate).toBe(true);
+    expect(detail.messages[0].attachments).toEqual([
+        expect.objectContaining({ id: 'd1', kind: 'file', filename: 'draft.docx', size_bytes: 4096 }),
+    ]);
+    expect(detail.messages[1]).not.toHaveProperty('attachments');
+});

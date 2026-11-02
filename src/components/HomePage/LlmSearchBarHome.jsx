@@ -36,6 +36,7 @@ import {
     dragHasFiles,
     filesFromTransfer,
     useAttachments,
+    waitingImages,
 } from '../Units/AttachmentChips';
 import { effectiveTier, getTierPref, setTierPref } from '../../service/serviceTiers';
 import { GUEST_INVESTIGATE_REASON, GUEST_REVIEW_REASON } from '../../utils/refusals';
@@ -45,7 +46,9 @@ import { setStylePref } from '../LiteratureReview/citationStyle';
 import {
     defaultQuestionFor,
     GUEST_ATTACH_REASON,
-    INVESTIGATE_ATTACH_NOTE,
+    INVESTIGATE_ATTACH,
+    INVESTIGATE_ATTACH_LIMITS,
+    INVESTIGATE_IMAGES_NOTE,
     MAX_FILES_PER_MESSAGE,
     PAPER_ACCEPT,
     PAPER_FORMATS_TEXT,
@@ -63,7 +66,7 @@ const REVIEW_ATTACH = {
 
 const MODE_SHEET_SEEN_KEY = 'glkb-mode-sheet-seen-v1';
 
-// The room the "Investigate doesn't read attached files" row takes above the control row.
+// The room the "Images work in AI Chat — Investigate reads documents" row takes above the control row.
 const CONFLICT_ROW = 46;
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
@@ -134,15 +137,16 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         if (props.requestedMode && modes.includes(props.requestedMode.mode)) changeMode(props.requestedMode.mode);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [props.requestedMode]);
-    /* Images and PDFs on the first question (service/attachments.js). Uploaded as they are
-       picked; the question hands their ids to the chat in its navigation state. Signed-in
-       readers only, and not on Investigate, which does not read them: its "+" is off, and files
-       already waiting when the reader switches to it hold the send back, with a note offering
-       Chat or removing them. On Literature Review the files are the reader's own papers
-       (documents only, up to 50), handed to the review page. */
+    /* Files on the first question (service/attachments.js). Uploaded as they are picked; the
+       question hands their ids to the chat in its navigation state. Signed-in readers only.
+       Investigate reads documents and not images (since 2026-11-02): an image dropped or pasted
+       there is turned away with the reason, and one already waiting when the reader switches to
+       it holds the send back, with a note offering Chat or removing it. On Literature Review the
+       files are the reader's own papers (documents only, up to 50), handed to the review page. */
     const attachments = useAttachments({
         onRequireSignIn: () => openLoginModal(GUEST_ATTACH_REASON),
-        limits: reviewEnabled ? REVIEW_PAPER_LIMITS : undefined,
+        limits: reviewEnabled ? REVIEW_PAPER_LIMITS
+            : (investigateEnabled ? INVESTIGATE_ATTACH_LIMITS : undefined),
     });
     const [isDragOver, setIsDragOver] = useState(false);
     // The app shell and HomePage both switch at 767px. A separate 600px
@@ -185,25 +189,28 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
        The quota is a different matter and still locks: there is no run to start at all. */
     // A guest at the limit keeps a live box: sending opens the sign-in overlay instead.
     const isInputLocked = isQueryLimitReached && !isGuest;
-    // Investigate does not read attachments (AttachConflict says so); Literature Review reads
-    // them as the reader's papers.
-    const attachmentsOffForMode = investigateEnabled;
-    const attachConflict = attachmentsOffForMode && attachments.hasItems;
+    /* Investigate reads documents, not images: an image waiting from Chat gets the conflict row
+       (AttachConflict, with "Use Chat"), and the send is held back by the blocked note — not
+       shown on the chips as well, where it would say the same thing twice. Literature Review
+       reads the files as the reader's papers. */
+    const imagesWaiting = investigateEnabled ? waitingImages(attachments) : [];
+    const attachConflict = imagesWaiting.length > 0;
     const attachmentNote = attachmentBlockedNote(attachments, {
+        investigate: investigateEnabled,
         review: reviewEnabled,
         maxFiles: reviewEnabled ? REVIEW_PAPER_LIMITS.maxFiles : MAX_FILES_PER_MESSAGE,
     });
     const readyAttachments = attachments.readyAttachments;
     // A review needs its topic in words; its papers are what it reads, not a question.
     const canStart = (Boolean(llmQuery.trim()) || (!reviewEnabled && readyAttachments.length > 0))
-        && !isInputLocked && !attachments.isUploading && !attachmentNote && !attachConflict;
+        && !isInputLocked && !attachments.isUploading && !attachmentNote;
     const takeFiles = (files) => {
         if (!files?.length) return;
         if (isGuest) {
             openLoginModal(GUEST_ATTACH_REASON);
             return;
         }
-        if (attachmentsOffForMode || isInputLocked) return;
+        if (isInputLocked) return;
         attachments.addFiles(files);
     };
     useEffect(() => {
@@ -288,7 +295,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         }
         /* Held back while a file is still uploading, or when one failed or the mode cannot take
            them (the chips say which). A question with files and no words asks for a summary. */
-        if (attachments.hasItems && (attachments.isUploading || attachmentNote || attachConflict)) return;
+        if (attachments.hasItems && (attachments.isUploading || attachmentNote)) return;
         const sentAttachments = readyAttachments;
         const query = typedQuery
             || (sentAttachments.length && !reviewEnabled ? defaultQuestionFor(sentAttachments) : '');
@@ -317,7 +324,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             return;
         }
         const searchOptions = buildSearchOptionsPayload();
-        if (sentAttachments.length && !searchOptions.investigateEnabled) {
+        // On both Chat and Investigate (documents only there — the blocked note saw to that).
+        if (sentAttachments.length) {
             searchOptions.attachments = sentAttachments;
         }
         const queryMethod = queryOriginRef.current === 'example' ? 'example' : inputMethod;
@@ -519,7 +527,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             variant="design"
                             items={attachments.items}
                             notice={attachments.notice}
-                            blockedNote={attachmentNote}
+                            blockedNote={attachConflict ? '' : attachmentNote}
                             onRemove={attachments.remove}
                         />
                         <TextField
@@ -528,7 +536,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 /* Files of any type attach; a very long text becomes "Pasted
                                    text.txt" (as in Claude) where a file could be attached. */
                                 const files = pastedAttachments(event.clipboardData, {
-                                    longText: !isGuest && !attachmentsOffForMode && !isInputLocked,
+                                    longText: !isGuest && !isInputLocked,
                                 });
                                 if (!files.length) return;
                                 event.preventDefault();
@@ -608,9 +616,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 <AttachConflict
                                     modeName={COMPOSER_MODES.investigate.label}
                                     fallbackName={COMPOSER_MODES.chat.label}
-                                    count={attachments.items.length}
+                                    text={INVESTIGATE_IMAGES_NOTE}
+                                    noun="image"
+                                    count={imagesWaiting.length}
                                     onUseFallback={() => changeMode('chat')}
-                                    onRemoveFiles={() => attachments.clear()}
+                                    // Only the images: the documents beside them are Investigate's.
+                                    onRemoveFiles={() => imagesWaiting.forEach((item) => attachments.remove(item.key))}
                                 />
                             </Box>
                         )}
@@ -650,11 +661,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     <AttachButton
                                         variant="square"
                                         onFiles={takeFiles}
-                                        {...(reviewEnabled ? REVIEW_ATTACH : { label: 'Attach PDF, figure or spreadsheet' })}
+                                        {...(reviewEnabled ? REVIEW_ATTACH
+                                            : (investigateEnabled ? INVESTIGATE_ATTACH
+                                                : { label: 'Attach PDF, figure or spreadsheet' }))}
                                         isGuest={isGuest}
                                         onRequireSignIn={() => openLoginModal(GUEST_ATTACH_REASON)}
-                                        disabled={attachmentsOffForMode || isInputLocked}
-                                        disabledReason={attachmentsOffForMode ? INVESTIGATE_ATTACH_NOTE : ''}
+                                        disabled={isInputLocked}
                                         source="home_searchbar"
                                     />
                                 </Box>

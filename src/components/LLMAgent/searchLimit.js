@@ -22,20 +22,40 @@ export const showsSearchLimit = (message) => Boolean(
     && searchLimitOf(message.searchLimit),
 );
 
-/**
- * The question to ask again: the reader's own text for the turn the answer at `index` replied
- * to. Its files are dropped (Investigate does not read attachments) — they live on the message's
- * `attachments`, never in its text, so the text is all there is to take. '' when there is no
- * such turn.
- */
-export const investigateQuestionFor = (history, index) => {
-    if (!Array.isArray(history)) return '';
+// The reader's question the answer at `index` replied to, or null when there is no such turn.
+const questionTurnFor = (history, index) => {
+    if (!Array.isArray(history)) return null;
     for (let i = Math.min(index, history.length) - 1; i >= 0; i -= 1) {
         const message = history[i];
-        if (message?.role === 'user') return String(message.content ?? '').trim();
-        if (message?.role === 'assistant') return '';
+        if (message?.role === 'user') return message;
+        if (message?.role === 'assistant') return null;
     }
-    return '';
+    return null;
+};
+
+/**
+ * The question to ask again: the reader's own text for the turn the answer at `index` replied
+ * to. Its files live on the message's `attachments`, never in its text (see
+ * `investigateAttachmentsFor`). '' when there is no such turn.
+ */
+export const investigateQuestionFor = (history, index) => {
+    const turn = questionTurnFor(history, index);
+    return turn ? String(turn.content ?? '').trim() : '';
+};
+
+/**
+ * The documents that turn carried, for "Run a full investigation" to ask it again in the same
+ * conversation with the same files (Investigate reads documents since 2026-11-02; an image is
+ * left out — the backend refuses one there). [] when it carried none.
+ *
+ * "Ask in Investigate" does NOT take them: it opens a new conversation, and a chat turn's files
+ * stay with the conversation they were sent in.
+ */
+export const investigateAttachmentsFor = (history, index) => {
+    const turn = questionTurnFor(history, index);
+    return Array.isArray(turn?.attachments)
+        ? turn.attachments.filter((attachment) => attachment && attachment.kind !== 'image')
+        : [];
 };
 
 /**

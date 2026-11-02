@@ -98,14 +98,37 @@ describe('attachments', () => {
         expect(sentPayload()).not.toHaveProperty('attachments');
     });
 
-    it('never sends them on Investigate, which does not read them', async () => {
-        await run({ investigateEnabled: true, attachments: ['a1b2'] });
+    it('sends them on Investigate too, which reads documents since 2026-11-02', async () => {
+        await run({ investigateEnabled: true, attachments: ['a1b2', ' c3d4 '] });
+        expect(sentUrl()).toMatch(/\/deep-research\/stream$/);
+        expect(sentPayload().attachments).toEqual(['a1b2', 'c3d4']);
+        axios.post.mockReset();
+        await run({ investigateEnabled: true, attachments: [] });
         expect(sentPayload()).not.toHaveProperty('attachments');
     });
 
     it('drops blanks and anything that is not an id', async () => {
         await run({ filters: [], attachments: ['', null, { id: 'x' }, 'ok'] });
         expect(sentPayload().attachments).toEqual(['ok']);
+    });
+
+    it("reads Investigate's documents-only refusal like any other", () => {
+        const error = {
+            response: {
+                status: 400,
+                data: {
+                    detail: {
+                        code: 'INVESTIGATE_DOCUMENTS_ONLY',
+                        message: 'Investigate reads documents (PDF, Word, text ...). Send images with an AI Chat question.',
+                    },
+                },
+            },
+        };
+        expect(refusalOf(error)).toMatchObject({
+            status: 400,
+            code: 'INVESTIGATE_DOCUMENTS_ONLY',
+            message: expect.stringContaining('Send images with an AI Chat question'),
+        });
     });
 
     it('reads an attachment refusal like any other', () => {

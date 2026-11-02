@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
-import { INVESTIGATE_ATTACH_NOTE, pastedAttachments } from '../../service/attachments';
+import { INVESTIGATE_ATTACH, INVESTIGATE_IMAGES_NOTE, pastedAttachments } from '../../service/attachments';
 import { trackGtagEvent } from '../../utils/gtag';
 import {
     AttachButton,
@@ -18,6 +18,7 @@ import {
     attachmentBlockedNote,
     dragHasFiles,
     filesFromTransfer,
+    waitingImages,
 } from '../Units/AttachmentChips';
 import ComposerOptions, {
     DEFAULT_COMPOSER_OPTIONS,
@@ -85,20 +86,21 @@ const ChatSearchBar = ({
        its own session and its own history id, and the backend locks per history id — so this
        question simply starts, and the other answer goes on being written. */
     const canType = !isQueryLimitReached;
-    /* Attachments are Chat only (the Investigate pipeline does not read them), and a guest's
-       question has no owner to keep a file for — so the "+" button is off on one and asks the
-       other to sign in. Files already waiting when the conversation is an Investigate one hold
-       the send back, with the design's note offering to remove them, rather than being dropped
-       without a word. */
-    const attachDisabled = deep || !canType;
-    const attachConflict = deep && Boolean(attachments?.hasItems);
-    const attachmentNote = attachmentBlockedNote(attachments);
+    /* A guest's question has no owner to keep a file for, so the "+" asks them to sign in.
+       An Investigate conversation reads documents and not images (since 2026-11-02): the parent
+       gives its attachments Investigate's limits, so an image dropped or pasted here is turned
+       away with the reason, and one still waiting from before holds the send back, with the
+       design's note offering to remove it, rather than being dropped without a word. The note
+       is that row, not the chips' line as well. */
+    const attachDisabled = !canType;
+    const imagesWaiting = deep ? waitingImages(attachments) : [];
+    const attachConflict = imagesWaiting.length > 0;
+    const attachmentNote = attachmentBlockedNote(attachments, { investigate: deep });
     const readyAttachmentCount = attachments?.readyAttachments?.length || 0;
     const canSend = (Boolean(userInput.trim()) || readyAttachmentCount > 0)
         && canType
         && !attachments?.isUploading
-        && !attachmentNote
-        && !attachConflict;
+        && !attachmentNote;
     const takeFiles = (files) => {
         if (!attachments || !files?.length) return;
         if (isGuest) {
@@ -191,7 +193,7 @@ const ChatSearchBar = ({
                     variant="design"
                     items={attachments.items}
                     notice={attachments.notice}
-                    blockedNote={attachmentNote}
+                    blockedNote={attachConflict ? '' : attachmentNote}
                     onRemove={attachments.remove}
                 />
             )}
@@ -202,7 +204,7 @@ const ChatSearchBar = ({
                 onPaste={(event) => {
                     /* A paste that carries files (any type) attaches them; a very long text
                        becomes "Pasted text.txt", as in Claude — but only where a file could be
-                       attached, so a guest's or an Investigate paste still lands in the box. */
+                       attached, so a guest's paste still lands in the box. */
                     if (!attachments) return;
                     const files = pastedAttachments(event.clipboardData, {
                         longText: !isGuest && !attachDisabled,
@@ -254,8 +256,11 @@ const ChatSearchBar = ({
                 // No "Use Chat" here: the conversation's mode is fixed (ask in a new Chat instead).
                 <AttachConflict
                     modeName="Investigate"
-                    count={attachments.items.length}
-                    onRemoveFiles={() => attachments.clear()}
+                    text={INVESTIGATE_IMAGES_NOTE}
+                    noun="image"
+                    count={imagesWaiting.length}
+                    // Only the images: the documents beside them are Investigate's.
+                    onRemoveFiles={() => imagesWaiting.forEach((item) => attachments.remove(item.key))}
                 />
             )}
             <Box
@@ -270,12 +275,11 @@ const ChatSearchBar = ({
                 {attachments && (
                     <AttachButton
                         variant="square"
-                        label="Attach PDF, figure or spreadsheet"
+                        {...(deep ? INVESTIGATE_ATTACH : { label: 'Attach PDF, figure or spreadsheet' })}
                         onFiles={takeFiles}
                         isGuest={isGuest}
                         onRequireSignIn={onAttachRequireSignIn}
                         disabled={attachDisabled}
-                        disabledReason={deep ? INVESTIGATE_ATTACH_NOTE : ''}
                         source="chat_searchbar"
                     />
                 )}
