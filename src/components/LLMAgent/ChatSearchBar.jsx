@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 import CloseIcon from '@mui/icons-material/Close';
+import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import {
   Box,
   TextField,
@@ -24,6 +25,7 @@ import ComposerOptions, {
     optionsChanged,
 } from '../Units/ComposerOptions';
 import TierPicker from '../Units/TierPicker';
+import { quotePreview } from './quoteReply';
 
 /**
  * The composer at the foot of a conversation (design: GLKB Effort A) — the field, then a row:
@@ -60,6 +62,12 @@ const ChatSearchBar = ({
     attachments = null,
     // A guest reaching for the "+" (or dropping a file) is asked to sign in.
     onAttachRequireSignIn,
+    /* A passage of an answer the next question replies to (SelectionReply → quoteReply.js),
+       shown above the field with an × to drop it. The parent owns it: the send reads it. */
+    quote = '',
+    onRemoveQuote,
+    // The field itself, so Reply can put the cursor in it.
+    inputRef,
     onSubmit,
     onStop,
 }) => {
@@ -117,7 +125,9 @@ const ChatSearchBar = ({
         ? (isMobileViewport ? 'Ask something new…' : 'Ask a new question — the other answer keeps writing')
         : (isLoading
             ? (isMobileViewport ? 'Ask next…' : 'Ask a follow-up — it will send when this answer finishes')
-            : (isMobileViewport ? 'Ask more...' : 'Ask a follow-up…'));
+            : (quote
+                ? 'Ask about the quoted text…'
+                : (isMobileViewport ? 'Ask more...' : 'Ask a follow-up…')));
     const submit = (event, queryMethod) => {
         if (!canSend) return;
         trackInvestigateSubmit(queryMethod);
@@ -158,6 +168,24 @@ const ChatSearchBar = ({
                 boxShadow: 'none',
             }}
         >
+            {quote ? (
+                <div className="composer-quote" role="group" aria-label="Replying to">
+                    <FormatQuoteIcon className="composer-quote-icon" aria-hidden="true" />
+                    <span className="composer-quote-text" title={quote}>{quotePreview(quote)}</span>
+                    <button
+                        type="button"
+                        className="composer-quote-remove"
+                        aria-label="Remove quote"
+                        title="Remove quote"
+                        onClick={() => {
+                            onRemoveQuote?.();
+                            inputRef?.current?.focus?.();
+                        }}
+                    >
+                        <CloseIcon fontSize="inherit" />
+                    </button>
+                </div>
+            ) : null}
             {attachments && (
                 <AttachmentChips
                     variant="design"
@@ -169,6 +197,7 @@ const ChatSearchBar = ({
             )}
             <TextField
                 className="input-form"
+                inputRef={inputRef}
                 value={userInput}
                 onPaste={(event) => {
                     /* A paste that carries files (any type) attaches them; a very long text

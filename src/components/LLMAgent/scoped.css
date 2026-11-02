@@ -3132,3 +3132,115 @@ button.ip-notify.active { background: var(--color-brand-muted); color: var(--col
         justify-content: center;
     }
 }
+
+/* Reply over a selection in an answer (SelectionReply). The Literature Review's selection
+   toolbar (.lr-seltools), with one action. Fixed to the viewport, rendered into <body>. */
+.chat-selection-reply {
+    position: fixed;
+    z-index: 1200;
+    transform: translateX(-50%);
+    display: flex;
+    padding: 3px;
+    border: 1px solid #E5E9F0;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 4px 14px -4px rgba(12, 16, 24, .18);
+}
+
+.chat-selection-reply button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #222A38;
+    font-family: Geist, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 18px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.chat-selection-reply button:hover,
+.chat-selection-reply button:focus-visible {
+    background: #EEF3FF;
+    color: #155DFC;
+    outline: none;
+}
+
+.chat-selection-reply .chat-selection-reply-icon {
+    font-size: 16px;
+}
+
+/* The passage the next question replies to, above the composer's field. One quiet line, cut
+   with an ellipsis; the whole passage is in its tooltip and goes with the question. */
+.composer-quote {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 10px 12px 0;
+    padding: 6px 6px 6px 10px;
+    border-left: 2px solid var(--color-brand-primary);
+    border-radius: 0 6px 6px 0;
+    background: #fff;
+}
+
+.composer-quote .composer-quote-icon {
+    flex: none;
+    margin-top: 1px;
+    font-size: 16px;
+    color: var(--color-text-tertiary);
+}
+
+.composer-quote-text {
+    flex: 1;
+    min-width: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-family: Geist, sans-serif;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--color-text-secondary);
+}
+
+.composer-quote-remove {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-text-tertiary);
+    font-size: 16px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.composer-quote-remove:hover,
+.composer-quote-remove:focus-visible {
+    background: #E5E9F0;
+    outline: none;
+}
+
+/* A question that replies to a passage opens with it as a blockquote. In the question's bubble
+   it is the reference, not the question: smaller and quieter than the answer's asides. */
+.message-card[data-message-role="user"] .markdown-body blockquote {
+    margin: 0 0 8px;
+    padding: 0 0 0 10px;
+    border-left: 2px solid var(--color-border-strong);
+    color: var(--color-text-tertiary);
+}
+
+.message-card[data-message-role="user"] .markdown-body blockquote p {
+    font-size: 14px;
+    line-height: 22px;
+}

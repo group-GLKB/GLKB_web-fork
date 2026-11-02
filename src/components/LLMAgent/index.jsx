@@ -77,6 +77,8 @@ import {
 } from './traceReplay';
 import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
 import SearchLimitNotice from './SearchLimitNotice';
+import SelectionReply from './SelectionReply';
+import { clipQuote, withQuote } from './quoteReply';
 import { investigateHandoffState, investigateQuestionFor, showsSearchLimit } from './searchLimit';
 import ReferenceHoverCard from './ReferenceHoverCard';
 import AnswerGraphForMessage from '../AnswerGraph/AnswerGraphForMessage';
@@ -1938,6 +1940,11 @@ function LLMAgent({ isRouteActive = true }) {
     }
     const initialRunSnapshot = initialRunSnapshotRef.current;
     const [userInput, setUserInput] = useState('');
+    /* A passage of an answer the next question replies to: chosen with the Reply button over a
+       selection (SelectionReply), shown on the composer, and sent in front of the question as a
+       Markdown blockquote (quoteReply.js). */
+    const [replyQuote, setReplyQuote] = useState('');
+    const composerInputRef = useRef(null);
     /**
      * Follow-ups typed while an answer is still being written.
      *
@@ -3748,6 +3755,8 @@ function LLMAgent({ isRouteActive = true }) {
            conversations are still being written and will still take their follow-ups. */
         setQueuedPrompts((prev) => promptsSurvivingReset(prev, departingRunKey));
         queueOwnerKeyRef.current = null;
+        // A passage quoted from the conversation being left does not follow the reader out.
+        setReplyQuote('');
         llmService.clearHistory();
     }, [cancelStreaming, llmService]);
 
@@ -4473,7 +4482,9 @@ function LLMAgent({ isRouteActive = true }) {
         // hold a draft the reader is in the middle of writing. It could not before, because the
         // box was disabled for the length of a run; now that it is live, clearing it here would
         // delete their work.
-        if (!input) setUserInput('');
+        // A question from the composer that carries a quote arrives as `input` (the quote is put
+        // in front of the box's words), and the box is still the reader's to clear.
+        if (!input || options.fromComposer) setUserInput('');
         // The composer's chips went with this question; a resend never touches them.
         if (options.fromComposer) clearComposerAttachments();
         setIsLoading(true);
@@ -6612,8 +6623,10 @@ function LLMAgent({ isRouteActive = true }) {
             return;
         }
         const typed = userInput.trim();
-        const text = typed || (readyAttachments.length ? defaultQuestionFor(readyAttachments) : '');
-        if (!text) return;
+        const asked = typed || (readyAttachments.length ? defaultQuestionFor(readyAttachments) : '');
+        if (!asked) return;
+        // The passage being replied to goes in front of the question, as a blockquote.
+        const text = withQuote(asked, replyQuote);
         const searchOptions = readyAttachments.length
             ? { ...composerOptions, attachments: readyAttachments }
             : composerOptions;
@@ -6641,12 +6654,14 @@ function LLMAgent({ isRouteActive = true }) {
                 && Boolean(resumingConversationRef.current)
                 && !runningConversationIdRef.current);
         if (!targetBusy) {
-            // `input` only when the words are not the box's own (files with no question).
-            stableSubmit(event, typed ? null : text, null, {
+            // `input` only when the words are not the box's own (files with no question, or a
+            // quote in front of them).
+            stableSubmit(event, text === typed ? null : text, null, {
                 searchOptions,
                 queryMethod,
                 fromComposer: true,
             });
+            setReplyQuote('');
             return;
         }
         const ownerConversationId = isViewingRunningConversation
@@ -6677,9 +6692,37 @@ function LLMAgent({ isRouteActive = true }) {
         }]);
         setUserInput('');
         clearComposerAttachments();
-    }, [userInput, isLoading, isViewingRunningConversation, isLimitReachedEffective,
+        setReplyQuote('');
+    }, [userInput, replyQuote, isLoading, isViewingRunningConversation, isLimitReachedEffective,
         isGuest, requireSignIn, limitWarningText, stableSubmit, composerAttachments,
         clearComposerAttachments]);
+
+    /* Reply, over a selection in an answer: the passage goes on the composer as a quote and the
+       cursor into the field. The selection itself is let go — the chip now holds the passage. */
+    const handleSelectionReply = useCallback((text) => {
+        const quote = clipQuote(text);
+        if (!quote) return;
+        trackGtagEvent('chat_selection_reply_click', { length: quote.length });
+        setReplyQuote(quote);
+        const field = composerInputRef.current;
+        if (field) {
+            field.focus();
+            const end = String(field.value || '').length;
+            field.setSelectionRange?.(end, end);
+        }
+    }, []);
+    const removeReplyQuote = useCallback(() => setReplyQuote(''), []);
+    /* A quote belongs to the conversation it was taken from: opening another drops it (New Chat
+       drops it in `startNewConversation`). A thread that has only just been given its id
+       (null → id) is still the same conversation. */
+    const quoteConversationRef = useRef(activeConversationId);
+    useEffect(() => {
+        const previous = quoteConversationRef.current;
+        quoteConversationRef.current = activeConversationId;
+        if (previous != null && String(previous) !== String(activeConversationId ?? '')) {
+            setReplyQuote('');
+        }
+    }, [activeConversationId]);
 
     const removeQueuedPrompt = useCallback((entry) => {
         if (!entry?.id) return;
@@ -7723,6 +7766,14 @@ function LLMAgent({ isRouteActive = true }) {
                                                         {!isConversationLoading && renderMessages()}
                                                         <div ref={messagesEndRef} />
                                                     </div>
+                                                    {/* Reply over a selection in an answer (chat or
+                                                        Investigate) — into <body>, outside the
+                                                        transcript, so it is never part of an answer. */}
+                                                    <SelectionReply
+                                                        containerRef={messagesContainerRef}
+                                                        onReply={handleSelectionReply}
+                                                        touch={isPhoneDevice}
+                                                    />
                                                     {isConversationLoading && loadingConversationId && (
                                                         <div className="chat-loading-overlay">
                                                             <CircularProgress size={28} sx={{ color: 'var(--color-grey-900)' }} />
@@ -7841,6 +7892,9 @@ function LLMAgent({ isRouteActive = true }) {
                                                         onRequireSignIn={requestPremiumSignIn}
                                                         attachments={composerAttachments}
                                                         onAttachRequireSignIn={requestAttachSignIn}
+                                                        quote={replyQuote}
+                                                        onRemoveQuote={removeReplyQuote}
+                                                        inputRef={composerInputRef}
                                                         onSubmit={(event, submissionMeta) => {
                                                             /* The conversation's mode picks the
                                                                pipeline: Investigate is deep research,
