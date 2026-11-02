@@ -102,7 +102,9 @@ describe('the few words it shows', () => {
         sessionStorage.clear();
         render(<CreditNotice variant="strip" notice={noticeFor(usage(10), pricing, 'deep_research', 'advanced')} />);
         const strip = screen.getByRole('status');
-        expect(strip.querySelector('.news-strip .news-strip-tag.is-amber').textContent).toBe('Credits');
+        // Amber when it cannot be paid for, as the chat page's (not the news' brand blue).
+        expect(strip.className).toContain('is-short');
+        expect(strip.querySelector('.news-strip .news-strip-tag').textContent).toBe('Credits');
         expect(strip.querySelector('.news-strip-text').textContent).toBe('Investigate needs 30 credits · 10 left');
         expect(strip.querySelector('.news-strip-close')).toBeTruthy();
     });

@@ -1,40 +1,38 @@
-/* The chat page's notice: a small card floating just above the composer (absolute, so nothing
-   moves), centred on it, with the composer's own corners, border and surface. The composer it
-   is placed in is the positioned box. */
+/* The chat page's notice: a card floating just above the composer (absolute, so nothing moves),
+   as wide as the composer, with its corners and border. The composer it is placed in is the
+   positioned box. The colours are the ones a warning reads as: grey when credits run low, amber
+   when the question as set up cannot be paid for — not the brand blue, which read as news. */
 .credit-float {
     position: absolute;
-    left: 50%;
+    left: 0;
+    right: 0;
     bottom: calc(100% + 8px);
-    transform: translateX(-50%);
     z-index: 2;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 8px;
-    max-width: calc(100% - 32px);
     box-sizing: border-box;
-    padding: 7px 8px 7px 14px;
+    padding: 8px 10px 8px 16px;
     border: 1px solid #E5E9F0;
     border-radius: 16px;
-    background: var(--color-background-surface, #fff);
     box-shadow: 0 2px 8px rgba(15, 23, 42, .06);
     font: 400 13px/18px Geist, sans-serif;
-    color: var(--color-text-secondary, #2A3547);
     white-space: nowrap;
 }
 
-.credit-float-dot {
-    flex: none;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--color-brand-primary);
+.credit-float-low {
+    background: #FBFCFD;
+    color: var(--color-grey-600, #46566C);
 }
 
-.credit-float-short .credit-float-dot {
-    background: #D98B00;
+.credit-float-short {
+    background: #FFF7E6;
+    border-color: #F3DDB0;
+    color: #7A4B00;
 }
 
 .credit-float-text {
+    flex: 1;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -62,19 +60,36 @@
     border: 0;
     border-radius: 50%;
     background: none;
-    color: var(--color-text-tertiary, #5E6E87);
+    color: inherit;
+    opacity: .7;
     font-size: 14px;
     cursor: pointer;
 }
 
 .credit-float-close:hover,
 .credit-float-close:focus-visible {
-    background: var(--color-background-muted, #E5E9F0);
+    opacity: 1;
+    background: rgba(12, 16, 24, .06);
 }
 
-/* The home page's notice is drawn by the news strip's own rules (HomePage/scoped.css); only
-   the warmer tag is new. */
-.HomePageRoot .news-strip-tag.is-amber {
-    background: #FFF1D6;
-    color: #8A5300;
+/* The home page's notice is drawn by the news strip's own rules (HomePage/scoped.css), in the
+   same warning colours as the chat page's: grey when low, amber when it cannot be paid for. */
+.HomePageRoot .credit-strip .news-strip-tag {
+    background: var(--color-background-muted, #E5E9F0);
+    color: var(--color-grey-600, #46566C);
+}
+
+.HomePageRoot .credit-strip.is-short .news-strip {
+    background: #FFF7E6;
+    border-color: #F3DDB0;
+    color: #7A4B00;
+}
+
+.HomePageRoot .credit-strip.is-short .news-strip-tag {
+    background: #FCE7BE;
+    color: #7A4B00;
+}
+
+.HomePageRoot .credit-strip.is-short .news-strip-close {
+    color: #7A4B00;
 }

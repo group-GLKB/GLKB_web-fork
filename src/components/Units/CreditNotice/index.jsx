@@ -95,8 +95,8 @@ const dismiss = (key) => {
 
 /**
  * `variant`:
- *   'float'  the chat page: a small card floating just above the composer, its corners the
- *            composer's;
+ *   'float'  the chat page: a card floating just above the composer, as wide as it, with its
+ *            corners;
  *   'strip'  the home page: under the news strip, drawn as one (the same pill, tag, text and ×;
  *            `compact` on a phone, as the strip is).
  * Either shows the few words (`brief`); the whole sentence is the pop-up's and the tooltip's.
@@ -130,9 +130,12 @@ const CreditNotice = ({ notice, source = '', variant = 'float', compact = false 
     ) : null;
     if (variant === 'strip') {
         return (
-            <div className={`news-strip-region credit-strip${compact ? ' is-compact' : ''}`} role="status">
+            <div
+                className={`news-strip-region credit-strip is-${notice.level}${compact ? ' is-compact' : ''}`}
+                role="status"
+            >
                 <div className="news-strip">
-                    <span className={`news-strip-tag ${notice.level === 'short' ? 'is-amber' : 'is-blue'}`}>Credits</span>
+                    <span className="news-strip-tag">Credits</span>
                     <span className="news-strip-text" title={notice.text}>{words}</span>
                     {buy}
                     <button type="button" className="news-strip-close" aria-label="Dismiss" onClick={close}>
@@ -144,7 +147,6 @@ const CreditNotice = ({ notice, source = '', variant = 'float', compact = false 
     }
     return (
         <div className={`credit-float credit-float-${notice.level}`} role="status">
-            <span className="credit-float-dot" aria-hidden="true" />
             <span className="credit-float-text" title={notice.text}>{words}</span>
             {buy}
             <button
