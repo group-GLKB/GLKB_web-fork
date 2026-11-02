@@ -3260,3 +3260,43 @@ button.ip-notify.active { background: var(--color-brand-muted); color: var(--col
     font-weight: 600;
     color: var(--color-text-tertiary);
 }
+
+/* An Investigate follow-up the agent answered from the earlier investigation, or built on it
+   (FollowupRouteLine, FollowupRouteNotice). The panel line sits under "Interpreted as" and is
+   styled as it is; the offer under such an answer is the search-limit notice's panel with this
+   row's own icon; the note on a report that built on the earlier one is one quiet line. */
+.ip-interpreted + .ip-route {
+    margin-top: 2px;
+}
+
+.routed-answer-notice .search-limit-notice-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.routed-answer-notice .routed-answer-notice-icon,
+.routed-report-note .routed-answer-notice-icon {
+    flex: none;
+    font-size: 16px;
+    color: var(--color-text-tertiary);
+}
+
+.routed-answer-notice .search-limit-notice-action:disabled {
+    border-color: var(--color-border-default);
+    color: var(--color-text-tertiary);
+    background: #fff;
+    cursor: not-allowed;
+}
+
+.routed-report-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 6px 0 0;
+    font-family: Geist, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+}

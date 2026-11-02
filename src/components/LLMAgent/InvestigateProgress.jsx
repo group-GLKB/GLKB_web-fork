@@ -35,6 +35,7 @@ import {
 } from '../../service/investigatePhases';
 import { getNotifyPrefs, subscribeToNotifyPrefs } from '../../service/notifications';
 import NotifyPopover from './NotifyPopover';
+import FollowupRouteLine from './FollowupRouteLine';
 
 // ── tuning ──────────────────────────────────────────────────────────────────────────────────
 const COUNT_UP_MS = 1100;        // measured: Retrieved 1.30s, Screened 1.87s, Extracted 0.77s, Cited 1.03s
@@ -787,6 +788,9 @@ const InvestigateProgress = ({
                     {interpretedAs}
                 </p>
             ) : null}
+            {/* How the agent chose to answer the follow-up — from the earlier investigation, or
+                building on it. Standing, like the line above; nothing for a full investigation. */}
+            <FollowupRouteLine route={detail?.followupRoute} reason={detail?.followupReason} />
 
             {/* Hidden when collapsed, NOT unmounted. Every counter's memory — the value it is
                 showing, the fact that it has already counted up, and where its ramp had got to —

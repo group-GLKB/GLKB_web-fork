@@ -41,6 +41,32 @@ describe('a signed-in reader', () => {
     });
 });
 
+describe('a routed Investigate follow-up', () => {
+    /* The backend reserves the full Investigate price and, once the agent says how it answered,
+       settles at that route's price and refunds the rest (glkb-agent
+       docs/investigate-followup-routing.md). The client never assumes what a turn cost: it takes
+       the balance the Saved frame reports, whatever the charge was. */
+    it("shows the balance after the route's lower charge, not after the reserved price", async () => {
+        axios.get.mockResolvedValueOnce({ data: { remaining: 100, monthly_allowance: 100 } });
+        await fetchUsage({ isAuthenticated: true });
+        // answer_from_prior at Advanced: 30 reserved, settled at the chat price of 5.
+        expect(applyStreamCredits({ charged: 5, refunded: 25, remaining: 95 })).toBe(true);
+        expect(getUsageSnapshot().remaining).toBe(95);
+        // incremental: half of 30.
+        expect(applyStreamCredits({ charged: 15, refunded: 15, remaining: 80 })).toBe(true);
+        expect(getUsageSnapshot().remaining).toBe(80);
+    });
+
+    it('is read from the frame on the chat page too, with no price arithmetic of its own', () => {
+        const { readFileSync } = jest.requireActual('fs');
+        const { join } = jest.requireActual('path');
+        const page = readFileSync(join(__dirname, '../components/LLMAgent/index.jsx'), 'utf-8');
+        const saved = page.slice(page.indexOf("case 'saved': {"), page.indexOf("case 'error':"));
+        expect(saved).toContain('applyStreamCredits(update.credits);');
+        expect(saved).not.toMatch(/creditsFor|deep_research|remaining\s*-/);
+    });
+});
+
 describe('a guest', () => {
     it('reads the chat and Investigate counts', () => {
         // Since 2026-10-09: ten questions in all, never reset, and no Investigate for a guest.

@@ -13,6 +13,12 @@
  * The bar follows the `percent` those frames carry (5/25/55/70/94), which only ever rises. The
  * row under the active stage is the agent's own label for what it is doing right now ("Querying
  * the knowledge graph").
+ *
+ * It also runs an Investigate follow-up the agent chose to answer from the earlier investigation
+ * (service/followupRoute.js): from that choice on, the chat agent is answering, so the run gets
+ * this panel rather than the investigation's counters. `followupDetail` then carries how the
+ * follow-up was read and the choice itself, shown as standing lines under the header exactly as
+ * the Investigate panel shows them. A chat run passes none.
  */
 import React, { useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
@@ -26,6 +32,7 @@ import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 
 import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
 import { formatElapsed, useElapsedSeconds } from './InvestigateProgress';
+import FollowupRouteLine from './FollowupRouteLine';
 
 export const CHAT_STAGES = [
     {
@@ -85,6 +92,9 @@ const ChatProgress = ({
     startedAt = null,
     // The run is waiting on the reader (a clarify round): the clock holds still.
     paused = false,
+    // An Investigate follow-up answered from the earlier investigation: `interpretedAs`,
+    // `followupRoute`, `followupReason` (traceReplay.js mergeInvestigateDetail). null for chat.
+    followupDetail = null,
 }) => {
     const [expanded, setExpanded] = useState(true);
     const stage = chatStageFor(phase);
@@ -99,6 +109,9 @@ const ChatProgress = ({
     const floor = [5, 25, 55, 70, 94][stageIndex];
     const reported = percent === null || percent === undefined ? NaN : Number(percent);
     const barPct = Number.isFinite(reported) ? Math.max(floor, Math.min(100, reported)) : floor;
+    const interpretedAs = typeof followupDetail?.interpretedAs === 'string'
+        ? followupDetail.interpretedAs.trim()
+        : '';
 
     return (
         <Box className="ip-shell chat-progress">
@@ -119,6 +132,14 @@ const ChatProgress = ({
                     </span>
                 </Box>
             </Box>
+            {interpretedAs ? (
+                <p className="ip-interpreted">
+                    <span className="ip-interpreted-label">Interpreted as:</span>
+                    {' '}
+                    {interpretedAs}
+                </p>
+            ) : null}
+            <FollowupRouteLine route={followupDetail?.followupRoute} reason={followupDetail?.followupReason} />
             <Box className={`ip-body${expanded ? '' : ' collapsed'}`}>
                 <Box className="ip-bar chat-progress-bar" role="progressbar" aria-valuenow={Math.round(barPct)}
                      aria-valuemin={0} aria-valuemax={100}>

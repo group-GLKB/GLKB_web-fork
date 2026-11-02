@@ -1,4 +1,5 @@
 import axios from '../utils/axiosConfig';
+import { followupRouteOf, followupRouteText } from './followupRoute';
 import { PHASE_PERCENT_FLOOR } from './investigatePhases';
 import { humanizeTrace } from './traceLabel';
 
@@ -417,6 +418,31 @@ export const frameToUpdate = (data) => {
             detail: rewritten ? { interpreted_as: rewritten, original_question: original } : {},
             isProgress: false,
         };
+    } else if (data.type === 'followup_route') {
+        // How the agent chose to answer an Investigate follow-up (service/followupRoute.js):
+        // `{step: 'Choosing how to answer', type: 'followup_route', route, reason}`, sent after
+        // the follow-up is resolved and before any retrieval, and never on a first turn. It
+        // becomes a line in the thoughts and, through `detail.followup_route`, a standing line
+        // on the progress panel — and, for `answer_from_prior`, the switch that turns the live
+        // view from an investigation into a chat answer.
+        //
+        // Pinned to planning like `question_rewritten`, and for the same reason: the router's
+        // reason is prose ("the report already compares the papers"), not a phase.
+        const route = followupRouteOf(data.route);
+        const reason = typeof data.reason === 'string' ? data.reason.trim() : '';
+        return {
+            type: 'step',
+            step: data.step || 'Choosing how to answer',
+            content: route ? followupRouteText(route, reason) : '',
+            phase: 'planning',
+            funnel: null,
+            percent: null,
+            keywords: null,
+            papers: null,
+            label: '',
+            detail: route ? { followup_route: route, followup_reason: reason } : {},
+            isProgress: false,
+        };
     } else if (data.step === 'Thinking') {
         // The opening line, written by a cheap model while the agent is still
         // on its first turn. It is not the answer and never becomes it — the
@@ -467,6 +493,11 @@ export const frameToUpdate = (data) => {
             // Set when the agent stopped searching early (see searchLimitOf); the answer then
             // offers to ask the same question in Investigate.
             searchLimit: searchLimitOf(data.search_limit),
+            // How an Investigate follow-up was answered ('answer_from_prior' | 'incremental' |
+            // 'full'), null on a first turn and on every chat turn (service/followupRoute.js).
+            // An `answer_from_prior` Complete is a CHAT Complete — this same shape — and the
+            // answer is drawn as a chat answer inside the Investigate conversation.
+            route: followupRouteOf(data.route),
             messages: data.messages || [],
             sessionId: data.session_id || null,
             trajectory: data.trajectory || null,
@@ -626,6 +657,13 @@ export class LLMAgentService {
                 : '';
             if (serviceTier) {
                 payload.service_tier = serviceTier;
+            }
+            // "Run a full investigation" under an answer the agent gave from the earlier
+            // investigation: the same question again, and the agent skips its follow-up router
+            // (glkb-agent docs/investigate-followup-routing.md). Investigate only, and only when
+            // asked — absent means false, so every other request is exactly what it was.
+            if (investigateEnabled && options.forceFullResearch === true) {
+                payload.force_full_research = true;
             }
             // Backend PR #31: email when Deep Research hits Complete
             if (

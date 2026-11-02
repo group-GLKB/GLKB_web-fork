@@ -14,6 +14,7 @@
  * the `started` / `step` / `thinking` / `delta` / `final` cases of the live handler.
  */
 import { frameToUpdate, inferInvestigatePhase as inferPhase } from '../../service/LLMAgent';
+import { followupRouteOf, settledRoute } from '../../service/followupRoute';
 import { INVESTIGATE_PHASE_ORDER, PHASE_PERCENT_FLOOR } from '../../service/investigatePhases';
 import { emptyFunnel, mergeFunnel } from './funnel';
 
@@ -78,6 +79,13 @@ export const mergeInvestigateDetail = (prev, next, label) => {
     if (typeof next.interpreted_as === 'string' && next.interpreted_as.trim()) {
         out.interpretedAs = next.interpreted_as.trim();
     }
+    // How the agent chose to answer a follow-up (the `followup_route` frame). Kept for the rest
+    // of the run like the line above; for `answer_from_prior` it is also what turns the live
+    // view into a chat answer (MessageCard).
+    if (followupRouteOf(next.followup_route)) {
+        out.followupRoute = next.followup_route;
+        out.followupReason = typeof next.followup_reason === 'string' ? next.followup_reason.trim() : '';
+    }
     return out;
 };
 
@@ -139,6 +147,10 @@ export const replayTrace = (rawTrace) => {
     let kgQueryList = [];
     let answerOptions = {};
     let searchLimit = null;
+    // How a follow-up was answered: the `followup_route` frame's announcement, and the route
+    // the Complete stub settled on (which wins — see settledRoute).
+    let announcedRoute = null;
+    let completeRoute = null;
 
     const foldProgress = (update, rawContent = '') => {
         phase = mergePhaseMonotonic(
@@ -178,6 +190,9 @@ export const replayTrace = (rawTrace) => {
                 if (rawContent.trim() && !update.isProgress) {
                     thinkingSteps = [...thinkingSteps, { step: update.step, content: rawContent }];
                 }
+                if (followupRouteOf(update.detail?.followup_route)) {
+                    announcedRoute = update.detail.followup_route;
+                }
                 break;
             }
             case 'thinking': {
@@ -215,6 +230,9 @@ export const replayTrace = (rawTrace) => {
                 // And whether its search was cut short, so a reloaded answer still offers to
                 // ask the question again in Investigate (the recorder keeps `search_limit`).
                 if (update.searchLimit) searchLimit = update.searchLimit;
+                // And how a follow-up was answered, so a reloaded `answer_from_prior` answer is
+                // drawn as the chat answer it was, with its offer of a full investigation.
+                if (update.route) completeRoute = update.route;
                 break;
             default:
                 break;
@@ -240,6 +258,8 @@ export const replayTrace = (rawTrace) => {
     if (kgQueryList.length) out.kgQueryList = kgQueryList;
     if (Object.keys(answerOptions).length) out.answerOptions = answerOptions;
     if (searchLimit) out.searchLimit = searchLimit;
+    const followupRoute = settledRoute(completeRoute, announcedRoute);
+    if (followupRoute) out.followupRoute = followupRoute;
     if (investigate) {
         const complete = trace.complete !== false;
         Object.assign(out, {

@@ -10,6 +10,7 @@ import { isConversationRunning, reconcileRunsWithServer } from '../service/activ
 import { isExchangeUnfinished } from '../service/resumeRun';
 import { parseServerTime, serverTimeMs, toIsoUtc } from './serverTime';
 import { replayTrace } from '../components/LLMAgent/traceReplay';
+import { followupRouteOf } from '../service/followupRoute';
 import { normalizeAttachmentList } from './attachmentList';
 import { LITERATURE_REVIEW_ENABLED } from '../config/features';
 import { CHAT_NEW_PATH, isConversationPath } from '../config/entryRoutes';
@@ -181,6 +182,12 @@ const normalizeDetail = (detail) => ({
                 references: normalizeReferences(message.references),
                 timestamp: formatTimestamp(message.created_at),
                 ...trace,
+                /* How an Investigate follow-up was answered. Normally replayed from the trace
+                   (its Complete stub keeps `route`); a `route` the backend returns on the
+                   message itself says the same thing and wins. Absent on every other answer. */
+                ...(message.role === 'assistant' && followupRouteOf(message.route)
+                    ? { followupRoute: message.route }
+                    : {}),
                 trajectory: message.trajectory || trace.trajectory || null,
                 invocationId: message.invocation_id ?? message.invocationId ?? null,
                 // null for user messages, for answers saved before this shipped, and for

@@ -77,6 +77,7 @@ import {
 } from './traceReplay';
 import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
 import SearchLimitNotice from './SearchLimitNotice';
+import { BuiltOnEarlierNote, FullInvestigationOffer } from './FollowupRouteNotice';
 import SelectionReply from './SelectionReply';
 import { clipQuote, withQuote } from './quoteReply';
 import { investigateHandoffState, investigateQuestionFor, showsSearchLimit } from './searchLimit';
@@ -114,6 +115,7 @@ import {
   inferInvestigatePhase,
   searchLimitOf,
 } from '../../service/LLMAgent';
+import { followupRouteFields, routedPresentation } from '../../service/followupRoute';
 import { getCurrentUser } from '../../service/Auth';
 import { answerOptionsForTurn } from './answerOptions';
 import {
@@ -449,6 +451,7 @@ const areMessagesEqual = (left, right) => {
             invocationId: leftMsg?.invocationId,
             investigateMode: leftMsg?.investigateMode,
             modeSource: leftMsg?.modeSource,
+            followupRoute: leftMsg?.followupRoute,
         });
         const rightSignature = JSON.stringify({
             role: rightMsg?.role,
@@ -461,6 +464,7 @@ const areMessagesEqual = (left, right) => {
             invocationId: rightMsg?.invocationId,
             investigateMode: rightMsg?.investigateMode,
             modeSource: rightMsg?.modeSource,
+            followupRoute: rightMsg?.followupRoute,
         });
         if (leftSignature !== rightSignature) return false;
     }
@@ -1068,6 +1072,10 @@ const MessageCard = React.memo(function MessageCard({
     onAskInInvestigate,
     investigateTier = '',
     isGuest = false,
+    /* "Run a full investigation" under an Investigate follow-up the agent answered from the
+       earlier investigation (FollowupRouteNotice): the same question again, forced past the
+       agent's router. Priced at `investigateTier`, like the notice above. */
+    onRunFullInvestigation,
 }) {
     const isAssistant = message.role === "assistant";
     const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
@@ -1186,6 +1194,21 @@ const MessageCard = React.memo(function MessageCard({
     const thoughtDurationLabel = formatDuration(message.thoughtDurationMs);
     const investigatedDurationLabel = formatInvestigatedDuration(message.thoughtDurationMs);
     const isInvestigateMessage = Boolean(message.investigateMode);
+    /* How the agent chose to answer an Investigate follow-up (service/followupRoute.js). Live,
+       from the `followup_route` frame; settled, from the message. An `answer_from_prior` turn
+       was answered by the chat agent and is drawn as a chat answer — `isInvestigateReport` is
+       false for it — while the conversation stays Investigate (`isInvestigateMessage`). Every
+       other turn, chat or Investigate, draws exactly as it did. */
+    const {
+        answeredFromPrior,
+        investigateReport: isInvestigateReport,
+        builtOnEarlier,
+    } = routedPresentation({
+        investigateMode: isInvestigateMessage,
+        followupRoute: message.followupRoute,
+        liveRoute: investigateDetail?.followupRoute,
+        isLoading,
+    });
     const groupedThoughts = useMemo(
         () => groupThinkingSteps(message.thinkingSteps),
         [message.thinkingSteps]
@@ -1197,14 +1220,14 @@ const MessageCard = React.memo(function MessageCard({
     const activeStreamingGroups = isLoading ? streamingGroups : [];
     const staticGroups = !isLoading
         ? (
-            (isInvestigateMessage && groupedThoughts.length)
+            (isInvestigateReport && groupedThoughts.length)
                 ? groupedThoughts
                 : (trajectoryGroups.length ? trajectoryGroups : groupedThoughts)
         )
         : groupedThoughts;
     const displayGroups = isLoading ? activeStreamingGroups : staticGroups;
     const hasDisplayGroups = displayGroups.length > 0;
-    const isTrajectoryDisplay = !isLoading && !isInvestigateMessage && trajectoryGroups.length > 0;
+    const isTrajectoryDisplay = !isLoading && !isInvestigateReport && trajectoryGroups.length > 0;
     const loadingCurrentIndex = isLoading ? displayGroups.length - 1 : -1;
     const currentStepLabel = useMemo(() => {
         if (!isLoading) return '';
@@ -1229,25 +1252,28 @@ const MessageCard = React.memo(function MessageCard({
     const thoughtHeaderText = !thinkingIsOver
         ? (animatedStepLabel || loadingStepLabel)
         : (thoughtDurationLabel ? `Thought for ${thoughtDurationLabel}` : 'Thought summary');
-    const showInvestigateProgress = isAssistant && isInvestigateMessage && isLoading;
+    const showInvestigateProgress = isAssistant && isInvestigateReport && isLoading;
     // Once an investigation finishes its thinking collapses into this eyebrow —
     // it should never vanish outright, so a missing duration still renders the row
     // as long as there are thoughts behind it.
-    const showInvestigateSummary = isAssistant && isInvestigateMessage && !isLoading
+    const showInvestigateSummary = isAssistant && isInvestigateReport && !isLoading
         && (Boolean(investigatedDurationLabel) || hasDisplayGroups);
     /* While a chat answer is being worked on, its stages show in the Investigate panel's style
        (ChatProgress); once it is done, the "Thought for …" row takes over as before. */
-    const showChatProgress = isAssistant && !isInvestigateMessage && isLoading;
+    const showChatProgress = isAssistant && !isInvestigateReport && isLoading;
     const chatPhase = answerReady
         ? 'finalizing'
         : (investigatePhase || inferInvestigatePhase(streamingStepName, '') || 'planning');
     const showThoughtHeader = isAssistant && !showChatProgress && (
-        !isInvestigateMessage && (isLoading || thoughtDurationLabel || hasDisplayGroups)
+        !isInvestigateReport && (isLoading || thoughtDurationLabel || hasDisplayGroups)
     );
     const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
     // A chat answer the agent cut short. Never an Investigate answer, never while it is written.
     const showSearchLimit = !isLoading && !showReloadInMessage && Boolean(onAskInInvestigate)
         && showsSearchLimit(message);
+    // An Investigate follow-up answered from the earlier investigation, once it is written.
+    const showFullInvestigationOffer = isAssistant && !isLoading && !showReloadInMessage
+        && answeredFromPrior && Boolean(onRunFullInvestigation);
     const canToggleThoughts = !isLoading && hasDisplayGroups;
     const investigateStageLabels = ['Retrieved', 'Screened', 'Extracted', 'Cited'];
     const resolvedPhase = useMemo(() => {
@@ -1425,9 +1451,14 @@ const MessageCard = React.memo(function MessageCard({
     // Investigate answers, and an AI Chat answer whose turn asked for its graph (Options →
     // Include in the answer); any other chat answer has none and never asks the backend for one.
     // With no list, an answer that cites papers still gets a graph, built from its text.
+    // An Investigate follow-up answered from the earlier investigation is a chat answer, and
+    // gets its graph when the agent sent one with it (it never asks the backend to build one).
     const showAnswerGraph = isAssistant && !isLoading
-        && (isInvestigateMessage || Boolean(message.answerOptions?.graph))
-        && (message.kgQueryList?.length > 0 || message.references?.length > 0);
+        && (
+            ((isInvestigateReport || Boolean(message.answerOptions?.graph))
+                && (message.kgQueryList?.length > 0 || message.references?.length > 0))
+            || (answeredFromPrior && message.kgQueryList?.length > 0)
+        );
     const answerParts = showAnswerGraph ? splitAnswerForGraph(answerMarkdown) : [answerMarkdown];
     if (showAnswerGraph && answerParts.length === 1) answerParts.push('');
     const markdownComponents = {
@@ -1540,6 +1571,8 @@ const MessageCard = React.memo(function MessageCard({
                                 })}
                             </Box>
                         )}
+                        {/* A report that reused the earlier investigation's evidence. */}
+                        {isAssistant && !isLoading && builtOnEarlier && <BuiltOnEarlierNote />}
 
                         {showInvestigateProgress && (
                             <InvestigateProgress
@@ -1580,6 +1613,9 @@ const MessageCard = React.memo(function MessageCard({
                                 percent={answerReady ? 97 : investigatePercent}
                                 startedAt={investigateStartedAt}
                                 paused={Boolean(pendingClarification)}
+                                /* An Investigate follow-up the chat agent is answering from the
+                                   earlier investigation keeps its standing lines. */
+                                followupDetail={answeredFromPrior ? investigateDetail : null}
                             />
                         )}
 
@@ -1823,6 +1859,14 @@ const MessageCard = React.memo(function MessageCard({
                                 serviceTier={investigateTier}
                                 showPrice={!isGuest}
                                 onAsk={() => onAskInInvestigate(index)}
+                            />
+                        )}
+                        {showFullInvestigationOffer && (
+                            <FullInvestigationOffer
+                                serviceTier={investigateTier}
+                                showPrice={!isGuest}
+                                disabled={interactionLocked}
+                                onRun={() => onRunFullInvestigation(index)}
                             />
                         )}
 
@@ -2993,6 +3037,10 @@ function LLMAgent({ isRouteActive = true }) {
                 thinkingSteps: thinkingStepsRef.current,
                 trajectory: run.trajectory || null,
                 investigateMode: investigate,
+                ...(investigate ? followupRouteFields(
+                    run.route,
+                    investigateDetailRef.current?.followupRoute,
+                ) : {}),
                 ...(investigate ? {
                     investigateFunnel: settledFunnel(),
                     investigatePercent: 100,
@@ -4408,6 +4456,9 @@ function LLMAgent({ isRouteActive = true }) {
         /* The retry of a clarify round whose run is gone (`submitClarification`): `{ sessionId }`,
            the round's session. It runs on the conversation's own agent session — see below. */
         const clarifyRetry = options.clarifyRetry || null;
+        /* "Run a full investigation" (`handleRunFullInvestigation`): this turn skips the agent's
+           follow-up router and runs the whole deep-research pass. Investigate only. */
+        const forceFullResearch = investigateEnabled && requestSearchOptions?.forceFullResearch === true;
         // The latest query options, for a clarify retry to run the same way (tier included).
         lastSearchOptionsRef.current = {
             investigateEnabled,
@@ -4424,6 +4475,9 @@ function LLMAgent({ isRouteActive = true }) {
             serviceTier: typeof requestSearchOptions?.serviceTier === 'string' && requestSearchOptions.serviceTier
                 ? requestSearchOptions.serviceTier
                 : undefined,
+            // A forced full investigation stays forced through its clarify retry: the reader
+            // asked for the whole run, and the retry must not be routed to a quick answer.
+            forceFullResearch: forceFullResearch || undefined,
         };
 
         /* The images and PDFs this turn carries (service/attachments.js). AI Chat only: the
@@ -4705,6 +4759,7 @@ function LLMAgent({ isRouteActive = true }) {
                 kgQueryList: update.kgQueryList ?? update.kg_query_list ?? [],
                 answerOptions: update.answerOptions ?? answerOptionsOf(update.answer_options),
                 searchLimit: update.searchLimit ?? searchLimitOf(update.search_limit),
+                ...followupRouteFields(update.route),
                 timestamp,
                 thinkingSteps: existing.thinkingSteps || [],
                 thoughtDurationMs: Date.now() - requestStartedAt,
@@ -5028,6 +5083,17 @@ function LLMAgent({ isRouteActive = true }) {
                                         update.label,
                                     );
                                     setInvestigateDetail({ ...investigateDetailRef.current });
+                                    /* The agent will answer this follow-up from the earlier
+                                       investigation: the chat agent takes over, and the run is
+                                       drawn with the chat's panel (MessageCard). Its stages
+                                       start at the beginning, not at the phase the deep-research
+                                       Started frame had already claimed. */
+                                    if (update.detail.followup_route === 'answer_from_prior') {
+                                        investigatePhaseRef.current = 'planning';
+                                        setInvestigatePhase('planning');
+                                        investigatePercentRef.current = null;
+                                        setInvestigatePercent(null);
+                                    }
                                 }
                                 // Capture progress labels as rich phase markers
                                 if (update.isProgress && update.label && update.phase) {
@@ -5236,6 +5302,12 @@ function LLMAgent({ isRouteActive = true }) {
                                 kgQueryList: update.kgQueryList || [],
                                 answerOptions: update.answerOptions || {},
                                 searchLimit: update.searchLimit || null,
+                                // How a follow-up was answered: the Complete frame's route, else
+                                // what this run's `followup_route` frame announced.
+                                ...followupRouteFields(
+                                    update.route,
+                                    investigateDetailRef.current?.followupRoute,
+                                ),
                                 timestamp: timestamp,
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,
@@ -5432,6 +5504,7 @@ function LLMAgent({ isRouteActive = true }) {
                 attachments: turnAttachments.length ? attachmentIdsOf(turnAttachments) : undefined,
                 figures: turnAnswerOptions.figures,
                 graph: turnAnswerOptions.graph,
+                forceFullResearch: forceFullResearch || undefined,
                 notifyEmail: (investigateEnabled && notifyEmailEnabled)
                     ? (getUserNotifyEmail() || undefined)
                     : undefined,
@@ -5459,6 +5532,10 @@ function LLMAgent({ isRouteActive = true }) {
                                 role: 'assistant',
                                 content: run.response || '',
                                 references: parseReferences(run.references),
+                                ...followupRouteFields(
+                                    run.route,
+                                    investigateDetailRef.current?.followupRoute,
+                                ),
                                 timestamp,
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,
@@ -5557,6 +5634,10 @@ function LLMAgent({ isRouteActive = true }) {
                                 role: 'assistant',
                                 content: run.response || '',
                                 references: parseReferences(run.references),
+                                ...(investigateEnabled ? followupRouteFields(
+                                    run.route,
+                                    investigateDetailRef.current?.followupRoute,
+                                ) : {}),
                                 timestamp,
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,
@@ -5787,6 +5868,8 @@ function LLMAgent({ isRouteActive = true }) {
                             // A restarted clarify run is the SAME question; re-running it on a
                             // different tier would silently change the answer's provenance.
                             serviceTier: prior.serviceTier,
+                            // Nor may a forced full investigation be routed on its retry.
+                            forceFullResearch: prior.forceFullResearch,
                         },
                     });
                 } else {
@@ -5846,6 +5929,10 @@ function LLMAgent({ isRouteActive = true }) {
                         thoughtDurationMs: last.thoughtDurationMs || null,
                         trajectory: run.trajectory || null,
                         investigateMode: true,
+                        ...followupRouteFields(
+                            run.route,
+                            investigateDetailRef.current?.followupRoute,
+                        ),
                         investigateFunnel: settledFunnel(),
                         investigatePhase: 'verifying',
                         investigatePercent: investigatePercentRef.current ?? 100,
@@ -6188,6 +6275,45 @@ function LLMAgent({ isRouteActive = true }) {
         navigate(CHAT_NEW_PATH, { state: investigateHandoffState(question, serviceTier) });
     };
 
+    /* "Run a full investigation" under an Investigate follow-up the agent answered from the
+       earlier investigation (FollowupRouteNotice). The same question — the reader's own words
+       for that turn — is asked again in the SAME conversation, as its next turn, with
+       `force_full_research`, so the agent skips its follow-up router and runs the whole
+       deep-research pass. The quick answer stays where it is, above the report. The tier is the
+       picker's, which is also the price on the button. Not while this conversation is still
+       answering: a second turn would race the first (the button is disabled for the view's own
+       run; a background follow-up in the same thread is caught here). */
+    const handleRunFullInvestigation = (index) => {
+        const question = investigateQuestionFor(chatHistory, index);
+        if (!question) return;
+        trackGtagEvent('followup_route_full_investigation_click', {
+            route: chatHistory[index]?.followupRoute || '',
+            guest: isGuest,
+        });
+        if (isGuest) {
+            requireSignIn(GUEST_INVESTIGATE_REASON);
+            return;
+        }
+        if ((isLoading && isViewingRunningConversation)
+            || isConversationRunning(activeConversationIdRef.current)) {
+            message.info('This conversation is still answering. Run the full investigation when it finishes.');
+            return;
+        }
+        trackGtagEvent('investigate_question_submit', {
+            source: 'followup_route_notice',
+            input_method: 'button',
+            queued: false,
+        });
+        stableSubmit(null, question, null, {
+            searchOptions: {
+                investigateEnabled: true,
+                serviceTier: typeof serviceTier === 'string' ? serviceTier : '',
+                forceFullResearch: true,
+            },
+            queryMethod: 'button',
+        });
+    };
+
     const handleReloadLatest = () => {
         if (isLoading) return;
         const lastIndex = chatHistory.length - 1;
@@ -6347,6 +6473,7 @@ function LLMAgent({ isRouteActive = true }) {
                 onAskInInvestigate={stableAskInInvestigate}
                 investigateTier={serviceTier}
                 isGuest={isGuest}
+                onRunFullInvestigation={stableRunFullInvestigation}
             />
             </ErrorBoundary>
             );
@@ -6997,6 +7124,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 kgQueryList: update.kgQueryList || [],
                                 answerOptions: update.answerOptions || {},
                                 searchLimit: update.searchLimit || null,
+                                ...followupRouteFields(update.route),
                                 timestamp,
                                 thinkingSteps: [...localThinkingSteps],
                                 thoughtDurationMs: Date.now() - requestStartedAt,
@@ -7051,6 +7179,8 @@ function LLMAgent({ isRouteActive = true }) {
                     attachments: turnAttachments.length ? attachmentIdsOf(turnAttachments) : undefined,
                     figures: turnAnswerOptions.figures,
                     graph: turnAnswerOptions.graph,
+                    forceFullResearch: (investigateEnabled
+                        && requestSearchOptions?.forceFullResearch === true) || undefined,
                     messagesOverride: [...base, userMessage].map((msg) => ({
                         role: msg?.role,
                         content: msg?.content,
@@ -7082,6 +7212,7 @@ function LLMAgent({ isRouteActive = true }) {
                             role: 'assistant',
                             content: run.response || '',
                             references: parseReferences(run.references),
+                            ...(investigateEnabled ? followupRouteFields(run.route) : {}),
                             timestamp,
                             thinkingSteps: [...localThinkingSteps],
                             thoughtDurationMs: Date.now() - requestStartedAt,
@@ -7226,6 +7357,7 @@ function LLMAgent({ isRouteActive = true }) {
     const stableOpenFeedback = useStableCallback(handleOpenFeedback);
     const stableReloadLatest = useStableCallback(handleReloadLatest);
     const stableAskInInvestigate = useStableCallback(handleAskInInvestigate);
+    const stableRunFullInvestigation = useStableCallback(handleRunFullInvestigation);
 
     /* Nothing to show: no conversation restored, nothing streaming, and no question
        handed over from the home page.
@@ -8260,5 +8392,9 @@ function LLMAgent({ isRouteActive = true }) {
         </>
     );
 }
+
+/* One answer's card, exported so a test can draw it (followupRoute.test.jsx). The page itself
+   uses it only through `renderMessages`. */
+export { MessageCard };
 
 export default LLMAgent; 

@@ -265,6 +265,35 @@ describe('investigate (deep research)', () => {
  * absent, so every alias after the first was unreachable unless the first happened to be there.
  * That is why naming the right field was not enough on its own.
  */
+describe('"Run a full investigation" (force_full_research)', () => {
+    // glkb-agent docs/investigate-followup-routing.md: the same question again, and the agent
+    // skips its follow-up router. Investigate only, and absent unless asked for.
+    it('is sent on the investigate path when the turn asks for it', async () => {
+        await run({ investigateEnabled: true, forceFullResearch: true, serviceTier: 'advanced' });
+        expect(sentUrl()).toBe('/api/v1/deep-research/stream');
+        expect(sentPayload().force_full_research).toBe(true);
+        expect(sentPayload().service_tier).toBe('advanced');
+    });
+
+    it('is absent from every other Investigate turn', async () => {
+        await run({ investigateEnabled: true });
+        expect(sentPayload()).not.toHaveProperty('force_full_research');
+        axios.post.mockReset();
+        await run({ investigateEnabled: true, forceFullResearch: false });
+        expect(sentPayload()).not.toHaveProperty('force_full_research');
+        axios.post.mockReset();
+        // Only a real `true` — a queue entry restored from storage could hold anything.
+        await run({ investigateEnabled: true, forceFullResearch: 'yes' });
+        expect(sentPayload()).not.toHaveProperty('force_full_research');
+    });
+
+    it('is never sent to chat', async () => {
+        await run({ forceFullResearch: true, filters: [] });
+        expect(sentUrl()).toBe('/api/v1/new-llm-agent/stream');
+        expect(sentPayload()).not.toHaveProperty('force_full_research');
+    });
+});
+
 describe('funnel metrics from an agent frame', () => {
     it('reads Cited from cited_provisional', () => {
         expect(extractFunnelMetrics({ cited_provisional: 17 }).cited).toBe(17);
