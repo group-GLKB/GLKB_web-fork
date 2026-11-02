@@ -512,8 +512,10 @@ const AnalyzingDetail = ({ facets, nClaims, nConflicted }) => (
     </>
 );
 
-const REPORT_SECTIONS = 'Direct answer, Investigation findings, Evidence analysis, '
-    + 'Conflict analysis, Evidence-based judgment, Remaining uncertainties';
+// The agent's report layout since 2026-11-02 (glkb-agent dr_writer.py `_DR_HEADERS`); "Where
+// studies disagree" appears only when studies do.
+const REPORT_SECTIONS = 'Direct answer, What the evidence shows, Where studies disagree, '
+    + 'How strong the evidence is, Open questions';
 
 const WritingDetail = ({ section, step, total }) => (
     <>
