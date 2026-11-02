@@ -10,7 +10,7 @@
  * invocation_id + stage, and POST /clarify answered `{"ok":true,"resolved":true}` each time. So the
  * loss is on the client, which is what the ref-first rule below exists to prevent.
  */
-import { resolveClarifyRound } from './clarifyRound';
+import { clarifyRoundFromPoll, resolveClarifyRound } from './clarifyRound';
 
 const round = (over = {}) => ({
     invocationId: 'inv-1',
@@ -65,5 +65,60 @@ describe('resolveClarifyRound', () => {
         // buildClarifyAnswers maps over this; a non-array would throw inside the click handler.
         expect(resolveClarifyRound(round({ questions: undefined }), null, 's').questions).toEqual([]);
         expect(resolveClarifyRound(null, null, null).questions).toEqual([]);
+    });
+});
+
+
+describe('clarifyRoundFromPoll', () => {
+    const pending = {
+        invocation_id: 'inv-1',
+        stage: 'pre_retrieval',
+        reason: 'ambiguous',
+        question: 'EGFR?',
+        questions: [{ header: 'Cancer', question: 'Which cancer?' }],
+    };
+    const paused = { run_id: 'r1', session_id: 'stream_abc', status: 'running', pending_clarification: pending };
+
+    it('puts a paused run\'s question back up for a reader with no stream', () => {
+        const d = clarifyRoundFromPoll(paused, null, 'other');
+        expect(d.action).toBe('show');
+        expect(d.round).toEqual({
+            invocationId: 'inv-1',
+            stage: 'pre_retrieval',
+            sessionId: 'stream_abc',
+            reason: 'ambiguous',
+            questions: pending.questions,
+        });
+        // ...and the round it yields is one Submit can address.
+        expect(resolveClarifyRound(d.round, null, null).ok).toBe(true);
+    });
+
+    it('falls back to the conversation\'s session id when the run omits one', () => {
+        const d = clarifyRoundFromPoll({ ...paused, session_id: null }, null, 'stream_conv');
+        expect(d.round.sessionId).toBe('stream_conv');
+    });
+
+    it('leaves a round already on screen alone, so drafts survive the next poll', () => {
+        expect(clarifyRoundFromPoll(paused, round(), 'stream_abc').action).toBe('keep');
+    });
+
+    it('replaces a different round (the mid-research one after the first)', () => {
+        const d = clarifyRoundFromPoll(
+            { ...paused, pending_clarification: { ...pending, stage: 'mid_research' } },
+            round(), 'stream_abc',
+        );
+        expect(d.action).toBe('show');
+        expect(d.round.stage).toBe('mid_research');
+    });
+
+    it('clears the panel once the server says the run no longer waits', () => {
+        expect(clarifyRoundFromPoll({ ...paused, pending_clarification: null }, round(), 's').action).toBe('clear');
+        expect(clarifyRoundFromPoll({ run_id: 'r1', status: 'complete' }, round(), 's').action).toBe('clear');
+    });
+
+    it('says nothing when an older server does not send the field', () => {
+        expect(clarifyRoundFromPoll({ run_id: 'r1', status: 'running' }, round(), 's').action).toBe('keep');
+        expect(clarifyRoundFromPoll(null, round(), 's').action).toBe('keep');
+        expect(clarifyRoundFromPoll({ ...paused, pending_clarification: null }, null, 's').action).toBe('keep');
     });
 });

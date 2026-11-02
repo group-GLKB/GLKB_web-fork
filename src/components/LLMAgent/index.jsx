@@ -86,7 +86,7 @@ import AnswerGraphForMessage from '../AnswerGraph/AnswerGraphForMessage';
 import IconButton from '../Units/HintIconButton';
 import { splitAnswerForGraph } from '../AnswerGraph/answerGraph';
 import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
-import { resolveClarifyRound, withoutPendingAnswer } from './clarifyRound';
+import { clarifyRoundFromPoll, resolveClarifyRound, withoutPendingAnswer } from './clarifyRound';
 import { sortReferences } from './referenceSort';
 import { resolveReferenceSourceIndex } from './referenceSource';
 import { mintSessionId } from './sessionId';
@@ -3207,6 +3207,31 @@ function LLMAgent({ isRouteActive = true }) {
                    the position it had when the page went away, and without the second Stop
                    cannot tell the server anything. */
                 applyRunProgress(run, investigate);
+                /* The question a paused run is waiting on. With no stream there is no
+                   `clarification` frame, and the panel used to come back only from this
+                   tab's sessionStorage — so a reader returning from the "GLKB has a question"
+                   email (closed tab, another device) saw "still answering" over a run that
+                   would wait for them forever. Answered through the same /clarify, it resumes
+                   the same run, and this loop collects the report as before. */
+                const pausedOnQuestion = Boolean(
+                    investigate && run?.status === 'running' && run?.pending_clarification,
+                );
+                if (investigate) {
+                    const decision = clarifyRoundFromPoll(
+                        run, pendingClarificationRef.current, sessionId,
+                    );
+                    if (decision.action === 'show') {
+                        applyPendingClarification(decision.round);
+                        setClarificationDrafts(buildClarificationDrafts(decision.round.questions));
+                        setClarificationError('');
+                        setClarificationSubmitting(false);
+                    } else if (decision.action === 'clear') {
+                        applyPendingClarification(null);
+                        setClarificationDrafts({});
+                        setClarificationError('');
+                        setClarificationSubmitting(false);
+                    }
+                }
 
                 if (run?.status === 'cancelled') {
                     /* Someone stopped this run — this reader a moment ago, or another tab.
@@ -3236,6 +3261,13 @@ function LLMAgent({ isRouteActive = true }) {
                 }
 
                 showWaiting();   // only now: the server has said it is still working
+                if (pausedOnQuestion) {
+                    setStreamingStepName('Asking user question...');
+                    /* Waiting on the reader, not lost: a clarify round has no timeout, so a
+                       poll spent on one does not count against the fifteen minutes after
+                       which this loop gives the run up as unrecoverable. */
+                    attempt -= 1;
+                }
                 await new Promise((resolve) => setTimeout(resolve, RESUME_POLL_MS));
             }
             turnSettled = true;
@@ -3270,8 +3302,8 @@ function LLMAgent({ isRouteActive = true }) {
                 else clearPendingRun();
             }
         }
-    }, [announceBackgroundCompletion, applyRunProgress, llmService, settledFunnel,
-        updateRunningChatHistory]);
+    }, [announceBackgroundCompletion, applyPendingClarification, applyRunProgress, llmService,
+        settledFunnel, updateRunningChatHistory]);
 
     useEffect(() => {
         if (authLoading) return undefined;
