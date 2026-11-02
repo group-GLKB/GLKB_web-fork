@@ -221,7 +221,7 @@ const ChatSearchBar = ({
                 variant="outlined"
                 placeholder={placeholder}
                 multiline
-                minRows={isMobileViewport ? 1 : 2}
+                minRows={1}
                 maxRows={6}
                 onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent?.isComposing) {
