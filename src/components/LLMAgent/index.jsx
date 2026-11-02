@@ -138,6 +138,7 @@ import {
   fetchConversations,
   getActiveConversationId,
   getConversations,
+  removeConversation,
   setActiveConversationId,
   setConversations,
   updateConversationMessages,
@@ -224,6 +225,7 @@ import {
 } from '../../utils/directCitations';
 import { attachmentBlockedNote, MessageAttachments, useAttachments } from '../Units/AttachmentChips';
 import CiteDialog from '../Units/CiteDialog';
+import { CreditDialog, noticeFor, usePricing } from '../Units/CreditNotice';
 import { cslFromCard, toBibTeX } from '../Units/CiteDialog/format';
 import { fetchCitations } from '../../service/Citation';
 import ErrorBoundary from '../Units/ErrorBoundary';
@@ -2128,6 +2130,10 @@ function LLMAgent({ isRouteActive = true }) {
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
     // What the reader has left — credits signed in, free questions as a guest (service/credits.js).
     const [usage, setUsage] = useState(() => getUsageSnapshot());
+    /* "Not enough credits" (Units/CreditNotice): handleSubmit's own check before anything starts,
+       or the backend's refusal when the balance moved under it. */
+    const [creditDialog, setCreditDialog] = useState(null);
+    const tierPricing = usePricing();
     const [pendingClarification, setPendingClarification] = useState(
         initialRunSnapshot?.pendingClarification || null,
     );
@@ -2705,6 +2711,10 @@ function LLMAgent({ isRouteActive = true }) {
         }
         if (refusal.code === 'INSUFFICIENT_CREDITS' || refusal.code === 'GUEST_LIMIT_REACHED') {
             refreshTierStatus();
+        }
+        // In the backend's words, with the cheaper choice it found (utils/refusals.js).
+        if (refusal.code === 'INSUFFICIENT_CREDITS') {
+            setCreditDialog({ level: 'short', text: refusalText(refusal) });
         }
     }, [requireSignIn, refreshTierStatus]);
 
@@ -4495,6 +4505,25 @@ function LLMAgent({ isRouteActive = true }) {
                 ?? (shouldStartNewConversation ? false
                     : getConversationInvestigateMode(targetConversationId, baseHistory)),
         );
+        /* Credits that cannot pay for this turn (mode x the turn's own tier, as sent below): the
+           pop-up, and nothing started — no conversation row, no optimistic bubble, the question
+           left in (or put back into) the box. Before 2026-11-02 the turn went ahead, the
+           backend refused it with a 429, and a question handed over from the home page left
+           an empty conversation on screen. The backend still decides; this only spares the
+           reader a refusal the page could already see coming. */
+        if (isAuthenticated && !isGuest) {
+            const shortfall = noticeFor(
+                getUsageSnapshot(),
+                tierPricing,
+                investigateEnabled ? 'deep_research' : 'chat',
+                effectiveTier(requestSearchOptions?.serviceTier, { isGuest }),
+            );
+            if (shortfall?.level === 'short') {
+                setCreditDialog(shortfall);
+                if (!userInput.trim()) setUserInput(inputText);
+                return false;
+            }
+        }
         /* The retry of a clarify round whose run is gone (`submitClarification`): `{ sessionId }`,
            the round's session. It runs on the conversation's own agent session — see below. */
         const clarifyRetry = options.clarifyRetry || null;
@@ -5632,6 +5661,20 @@ function LLMAgent({ isRouteActive = true }) {
                exchange visibly unfinished, for the reattach path to collect. */
             const pollSessionId = runSessionId || sessionIdRef.current;
             let outcome = refusal ? 'refused' : 'unknown';
+            /* A first turn refused for credits leaves the row createConversation made with
+               nothing in it, and the address bar already naming it: reloading that row is what
+               showed an empty page (2026-11-02). Take the row away and start over with the
+               question back in the box; the pop-up (handleRefusal) says why. */
+            if (refusal?.code === 'INSUFFICIENT_CREDITS' && shouldStartNewConversation && historyId
+                && activeStreamIdRef.current === streamId) {
+                const emptyId = historyId;
+                removeConversation(emptyId)
+                    .catch((removeError) => logDev('[LLM] Failed to remove the refused conversation', removeError));
+                setConversationsState((prev) => prev.filter((item) => String(item.id) !== String(emptyId)));
+                startNewConversation();
+                navigate(CHAT_HOME_PATH, { replace: true });
+                setUserInput(inputText);
+            }
             const canRecoverDetached = () => Boolean(
                 runConversationId && isConversationRunning(runConversationId),
             );
@@ -7744,6 +7787,8 @@ function LLMAgent({ isRouteActive = true }) {
             </Dialog>
 
             {/* The leave-while-running dialog is gone with the guard that raised it. */}
+
+            <CreditDialog notice={creditDialog} onClose={() => setCreditDialog(null)} source="chat_page" />
 
             <Dialog
                 open={feedbackOpen}

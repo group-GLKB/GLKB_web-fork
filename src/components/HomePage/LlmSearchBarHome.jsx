@@ -20,6 +20,7 @@ import { INVESTIGATE_ENABLED, LITERATURE_REVIEW_ENABLED } from '../../config/fea
 import { CHAT_NEW_PATH } from '../../config/entryRoutes';
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { trackGtagEvent } from '../../utils/gtag';
+import CreditNotice, { CreditDialog, useCreditNotice } from '../Units/CreditNotice';
 import TierPicker from '../Units/TierPicker';
 import ComposerOptions, {
     answerFlags,
@@ -204,6 +205,14 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     // A review needs its topic in words; its papers are what it reads, not a question.
     const canStart = (Boolean(llmQuery.trim()) || (!reviewEnabled && readyAttachments.length > 0))
         && !isInputLocked && !attachments.isUploading && !attachmentNote;
+    /* The reader's credits for the mode and model picked (Units/CreditNotice): a line in the box
+       when they run low or cannot pay for this question, and the pop-up if it is sent anyway. */
+    const creditNotice = useCreditNotice({
+        pipeline: reviewEnabled ? 'literature_review' : (investigateEnabled ? 'deep_research' : 'chat'),
+        tierId: effectiveTier(serviceTier, { isGuest }),
+        enabled: !isGuest,
+    });
+    const [creditDialog, setCreditDialog] = useState(null);
     const takeFiles = (files) => {
         if (!files?.length) return;
         if (isGuest) {
@@ -291,6 +300,14 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         // A guest who has used the month's questions is asked to sign in, question kept.
         if (isQueryLimitReached && isGuest) {
             openLoginModal(props.limitReachedText || undefined);
+            return;
+        }
+        /* Credits that cannot pay for this mode and model: say so here, question kept, rather
+           than open a conversation the backend then refuses to answer. A review is not
+           started (or charged) from here — its Scope step does that, price shown — so its line
+           only warns. */
+        if (creditNotice?.level === 'short' && !reviewEnabled) {
+            setCreditDialog(creditNotice);
             return;
         }
         /* Held back while a file is still uploading, or when one failed or the mode cannot take
@@ -523,6 +540,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 disabled={isInputLocked}
                             />
                         )}
+                        <CreditNotice notice={creditNotice} source="home_searchbar" />
                         <AttachmentChips
                             variant="design"
                             items={attachments.items}
@@ -839,7 +857,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     }
                 }}
             />
-
+            <CreditDialog notice={creditDialog} onClose={() => setCreditDialog(null)} source="home_searchbar" />
         </Box>
     );
 });

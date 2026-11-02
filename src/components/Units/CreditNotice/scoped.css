@@ -1,0 +1,40 @@
+/* A line inside the composer, above the field: quiet when credits run low, warmer when the
+   question as set up cannot be paid for. */
+.credit-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 10px 12px 0;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.credit-notice-low {
+    background: var(--color-background-surface, #fff);
+    color: var(--color-grey-600, #4b5563);
+}
+
+.credit-notice-short {
+    background: #FFF7E6;
+    color: #7A4B00;
+}
+
+.credit-notice-text {
+    min-width: 0;
+}
+
+.credit-notice-buy {
+    flex-shrink: 0;
+    color: var(--color-brand-primary);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.credit-notice-buy:hover {
+    text-decoration: underline;
+}

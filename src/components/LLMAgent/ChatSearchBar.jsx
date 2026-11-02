@@ -25,6 +25,7 @@ import ComposerOptions, {
     OptionsButton,
     optionsChanged,
 } from '../Units/ComposerOptions';
+import CreditNotice, { useCreditNotice } from '../Units/CreditNotice';
 import TierPicker from '../Units/TierPicker';
 import { quotePreview } from './quoteReply';
 
@@ -136,6 +137,14 @@ const ChatSearchBar = ({
         onSubmit?.(event, { queryMethod });
     };
     const optionsDot = optionsChanged(composerOptions);
+    /* The reader's credits for this mode and model (Units/CreditNotice): a line when they run
+       low or cannot pay for the next question. Sending is not blocked here — the page's
+       handleSubmit makes the same check and answers with the pop-up. */
+    const creditNotice = useCreditNotice({
+        pipeline: deep ? 'deep_research' : 'chat',
+        tierId: serviceTier,
+        enabled: !isGuest,
+    });
 
     const stopRow = (event) => { event.preventDefault(); event.stopPropagation(); };
 
@@ -170,6 +179,7 @@ const ChatSearchBar = ({
                 boxShadow: 'none',
             }}
         >
+            <CreditNotice notice={creditNotice} source="chat_searchbar" />
             {quote ? (
                 <div className="composer-quote" role="group" aria-label="Replying to">
                     <FormatQuoteIcon className="composer-quote-icon" aria-hidden="true" />

@@ -169,3 +169,70 @@ export const limitReachedText = (usage) => {
         ? `You're out of credits. Your free monthly credits come back on ${resets}.`
         : "You're out of credits for this month.";
 };
+
+/* Before a question is sent, as in Claude: a quiet line once the month's credits run low, and a
+   plain notice when the balance cannot pay for the question as it is set up (mode x model),
+   so the reader learns it from the composer rather than from a refused answer. Running out
+   altogether (`limitReached`) keeps its own notice, `limitReachedText`, which the pages show. */
+
+/** "Low" is at most this share of the monthly allowance left. */
+export const LOW_CREDITS_SHARE = 0.2;
+
+const PIPELINE_NOUNS = {
+    chat: 'An AI Chat question',
+    deep_research: 'An Investigate run',
+    literature_review: 'A Literature Review',
+};
+const PIPELINE_NAMES = { chat: 'AI Chat', deep_research: 'Investigate', literature_review: 'Literature Review' };
+
+const creditCount = (n) => `${n} credit${n === 1 ? '' : 's'}`;
+
+/**
+ * What the reader can still afford when the question as set up costs more than they have: the
+ * most capable model on the same mode that fits; else AI Chat on their own model (`tierId`), or
+ * the most capable chat that fits; else null. `pricing` is `parsePricing`'s shape (tiers most
+ * capable first); `{ tierId, pipeline, credits }`.
+ */
+export const affordableChoice = (pricing, pipeline, remaining, tierId = '') => {
+    const tiers = pricing?.tiers || [];
+    const fitsOn = (t, p) => Number.isFinite(t.credits?.[p]) && t.credits[p] <= remaining;
+    const same = tiers.find((t) => fitsOn(t, pipeline));
+    if (same) return { tierId: same.id, pipeline, credits: same.credits[pipeline] };
+    if (pipeline === 'chat') return null;
+    const chat = tiers.find((t) => t.id === tierId && fitsOn(t, 'chat')) || tiers.find((t) => fitsOn(t, 'chat'));
+    return chat ? { tierId: chat.id, pipeline: 'chat', credits: chat.credits.chat } : null;
+};
+
+/**
+ * The composer's credit notice for a signed-in reader, or null:
+ *   'short'  the question as set up costs `cost` and the balance is less — the send is held back;
+ *   'low'    at most LOW_CREDITS_SHARE of the monthly allowance is left.
+ * Guests (their ten questions have their own notice), an unknown balance and an empty one
+ * (`limitReachedText`) get none. `labelFor(tierId)` names a model; `alternative` is
+ * `affordableChoice`'s answer.
+ */
+export const creditNotice = (usage, {
+    cost = null, pipeline = 'chat', tierId = '', labelFor = (id) => id, alternative = null,
+} = {}) => {
+    if (usage?.kind !== 'credits' || usage.remaining === null || usage.remaining < 1) return null;
+    const { remaining } = usage;
+    const resets = formatResetDate(usage.resetsAt);
+    const back = resets ? ` Your free monthly credits come back on ${resets}.` : '';
+    if (Number.isFinite(cost) && remaining < cost) {
+        const on = tierId ? ` on ${labelFor(tierId)}` : '';
+        let text = `${PIPELINE_NOUNS[pipeline] || 'This question'}${on} costs ${creditCount(cost)}`
+            + ` and you have ${remaining} left.${back}`;
+        if (alternative) {
+            const model = labelFor(alternative.tierId);
+            text += alternative.pipeline === pipeline
+                ? ` Switch to ${model} (${creditCount(alternative.credits)}) to go ahead now.`
+                : ` ${PIPELINE_NAMES[alternative.pipeline]} on ${model} (${creditCount(alternative.credits)}) still works.`;
+        }
+        return { level: 'short', text };
+    }
+    const allowance = usage.monthlyAllowance;
+    if (Number.isFinite(allowance) && allowance > 0 && remaining <= allowance * LOW_CREDITS_SHARE) {
+        return { level: 'low', text: `${creditCount(remaining)} left this month.${back}` };
+    }
+    return null;
+};
