@@ -332,6 +332,14 @@ export const answerOptionsOf = (value) => {
     return out;
 };
 
+/**
+ * Why a chat answer's search was cut short, from the agent's `search_limit` on `Complete`:
+ * 'context' (the turn's material outgrew the model's context, so it answered from what it had),
+ * 'calls' (it reached its cap on model calls), or null — the answer was not cut short, or the
+ * value is one this client does not know. Chat only; deep research never sets it.
+ */
+export const searchLimitOf = (value) => (value === 'context' || value === 'calls' ? value : null);
+
 export const frameToUpdate = (data) => {
     if (!data || typeof data !== 'object') return null;
     const detail = data.detail && typeof data.detail === 'object' ? data.detail : {};
@@ -431,6 +439,9 @@ export const frameToUpdate = (data) => {
             // What an AI Chat turn asked for beyond the answer ({figures, graph}), echoed by the
             // agent; the graph under a chat answer is drawn only when it asked for one.
             answerOptions: answerOptionsOf(data.answer_options),
+            // Set when the agent stopped searching early (see searchLimitOf); the answer then
+            // offers to ask the same question in Investigate.
+            searchLimit: searchLimitOf(data.search_limit),
             messages: data.messages || [],
             sessionId: data.session_id || null,
             trajectory: data.trajectory || null,

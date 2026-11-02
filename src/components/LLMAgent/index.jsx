@@ -76,6 +76,8 @@ import {
     mergePhaseMonotonic,
 } from './traceReplay';
 import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
+import SearchLimitNotice from './SearchLimitNotice';
+import { investigateHandoffState, investigateQuestionFor, showsSearchLimit } from './searchLimit';
 import ReferenceHoverCard from './ReferenceHoverCard';
 import AnswerGraphForMessage from '../AnswerGraph/AnswerGraphForMessage';
 import IconButton from '../Units/HintIconButton';
@@ -108,6 +110,7 @@ import {
   answerOptionsOf,
   extractProgress,
   inferInvestigatePhase,
+  searchLimitOf,
 } from '../../service/LLMAgent';
 import { getCurrentUser } from '../../service/Auth';
 import { answerOptionsForTurn } from './answerOptions';
@@ -160,7 +163,7 @@ import {
     setTierPref,
     subscribeToTierPref,
 } from '../../service/serviceTiers';
-import { refusalNeedsSignIn, refusalText } from '../../utils/refusals';
+import { GUEST_INVESTIGATE_REASON, refusalNeedsSignIn, refusalText } from '../../utils/refusals';
 import {
     attachmentIdsOf,
     defaultQuestionFor,
@@ -1058,6 +1061,11 @@ const MessageCard = React.memo(function MessageCard({
     interactionLocked = false,
     conversationId,
     answerReady = false,
+    /* "Ask in Investigate" under a chat answer whose search was cut short (SearchLimitNotice),
+       with the tier its price is shown at; a guest is asked to sign in instead, so no price. */
+    onAskInInvestigate,
+    investigateTier = '',
+    isGuest = false,
 }) {
     const isAssistant = message.role === "assistant";
     const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
@@ -1235,6 +1243,9 @@ const MessageCard = React.memo(function MessageCard({
         !isInvestigateMessage && (isLoading || thoughtDurationLabel || hasDisplayGroups)
     );
     const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
+    // A chat answer the agent cut short. Never an Investigate answer, never while it is written.
+    const showSearchLimit = !isLoading && !showReloadInMessage && Boolean(onAskInInvestigate)
+        && showsSearchLimit(message);
     const canToggleThoughts = !isLoading && hasDisplayGroups;
     const investigateStageLabels = ['Retrieved', 'Screened', 'Extracted', 'Cited'];
     const resolvedPhase = useMemo(() => {
@@ -1801,6 +1812,17 @@ const MessageCard = React.memo(function MessageCard({
                                         </div>
                                     )}
                         </Box>
+
+                        {/* Outside the answer's markdown on purpose: Copy and Download take
+                            `message.content`, and a selection of the answer stops at its body. */}
+                        {showSearchLimit && (
+                            <SearchLimitNotice
+                                reason={message.searchLimit}
+                                serviceTier={investigateTier}
+                                showPrice={!isGuest}
+                                onAsk={() => onAskInInvestigate(index)}
+                            />
+                        )}
 
                         {isAssistant && (
                             <Stack className="message-action-row" direction="row" mt={2} sx={{ pb: "8px" }}>
@@ -4643,6 +4665,7 @@ function LLMAgent({ isRouteActive = true }) {
                 ),
                 kgQueryList: update.kgQueryList ?? update.kg_query_list ?? [],
                 answerOptions: update.answerOptions ?? answerOptionsOf(update.answer_options),
+                searchLimit: update.searchLimit ?? searchLimitOf(update.search_limit),
                 timestamp,
                 thinkingSteps: existing.thinkingSteps || [],
                 thoughtDurationMs: Date.now() - requestStartedAt,
@@ -5171,6 +5194,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 directCitations: parseDirectCitations(update.directCitations),
                                 kgQueryList: update.kgQueryList || [],
                                 answerOptions: update.answerOptions || {},
+                                searchLimit: update.searchLimit || null,
                                 timestamp: timestamp,
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,
@@ -6063,6 +6087,32 @@ function LLMAgent({ isRouteActive = true }) {
         });
     };
 
+    /* "Ask in Investigate" under a chat answer whose search the agent cut short (see
+       searchLimit.js). The same question — the reader's own words for that turn, without its
+       files, which Investigate does not read — opens a NEW Investigate conversation, handed over
+       exactly as the home composer's Investigate tab hands one over, so the hand-over effect
+       above starts it (releasing, not aborting, anything still being written). The chat
+       conversation stays as it is, one click away in the sidebar. A guest gets the sign-in
+       prompt instead: Investigate needs an account. */
+    const handleAskInInvestigate = (index) => {
+        const question = investigateQuestionFor(chatHistory, index);
+        if (!question) return;
+        trackGtagEvent('search_limit_investigate_click', {
+            reason: chatHistory[index]?.searchLimit || '',
+            guest: isGuest,
+        });
+        if (isGuest) {
+            requireSignIn(GUEST_INVESTIGATE_REASON);
+            return;
+        }
+        trackGtagEvent('investigate_question_submit', {
+            source: 'search_limit_notice',
+            input_method: 'button',
+            queued: false,
+        });
+        navigate(CHAT_NEW_PATH, { state: investigateHandoffState(question, serviceTier) });
+    };
+
     const handleReloadLatest = () => {
         if (isLoading) return;
         const lastIndex = chatHistory.length - 1;
@@ -6219,6 +6269,9 @@ function LLMAgent({ isRouteActive = true }) {
                 interactionLocked={isLoading}
                 conversationId={activeConversationId}
                 answerReady={isStreamingCard && answerReady}
+                onAskInInvestigate={stableAskInInvestigate}
+                investigateTier={serviceTier}
+                isGuest={isGuest}
             />
             </ErrorBoundary>
             );
@@ -6839,6 +6892,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 directCitations: parseDirectCitations(update.directCitations),
                                 kgQueryList: update.kgQueryList || [],
                                 answerOptions: update.answerOptions || {},
+                                searchLimit: update.searchLimit || null,
                                 timestamp,
                                 thinkingSteps: [...localThinkingSteps],
                                 thoughtDurationMs: Date.now() - requestStartedAt,
@@ -7067,6 +7121,7 @@ function LLMAgent({ isRouteActive = true }) {
     const stableDownload = useStableCallback(handleDownloadConversation);
     const stableOpenFeedback = useStableCallback(handleOpenFeedback);
     const stableReloadLatest = useStableCallback(handleReloadLatest);
+    const stableAskInInvestigate = useStableCallback(handleAskInInvestigate);
 
     /* Nothing to show: no conversation restored, nothing streaming, and no question
        handed over from the home page.

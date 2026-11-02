@@ -133,6 +133,7 @@ export const replayTrace = (rawTrace) => {
     let papers = [];
     let kgQueryList = [];
     let answerOptions = {};
+    let searchLimit = null;
 
     const foldProgress = (update, rawContent = '') => {
         phase = mergePhaseMonotonic(
@@ -206,6 +207,9 @@ export const replayTrace = (rawTrace) => {
                 // And what an AI Chat turn asked for (figures, graph): the graph under a chat
                 // answer is drawn only when its turn asked for one.
                 if (Object.keys(update.answerOptions || {}).length) answerOptions = update.answerOptions;
+                // And whether its search was cut short, so a reloaded answer still offers to
+                // ask the question again in Investigate (the recorder keeps `search_limit`).
+                if (update.searchLimit) searchLimit = update.searchLimit;
                 break;
             default:
                 break;
@@ -230,6 +234,7 @@ export const replayTrace = (rawTrace) => {
     }
     if (kgQueryList.length) out.kgQueryList = kgQueryList;
     if (Object.keys(answerOptions).length) out.answerOptions = answerOptions;
+    if (searchLimit) out.searchLimit = searchLimit;
     if (investigate) {
         const complete = trace.complete !== false;
         Object.assign(out, {

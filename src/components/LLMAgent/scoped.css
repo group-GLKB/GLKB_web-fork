@@ -3060,3 +3060,75 @@ button.ip-notify.active { background: var(--color-brand-muted); color: var(--col
 .chat-progress .chat-progress-bar .ip-bar-fill {
     transition: width 0.6s ease;
 }
+
+/* "Ask in Investigate" under a chat answer whose search the agent cut short (SearchLimitNotice).
+   Quiet by design: it is a suggestion beside a finished answer, not an error — muted panel, one
+   outlined action, the price in the action the way the model picker shows prices. */
+.search-limit-notice {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-2, 8px);
+    background: var(--color-background-subtle);
+}
+
+.search-limit-notice-text {
+    flex: 1;
+    margin: 0;
+    font-family: Geist, sans-serif;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-text-secondary);
+}
+
+.search-limit-notice-action {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--color-brand-primary);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--color-brand-primary);
+    font-family: Geist, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 18px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.search-limit-notice-action:hover,
+.search-limit-notice-action:focus-visible {
+    background: #EEF3FF;
+    outline: none;
+}
+
+.search-limit-notice-action .search-limit-notice-icon {
+    font-size: 16px;
+}
+
+.search-limit-notice-price {
+    font-weight: 400;
+    color: var(--color-text-tertiary);
+}
+
+.search-limit-notice-price::before {
+    content: '·';
+    margin-right: 6px;
+}
+
+@media (max-width: 767px) {
+    .search-limit-notice {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-limit-notice-action {
+        justify-content: center;
+    }
+}
