@@ -392,6 +392,31 @@ export const frameToUpdate = (data) => {
             keywords,
             papers,
         };
+    } else if (data.type === 'question_rewritten') {
+        // How an Investigate follow-up was read: the agent resolves "what about in mice?" into
+        // a standalone question before anything else runs, and the whole report answers THAT
+        // question (glkb-agent service/api.py: `step: 'Interpreting the question'`, `original`,
+        // `question`). As a plain step it carried no text and showed nothing, so a misread was
+        // only discovered when the report landed, minutes later. It now becomes a line in the
+        // thoughts and, through `detail.interpreted_as`, a standing line on the progress panel.
+        //
+        // The phase is pinned to planning: inferring it from the text would read the QUESTION's
+        // words ("papers", "analyze", "write") as the run's phase, and phases never go back.
+        const rewritten = typeof data.question === 'string' ? data.question.trim() : '';
+        const original = typeof data.original === 'string' ? data.original.trim() : '';
+        return {
+            type: 'step',
+            step: data.step || 'Interpreting the question',
+            content: rewritten ? `Interpreted as: ${rewritten}` : '',
+            phase: 'planning',
+            funnel: null,
+            percent: null,
+            keywords: null,
+            papers: null,
+            label: '',
+            detail: rewritten ? { interpreted_as: rewritten, original_question: original } : {},
+            isProgress: false,
+        };
     } else if (data.step === 'Thinking') {
         // The opening line, written by a cheap model while the agent is still
         // on its first turn. It is not the answer and never becomes it — the

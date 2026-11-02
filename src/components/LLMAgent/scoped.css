@@ -3244,3 +3244,19 @@ button.ip-notify.active { background: var(--color-brand-muted); color: var(--col
     font-size: 14px;
     line-height: 22px;
 }
+
+/* How an Investigate follow-up was read ("Interpreted as: …"), under the panel's header for the
+   rest of the run (InvestigateProgress). Indented to the title, past the header's icon. */
+.ip-interpreted {
+    margin: 8px 0 0 24px;
+    font-family: Geist, sans-serif;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-text-secondary);
+    overflow-wrap: anywhere;
+}
+
+.ip-interpreted-label {
+    font-weight: 600;
+    color: var(--color-text-tertiary);
+}

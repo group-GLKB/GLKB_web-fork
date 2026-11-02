@@ -73,6 +73,11 @@ export const mergeInvestigateDetail = (prev, next, label) => {
         if (Number.isFinite(Number(next.total))) out.totalSections = Number(next.total);
     }
     if (label) out.label = String(label);
+    // How a follow-up was read (the `question_rewritten` frame). Kept for the rest of the run:
+    // the panel shows it as a standing line, not as the step of the moment.
+    if (typeof next.interpreted_as === 'string' && next.interpreted_as.trim()) {
+        out.interpretedAs = next.interpreted_as.trim();
+    }
     return out;
 };
 

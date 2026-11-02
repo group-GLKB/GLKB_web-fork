@@ -34,3 +34,16 @@ export const resolveClarifyRound = (refRound, stateRound, liveSessionId) => {
         ok: Boolean(sessionId && invocationId && stage),
     };
 };
+
+/**
+ * A transcript without the empty answer its last question is waiting on — what an expired
+ * clarify round's retry is built on. The question stays (it was asked, and the server keeps it);
+ * only the placeholder of an answer that will never come goes, so the retry's own question and
+ * answer follow it instead of an empty bubble.
+ */
+export const withoutPendingAnswer = (messages) => {
+    const list = Array.isArray(messages) ? [...messages] : [];
+    const last = list[list.length - 1];
+    if (last?.role === 'assistant' && !String(last.content ?? '').trim()) list.pop();
+    return list;
+};

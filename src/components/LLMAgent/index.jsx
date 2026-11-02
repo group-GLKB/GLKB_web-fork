@@ -85,7 +85,7 @@ import AnswerGraphForMessage from '../AnswerGraph/AnswerGraphForMessage';
 import IconButton from '../Units/HintIconButton';
 import { splitAnswerForGraph } from '../AnswerGraph/answerGraph';
 import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
-import { resolveClarifyRound } from './clarifyRound';
+import { resolveClarifyRound, withoutPendingAnswer } from './clarifyRound';
 import { sortReferences } from './referenceSort';
 import { resolveReferenceSourceIndex } from './referenceSource';
 import { mintSessionId } from './sessionId';
@@ -2228,6 +2228,10 @@ function LLMAgent({ isRouteActive = true }) {
      */
     const stoppedResumeKeyRef = useRef(null);
     const stopRequestedStreamRef = useRef(null);
+    /* Each submitted run's settlement, by stream id: resolved when its `finally` has run — its
+       registry mark down, its view flags reset. A clarify retry waits on it before starting
+       over in the same conversation (see `submitClarification`). */
+    const runSettledRef = useRef(new Map());
     // The clarify round's identifiers, mirrored out of React state.
     //
     // The panel is answered by POSTing to /clarify with (session_id, invocation_id, stage). Issue
@@ -4401,9 +4405,10 @@ function LLMAgent({ isRouteActive = true }) {
                 ?? (shouldStartNewConversation ? false
                     : getConversationInvestigateMode(targetConversationId, baseHistory)),
         );
-        // Discard expired investigate session on explicit retry (clarify session expiry)
-        const resetInvestigateSession = Boolean(options.resetInvestigateSession);
-        // Keep latest non-expired query options for clarify retry (no session_id reuse)
+        /* The retry of a clarify round whose run is gone (`submitClarification`): `{ sessionId }`,
+           the round's session. It runs on the conversation's own agent session — see below. */
+        const clarifyRetry = options.clarifyRetry || null;
+        // The latest query options, for a clarify retry to run the same way (tier included).
         lastSearchOptionsRef.current = {
             investigateEnabled,
             filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
@@ -4489,6 +4494,18 @@ function LLMAgent({ isRouteActive = true }) {
         if (options.fromComposer) clearComposerAttachments();
         setIsLoading(true);
         setIsProcessing(true);
+        /* A clarify retry replaces the view's run in the same conversation, so `isLoading` may
+           never visibly drop between the two — and the registry effect only marks a run on that
+           transition. Marked here instead, after the expired run took its own mark down. */
+        if (clarifyRetry && !shouldStartNewConversation && targetConversationId != null) {
+            setActiveRun({
+                kind: 'investigate',
+                runId: null,
+                conversationId: String(targetConversationId),
+                sessionId: getStoredSessionId(targetConversationId) || clarifyRetry.sessionId || null,
+                key: streamId,
+            });
+        }
 
         let historyId = targetConversationId;
         if (shouldStartNewConversation && isAuthenticated) {
@@ -4539,9 +4556,20 @@ function LLMAgent({ isRouteActive = true }) {
             runSessionId = getStoredSessionId(historyId) || mintSessionId();
             if (historyId) setStoredSessionId(historyId, runSessionId);
         } else {
-        if (resetInvestigateSession) {
-            sessionIdRef.current = null;
-            setStoredSessionId(historyId, null);
+        /* A clarify retry KEEPS the conversation's agent session. It used to start on a new,
+           empty one (`resetInvestigateSession`, 2026-07), when an expired round meant the agent
+           had lost the session and the retry was not to carry the dead round into the new
+           stream. The agent now keeps the round on disk and asks for exactly this: re-ask
+           `retry_question` on the SAME session (glkb-agent docs/DEEP_RESEARCH_HANDOFF.md §6),
+           which it recreates if it has to. A fresh session cost every later follow-up its
+           history — the deep-research harness reads its prior turns from the session, and the
+           conversation's stored session id was moved to the new, empty one. What the reset
+           protected is still kept out: the expired round itself (cleared below with the rest of
+           the clarify state), and its run, whose id must not be what Stop or a recovery poll
+           addresses from here on. */
+        if (clarifyRetry) {
+            sessionIdRef.current = getStoredSessionId(historyId) || clarifyRetry.sessionId || sessionIdRef.current;
+            runIdRef.current = null;
         } else {
             sessionIdRef.current = getStoredSessionId(historyId) || sessionIdRef.current;
         }
@@ -4726,6 +4754,8 @@ function LLMAgent({ isRouteActive = true }) {
             clearActiveRunSnapshot(runConversationId);
             return true;
         };
+        let markRunSettled = () => {};
+        runSettledRef.current.set(streamId, new Promise((resolve) => { markRunSettled = resolve; }));
         try {
             logDev('[LLM] submit', { input: inputText });
 
@@ -5633,10 +5663,15 @@ function LLMAgent({ isRouteActive = true }) {
                 setClarificationError('');
                 setClarificationSubmitting(false);
             }
+            runSettledRef.current.delete(streamId);
+            markRunSettled();
         }
         // The turn was started; a queued follow-up that reaches here must not be re-queued.
         return true;
     };
+    // The latest `handleSubmit`, for callbacks that must not hold a stale one: the clarify retry
+    // below, the composer's send and the queue (`submitOrQueue`, `useQueueDispatch`).
+    const stableSubmit = useStableCallback(handleSubmit);
 
     const updateClarificationDraft = useCallback((questionKey, nextDraft) => {
         setClarificationDrafts((prev) => ({
@@ -5713,8 +5748,37 @@ function LLMAgent({ isRouteActive = true }) {
                 if (retryQuestion) {
                     message.info('Clarification session expired. Restarting with your answers applied.');
                     const prior = lastSearchOptionsRef.current || {};
-                    handleSubmit(null, retryQuestion, null, {
-                        resetInvestigateSession: true,
+                    /* The run that asked is gone — the agent has no run waiting for this round
+                       (its process restarted, or this answer reached another worker) — but it
+                       kept the round, applied the answers, and handed back the question to ask
+                       again. This view still follows that run, and its conversation is still
+                       marked as answering, which refuses a second turn: so let go of it first.
+                       Client-side only — the agent has said the run is not there, and a server
+                       Stop would be charged to the reader as theirs. The retry then waits for the
+                       run's own `finally` (its mark comes down there) before starting. A
+                       reattached view has no request of its own to settle; its mark goes here,
+                       and its polling yields to the retry's live stream. */
+                    const conversationId = runningConversationIdRef.current
+                        ?? activeConversationIdRef.current
+                        ?? null;
+                    const expiredStreamId = activeStreamIdRef.current;
+                    const expiredRunSettled = expiredStreamId
+                        ? runSettledRef.current.get(expiredStreamId)
+                        : null;
+                    if (abortControllerRef.current) abortControllerRef.current.abort();
+                    if (expiredRunSettled) {
+                        await expiredRunSettled;
+                    } else if (conversationId != null) {
+                        forgetRun(String(conversationId));
+                    }
+                    const transcript = runningChatHistoryRef.current?.length
+                        ? runningChatHistoryRef.current
+                        : getStoredChatHistory(conversationId);
+                    stableSubmit(null, retryQuestion, null, {
+                        // On the conversation's own agent session — see `handleSubmit`.
+                        clarifyRetry: { sessionId: sessionId || null },
+                        conversationId,
+                        baseHistory: withoutPendingAnswer(transcript),
                         searchOptions: {
                             investigateEnabled: true,
                             filters: prior.filters,
@@ -5734,7 +5798,7 @@ function LLMAgent({ isRouteActive = true }) {
             setClarificationError(String(detail));
             setClarificationSubmitting(false);
         }
-    }, [clarificationDrafts, llmService, pendingClarification]);
+    }, [applyPendingClarification, clarificationDrafts, llmService, pendingClarification, stableSubmit]);
 
     // Resume completed DR runs if the tab was backgrounded / SSE dropped quietly
     useEffect(() => {
@@ -6595,10 +6659,7 @@ function LLMAgent({ isRouteActive = true }) {
         message.success('Q&A downloaded');
     };
 
-    // Declared here, after every handler above exists, and read by `renderMessages` — which is
-    // defined earlier but only called from the JSX below. Without these the memo on MessageCard
-    // never held: six props were a new function on every render.
-    const stableSubmit = useStableCallback(handleSubmit);
+    // `stableSubmit` is declared right after `handleSubmit`; the clarify retry needs it too.
 
     /**
      * Send now, or queue if an answer is still being written.

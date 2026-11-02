@@ -573,6 +573,7 @@ const InvestigateProgress = ({
         [],
     );
     const safeFunnel = funnel || {};
+    const interpretedAs = typeof detail?.interpretedAs === 'string' ? detail.interpretedAs.trim() : '';
     const meta = INVESTIGATE_PHASE_META[phase] || INVESTIGATE_PHASE_META.planning;
     const idx = phaseIndex(phase);
     // Stops for a clarify round too: the seconds a reader spends answering the question are
@@ -774,6 +775,18 @@ const InvestigateProgress = ({
                     />
                 </Box>
             </Box>
+
+            {/* How a follow-up was read — the agent turns "and in mice?" into a standalone
+                question first, and the whole report answers that. Shown for the rest of the run,
+                above the collapsible body, so a misreading is visible now rather than when the
+                report lands minutes later. */}
+            {interpretedAs ? (
+                <p className="ip-interpreted">
+                    <span className="ip-interpreted-label">Interpreted as:</span>
+                    {' '}
+                    {interpretedAs}
+                </p>
+            ) : null}
 
             {/* Hidden when collapsed, NOT unmounted. Every counter's memory — the value it is
                 showing, the fact that it has already counted up, and where its ramp had got to —
