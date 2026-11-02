@@ -1,6 +1,6 @@
 /**
- * The composer's line about the reader's credits (service/credits.js `creditNotice`), as Claude
- * shows its usage: a quiet "10 credits left this month. … come back on Dec 1." once the month runs
+ * The composer's notice about the reader's credits (service/credits.js `creditNotice`), as Claude
+ * shows its usage — a tab floating on the composer's top edge, with an × to close it: a quiet "10 credits left this month. … come back on Dec 1." once the month runs
  * low, and a plain "An Investigate run on GPT-6.1 Terra costs 30 credits and you have 10 left. …"
  * when the question as set up cannot be paid for. Sending it then opens `CreditDialog` instead of
  * starting anything, so the reader is not left to find out from a refused answer (or, as on
@@ -13,6 +13,7 @@ import './scoped.css';
 
 import React, { useEffect, useState } from 'react';
 
+import CloseIcon from '@mui/icons-material/Close';
 import {
     Button,
     Dialog,
@@ -66,8 +67,46 @@ export const useCreditNotice = ({ pipeline, tierId, enabled = true }) => {
     return enabled ? noticeFor(usage, pricing, pipeline, tierId) : null;
 };
 
+/* A notice the reader closed stays closed for the browser session — across the home page and
+   the chat page — until it changes: another answer spends credits (a new number), or the mode or
+   model now cannot be paid for. Keyed by its words for that reason. */
+const DISMISSED_KEY = 'glkb_credit_notice_dismissed';
+
+const DISMISS_EVENT = 'glkb-credit-notice-dismiss';
+
+const readDismissed = () => {
+    try {
+        return sessionStorage.getItem(DISMISSED_KEY) || '';
+    } catch (error) {
+        return '';
+    }
+};
+
+// Both composers can be mounted at once (the chat page stays alive behind the home page), so a
+// close in one is told to the other.
+const dismiss = (key) => {
+    try {
+        sessionStorage.setItem(DISMISSED_KEY, key);
+    } catch (error) {
+        /* storage blocked: closed for this page load only */
+    }
+    window.dispatchEvent(new CustomEvent(DISMISS_EVENT, { detail: key }));
+};
+
 const CreditNotice = ({ notice, source = '' }) => {
+    const [dismissed, setDismissed] = useState(readDismissed);
+    useEffect(() => {
+        const onDismiss = (event) => setDismissed(event.detail);
+        window.addEventListener(DISMISS_EVENT, onDismiss);
+        return () => window.removeEventListener(DISMISS_EVENT, onDismiss);
+    }, []);
     if (!notice) return null;
+    const key = `${notice.level}:${notice.text}`;
+    if (dismissed === key) return null;
+    const close = () => {
+        dismiss(key);
+        trackGtagEvent('credit_notice_close', { source, level: notice.level });
+    };
     return (
         <div className={`credit-notice credit-notice-${notice.level}`} role="status">
             <span className="credit-notice-text">{notice.text}</span>
@@ -83,6 +122,17 @@ const CreditNotice = ({ notice, source = '' }) => {
                     Buy credits
                 </a>
             )}
+            <button
+                type="button"
+                className="credit-notice-close"
+                aria-label="Dismiss"
+                title="Dismiss"
+                // The home composer's box focuses its field on any mousedown it sees.
+                onMouseDown={(event) => event.stopPropagation()}
+                onClick={(event) => { event.stopPropagation(); close(); }}
+            >
+                <CloseIcon fontSize="inherit" />
+            </button>
         </div>
     );
 };

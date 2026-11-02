@@ -468,6 +468,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 takeFiles(filesFromTransfer(event.dataTransfer));
             }}
             sx={{
+                // The credit notice floats off this box's top edge (Units/CreditNotice).
+                position: 'relative',
                 width: '100%',
                 display: 'flex',
                 gap: 2,
@@ -481,6 +483,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 borderColor: 'var(--color-border-default)',
                 boxShadow: 'none',
             }}>
+            <CreditNotice notice={creditNotice} source="home_searchbar" />
             <Autocomplete
                 freeSolo
                 fullWidth
@@ -540,7 +543,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 disabled={isInputLocked}
                             />
                         )}
-                        <CreditNotice notice={creditNotice} source="home_searchbar" />
                         <AttachmentChips
                             variant="design"
                             items={attachments.items}

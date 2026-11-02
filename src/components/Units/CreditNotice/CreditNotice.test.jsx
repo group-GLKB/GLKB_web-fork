@@ -83,6 +83,29 @@ describe('the composer credit notice', () => {
         rerender(<CreditNotice notice={{ level: 'low', text: '10 credits left this month.' }} />);
         expect(screen.getByRole('status').textContent).toBe('10 credits left this month.');
         expect(screen.getByRole('status').className).toContain('credit-notice-low');
+        rerender(<CreditNotice notice={null} />);
+    });
+});
+
+describe('closing the notice', () => {
+    beforeEach(() => sessionStorage.clear());
+    const low = { level: 'low', text: '10 credits left this month.' };
+
+    it('hides it, in every composer, until it says something else', () => {
+        const { rerender } = render(<><CreditNotice notice={low} /><CreditNotice notice={low} /></>);
+        expect(screen.getAllByRole('status')).toHaveLength(2);
+        fireEvent.click(screen.getAllByRole('button', { name: 'Dismiss' })[0]);
+        expect(screen.queryByRole('status')).toBeNull();
+        // Another answer spent credits: a new number, so it is back.
+        rerender(<><CreditNotice notice={{ level: 'low', text: '5 credits left this month.' }} /></>);
+        expect(screen.getByRole('status').textContent).toBe('5 credits left this month.');
+    });
+
+    it('stays closed for the session', () => {
+        render(<CreditNotice notice={low} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+        const { container } = render(<CreditNotice notice={low} />);
+        expect(container.innerHTML).toBe('');
     });
 });
 
