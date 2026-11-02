@@ -1,8 +1,9 @@
 /** The home composer is where most visitors meet the product. Since guest mode reopened
- *  (2026-10-03) a guest may ask here — Chat at Medium effort on GPT-6.1 Terra or GPT-6 Luna —
- *  and is asked to sign in when they reach past that: GPT-6.1 Sol, or Extra effort. */
+ *  (2026-10-03) a guest may ask here — Chat on GPT-6.1 Terra or GPT-6 Luna, 10 questions in all
+ *  since 2026-10-09 — and is asked to sign in when they reach past that: GPT-6.1 Sol, or
+ *  Investigate. */
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import LlmSearchBar from './LlmSearchBarHome';
@@ -55,16 +56,6 @@ const renderBar = (props = {}) => render(
 
 const searchOptionsChip = () => document.querySelector('button.composer-options-trigger');
 const optionsPanels = () => Array.from(document.querySelectorAll('.composer-options-drawer'));
-const effortChip = () => document.querySelector('button.effort-chip');
-const openMenu = async () => {
-    await waitFor(() => expect(effortChip()).not.toBeDisabled());
-    fireEvent.click(effortChip());
-};
-const pickExtra = async () => {
-    await openMenu();
-    fireEvent.click(document.querySelector('.effort-sub-row'));
-    fireEvent.click(screen.getByRole('menuitemradio', { name: /^Extra/ }));
-};
 /* The drawers stay mounted when closed, so "did it open" is a question about visibility
    rather than about the DOM containing the panel. */
 const isVisible = (node) => {
@@ -130,31 +121,31 @@ describe('a guest at the home composer', () => {
 
     it('picking GPT-6.1 Sol asks them to sign in', async () => {
         renderBar();
-        await openMenu();
-        expect(screen.getByRole('menuitemradio', { name: /GPT-6.1 Sol/ })).toHaveTextContent('Sign in');
-        fireEvent.click(screen.getByRole('menuitemradio', { name: /GPT-6.1 Sol/ }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Model: GPT-6.1 Terra' }));
+        expect(screen.getByRole('option', { name: /GPT-6.1 Sol/ })).toHaveTextContent('Sign in');
+        fireEvent.click(screen.getByRole('option', { name: /GPT-6.1 Sol/ }));
         expect(mockAuth.openLoginModal).toHaveBeenCalledWith(expect.stringMatching(/GPT-6.1 Sol is available to signed-in users/));
     });
 
     it('may pick GPT-6 Luna, and the question is sent on Standard', async () => {
         renderBar();
-        await openMenu();
-        fireEvent.click(screen.getByRole('menuitemradio', { name: /GPT-6 Luna/ }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Model: GPT-6.1 Terra' }));
+        fireEvent.click(screen.getByRole('option', { name: /GPT-6 Luna/ }));
         expect(mockAuth.openLoginModal).not.toHaveBeenCalled();
-        expect(effortChip()).toHaveTextContent('GPT-6 Luna · Medium');
+        expect(await screen.findByRole('button', { name: 'Model: GPT-6 Luna' })).toBeInTheDocument();
         typeQuestion('What is BRCA1?');
         startChat();
         expect(mockNavigate.mock.calls[0][1].state.initialSearchOptions.serviceTier).toBe('standard');
     });
 
-    it('picking Extra effort asks them to sign in, and the question stays at Medium', async () => {
+    it('turning on Investigate asks them to sign in, and the question stays Chat', () => {
         renderBar();
-        await pickExtra();
+        fireEvent.click(screen.getByTitle('Investigate off'));
 
         expect(mockAuth.openLoginModal).toHaveBeenCalledWith(
-            "Extra effort is available to signed-in users. Sign in to use it — it's free.",
+            "Investigate is available to signed-in users. Sign in to use it — it's free.",
         );
-        expect(effortChip()).toHaveTextContent('· Medium');
+        expect(screen.getByTitle('Investigate off')).toBeInTheDocument();
 
         mockAuth.openLoginModal.mockClear();
         typeQuestion('What is BRCA1?');
@@ -182,12 +173,12 @@ describe('a signed-in reader at the same composer', () => {
         expect(mockAuth.openLoginModal).not.toHaveBeenCalled();
     });
 
-    it('can pick Extra effort', async () => {
+    it('can turn on Investigate', () => {
         mockAuth.isAuthenticated = true;
         renderBar();
-        await pickExtra();
+        fireEvent.click(screen.getByTitle('Investigate off'));
 
-        expect(effortChip()).toHaveTextContent('· Extra');
+        expect(screen.getByTitle('Investigate on')).toBeInTheDocument();
         expect(mockAuth.openLoginModal).not.toHaveBeenCalled();
     });
 

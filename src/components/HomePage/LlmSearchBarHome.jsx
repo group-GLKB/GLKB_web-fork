@@ -21,7 +21,6 @@ import { CHAT_NEW_PATH } from '../../config/entryRoutes';
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { trackGtagEvent } from '../../utils/gtag';
 import TierPicker from '../Units/TierPicker';
-import EffortPicker, { chooseEffort, EffortLevels } from '../Units/EffortPicker';
 import ComposerOptions, {
     answerFlags,
     DEFAULT_COMPOSER_OPTIONS,
@@ -39,16 +38,6 @@ import {
     useAttachments,
 } from '../Units/AttachmentChips';
 import { effectiveTier, getTierPref, setTierPref } from '../../service/serviceTiers';
-import {
-    DEFAULT_EFFORT,
-    EFFORT_EXTRA,
-    effortLabel,
-    effortLevel,
-    getEffortPref,
-    isDeepEffort,
-    setEffortPref,
-    subscribeToEffortPref,
-} from '../../service/effortLevels';
 import { GUEST_INVESTIGATE_REASON, GUEST_REVIEW_REASON } from '../../utils/refusals';
 import ComposerModes, { COMPOSER_MODES, ModePill, ModeSheet } from './ComposerModes';
 import ReviewScope, { initialScope } from './ReviewScope';
@@ -56,6 +45,7 @@ import { setStylePref } from '../LiteratureReview/citationStyle';
 import {
     defaultQuestionFor,
     GUEST_ATTACH_REASON,
+    INVESTIGATE_ATTACH_NOTE,
     MAX_FILES_PER_MESSAGE,
     PAPER_ACCEPT,
     PAPER_FORMATS_TEXT,
@@ -73,33 +63,27 @@ const REVIEW_ATTACH = {
 
 const MODE_SHEET_SEEN_KEY = 'glkb-mode-sheet-seen-v1';
 
-// The room the "Extra doesn't read attached files" row takes above the control row.
+// The room the "Investigate doesn't read attached files" row takes above the control row.
 const CONFLICT_ROW = 46;
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
-    /* The composer's mode: Chat or Literature Review, picked on the tabs along its top edge
-       (ComposerModes). Literature Review exists only behind its flag (config/features.js).
-       Investigate is no longer a mode (2026-10-27, design GLKB Effort A): it is the chat's
-       Extra effort, picked in the model-and-effort menu. */
+    /* The composer's mode: Chat, Investigate or Literature Review, picked on the tabs along
+       its top edge (ComposerModes). Investigate and Literature Review each exist only behind
+       their flag (config/features.js); with both off there are no tabs and every question is
+       a chat question, as before. (Investigate was the chat's "Extra effort" from 2026-10-27
+       to 2026-11-01; it is a mode again, by the product owner's decision.) */
     const [mode, setMode] = useState('chat');
-    /* How hard the chat works on the question (service/effortLevels.js): Medium runs the chat
-       agent, Extra deep research. One preference with the chat page's composer. */
-    const [effort, setEffort] = useState(() => getEffortPref());
-    useEffect(() => subscribeToEffortPref(setEffort), []);
-    const changeEffort = (next) => {
-        setEffort(next);
-        setEffortPref(next);
-    };
     /* On a phone the modes are picked in a bottom sheet from the pill in the composer's row. Its
        dot says there is more than Chat, until the reader has opened the sheet once. */
     const [modeSheetOpen, setModeSheetOpen] = useState(false);
     const [modeSheetSeen, setModeSheetSeen] = useState(() => {
         try { return window.localStorage.getItem(MODE_SHEET_SEEN_KEY) === '1'; } catch { return false; }
     });
+    const investigateEnabled = INVESTIGATE_ENABLED && mode === 'investigate';
     const reviewEnabled = LITERATURE_REVIEW_ENABLED && mode === 'review';
-    const investigateEnabled = INVESTIGATE_ENABLED && !reviewEnabled && isDeepEffort(effort);
-    const modes = ['chat', LITERATURE_REVIEW_ENABLED && 'review'].filter(Boolean);
+    const modes = ['chat', INVESTIGATE_ENABLED && 'investigate', LITERATURE_REVIEW_ENABLED && 'review']
+        .filter(Boolean);
     const hasModeTabs = modes.length > 1;
     // A review's scope and model, handed to the Literature Review page with the topic.
     const [reviewScope, setReviewScope] = useState(initialScope);
@@ -120,46 +104,41 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
        is the other half — the examples are often already open, because focusing the box opens
        them, and then the menu lands on top of a list the reader cannot use. */
     const [tierMenuOpen, setTierMenuOpen] = useState(false);
-    /* A guest may ask (guest mode, 2026-10-03): Chat at Medium effort on GPT-6.1 Terra or GPT-6
-       Luna, 10 credits in all; Extra and Literature Review need an account. Reaching past any of
-       it opens the sign-in overlay with the reason on it. */
+    /* A guest may ask (guest mode, 2026-10-03): Chat on GPT-6.1 Terra or GPT-6 Luna, 10
+       questions in all (since 2026-10-09); Investigate and Literature Review need an account.
+       Reaching past any of it opens the sign-in overlay with the reason on it. */
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
     const isGuest = !authLoading && !isAuthenticated;
     const navigate = useNavigate();
 
-    /* Picking a mode. A guest has Chat only (2026-10-09): the Literature Review tab opens the
-       sign-in overlay with its reason and the mode stays Chat. "investigate", which a prefill
-       may still ask for, is Chat at Extra effort. */
+    /* Picking a mode. A guest has Chat only (2026-10-09): either research tab opens the
+       sign-in overlay with its reason and the mode stays Chat. Entering Investigate is tracked
+       as the old chip's "enable" was, and every Investigate on/off as its toggle was. */
     const changeMode = (next) => {
-        if (next === 'investigate') {
-            if (isGuest) { openLoginModal(GUEST_INVESTIGATE_REASON); return; }
-            trackGtagEvent('home_investigate_enable_click', { source: 'home_searchbar' });
-            changeEffort(EFFORT_EXTRA);
-            if (mode !== 'chat') setMode('chat');
-            return;
-        }
         if (next === mode) return;
+        if (isGuest && next === 'investigate') { openLoginModal(GUEST_INVESTIGATE_REASON); return; }
         if (isGuest && next === 'review') { openLoginModal(GUEST_REVIEW_REASON); return; }
+        if (next === 'investigate') {
+            trackGtagEvent('home_investigate_enable_click', { source: 'home_searchbar' });
+        }
+        if (next === 'investigate' || mode === 'investigate') {
+            trackGtagEvent('home_investigate_toggle_click', { enabled: next === 'investigate' });
+        }
         trackGtagEvent('home_composer_mode_click', { mode: next });
         setMode(next);
     };
     const { onModeChange } = props;
-    // The page shows each mode's examples under the box; Chat at Extra gets Investigate's.
-    useEffect(() => {
-        onModeChange?.(investigateEnabled ? 'investigate' : mode);
-    }, [mode, investigateEnabled, onModeChange]);
+    useEffect(() => { onModeChange?.(mode); }, [mode, onModeChange]);
     // A prefill from outside (the news strip's "Try it") can ask for a mode too.
     useEffect(() => {
-        const requested = props.requestedMode?.mode;
-        if (requested && (modes.includes(requested) || (requested === 'investigate' && INVESTIGATE_ENABLED))) {
-            changeMode(requested);
-        }
+        if (props.requestedMode && modes.includes(props.requestedMode.mode)) changeMode(props.requestedMode.mode);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [props.requestedMode]);
     /* Images and PDFs on the first question (service/attachments.js). Uploaded as they are
        picked; the question hands their ids to the chat in its navigation state. Signed-in
-       readers only. Extra effort (deep research) does not read them: the composer says so and
-       offers Medium or removing them. On Literature Review the files are the reader's own papers
+       readers only, and not on Investigate, which does not read them: its "+" is off, and files
+       already waiting when the reader switches to it hold the send back, with a note offering
+       Chat or removing them. On Literature Review the files are the reader's own papers
        (documents only, up to 50), handed to the review page. */
     const attachments = useAttachments({
         onRequireSignIn: () => openLoginModal(GUEST_ATTACH_REASON),
@@ -169,7 +148,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     // The app shell and HomePage both switch at 767px. A separate 600px
     // threshold mixed the mobile page with the PC search controls.
     const isMobileLayout = useMediaQuery('(max-width:767px)');
-    // Literature Review says what the button does (shorter on a phone); Chat keeps the bare arrow.
+    // Investigate and Literature Review say what the button does (shorter on a phone); Chat
+    // keeps the bare arrow.
     const modeAction = (isMobileLayout ? COMPOSER_MODES[mode]?.mobileAction : COMPOSER_MODES[mode]?.action) || '';
     /* The review's scope chips sit in the composer on a wide screen only: on a phone the review
        page's "Set up your review" is where they are set (the phone design), so the box keeps its size. */
@@ -189,8 +169,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const scopeRows = scopeHeight ? scopeHeight + 8 : (isMobileLayout ? 96 : 52);
     const composerMinHeight = `${(isMobileLayout ? 148 : 120) + (scopeInComposer ? scopeRows : 0)}px`;
     const inputTimeoutRef = React.useRef(null);
-    // The composer's box: the model-and-effort menu hangs off its lower edge.
-    const composerBoxRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
     const lastPrefillRef = React.useRef(undefined);
     const queryOriginRef = React.useRef('typed');
@@ -207,9 +185,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
        The quota is a different matter and still locks: there is no run to start at all. */
     // A guest at the limit keeps a live box: sending opens the sign-in overlay instead.
     const isInputLocked = isQueryLimitReached && !isGuest;
-    // Extra does not read attachments (AttachConflict says so); Literature Review reads them as
-    // the reader's papers.
-    const attachConflict = investigateEnabled && attachments.hasItems;
+    // Investigate does not read attachments (AttachConflict says so); Literature Review reads
+    // them as the reader's papers.
+    const attachmentsOffForMode = investigateEnabled;
+    const attachConflict = attachmentsOffForMode && attachments.hasItems;
     const attachmentNote = attachmentBlockedNote(attachments, {
         review: reviewEnabled,
         maxFiles: reviewEnabled ? REVIEW_PAPER_LIMITS.maxFiles : MAX_FILES_PER_MESSAGE,
@@ -224,7 +203,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             openLoginModal(GUEST_ATTACH_REASON);
             return;
         }
-        if (isInputLocked) return;
+        if (attachmentsOffForMode || isInputLocked) return;
         attachments.addFiles(files);
     };
     useEffect(() => {
@@ -281,8 +260,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     );
 
     const buildSearchOptionsPayload = () => {
-        // Extra (deep research) ignores filters / ranking_mode and does figures and the graph on
-        // its own, so it is sent the defaults; the tier survives: it is priced, and run, by it.
+        // Investigate (deep research) ignores filters / ranking_mode and does figures and the
+        // graph on its own, so it is sent the defaults; the tier survives: it is priced, and run,
+        // by it.
         if (investigateEnabled) {
             return {
                 filters: [],
@@ -296,7 +276,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             investigateEnabled,
             serviceTier: effectiveTier(serviceTier, { isGuest }),
             // Only when on, so a request that asks for neither is the request it always was.
-            ...answerFlags(composerOptions, effort),
+            ...answerFlags(composerOptions),
         };
     };
 
@@ -373,7 +353,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         }
     };
     const optionsDot = optionsChanged(composerOptions);
-    // Literature Review has no tools or filters; on a phone its sheet still holds the model.
+    /* Literature Review has no tools or filters; on a phone its sheet still holds the model.
+       Investigate keeps the button: its drawer says the tools are always on and the filters do
+       not apply. */
     const optionsForChat = !reviewEnabled;
 
     const openSearchOptions = () => {
@@ -405,21 +387,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         setOptionsOpen(false);
     };
 
-    const requireSignIn = (kind, entry) => {
+    const requireModelSignIn = (tier) => {
         setOptionsOpen(false);
-        if (kind === 'effort') {
-            openLoginModal(GUEST_INVESTIGATE_REASON);
-            return;
-        }
         openLoginModal(
-            `${entry?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`,
+            `${tier?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`,
         );
-    };
-
-    // Picked in the menu. Entering Extra is tracked as entering Investigate always was.
-    const pickEffort = (next) => {
-        if (isDeepEffort(next)) trackGtagEvent('home_investigate_enable_click', { source: 'home_searchbar' });
-        changeEffort(next);
     };
 
     const changeTier = (tierId) => {
@@ -433,40 +405,27 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             value={serviceTier}
             onChange={changeTier}
             onResolveDefault={setServiceTier}
-            // Each pipeline has its own prices: a review, a chat, an Extra (deep research) one.
+            // Each pipeline has its own prices: switching to Investigate re-prices the list (an
+            // Investigate query costs more per tier). A review has the same tiers.
             pipeline={reviewEnabled ? 'literature_review'
                 : investigateEnabled ? 'deep_research' : 'chat'}
             onOpenChange={setTierMenuOpen}
             disabled={isInputLocked}
             isGuest={isGuest}
-            onRequireSignIn={(tier) => requireSignIn('model', tier)}
+            onRequireSignIn={requireModelSignIn}
         />
     );
 
-    // The phone's sheet carries the model (and in Chat the effort): its row has no room for the chip.
+    // The phone's sheet carries the model: its row has no room for the chip.
     const phoneOptionsHead = isMobileLayout ? (
         <>
             <div className="composer-options-group-title">Model</div>
             <div className="composer-options-group">{tierPicker('list')}</div>
-            {optionsForChat && INVESTIGATE_ENABLED && (<>
-                <div className="composer-options-group-title">Effort</div>
-                <div className="composer-options-group effort-sheet-levels">
-                    <EffortLevels
-                        effort={effort}
-                        isGuest={isGuest}
-                        hasFiles={attachments.hasItems}
-                        onPick={(level) => chooseEffort({
-                            level, effort, isGuest, onEffortChange: pickEffort, onRequireSignIn: requireSignIn,
-                        })}
-                    />
-                </div>
-            </>)}
         </>
     ) : null;
 
     return (
         <Box
-            ref={composerBoxRef}
             className={`llm-searchbar${isDragOver ? ' attachment-drop-target' : ''}`}
             onDragOver={(event) => {
                 if (!dragHasFiles(event)) return;
@@ -554,7 +513,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 mode={mode}
                                 onChange={changeMode}
                                 disabled={isInputLocked}
-                                duration={mode === 'chat' ? effortLevel(effort)?.time : undefined}
                             />
                         )}
                         <AttachmentChips
@@ -570,7 +528,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 /* Files of any type attach; a very long text becomes "Pasted
                                    text.txt" (as in Claude) where a file could be attached. */
                                 const files = pastedAttachments(event.clipboardData, {
-                                    longText: !isGuest && !isInputLocked,
+                                    longText: !isGuest && !attachmentsOffForMode && !isInputLocked,
                                 });
                                 if (!files.length) return;
                                 event.preventDefault();
@@ -648,10 +606,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 bottom: (isMobileLayout ? 60 : 56) + 'px',
                             }}>
                                 <AttachConflict
-                                    effortName={effortLabel(effort)}
-                                    fallbackName={effortLabel(DEFAULT_EFFORT)}
+                                    modeName={COMPOSER_MODES.investigate.label}
+                                    fallbackName={COMPOSER_MODES.chat.label}
                                     count={attachments.items.length}
-                                    onUseFallback={() => changeEffort(DEFAULT_EFFORT)}
+                                    onUseFallback={() => changeMode('chat')}
                                     onRemoveFiles={() => attachments.clear()}
                                 />
                             </Box>
@@ -695,7 +653,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         {...(reviewEnabled ? REVIEW_ATTACH : { label: 'Attach PDF, figure or spreadsheet' })}
                                         isGuest={isGuest}
                                         onRequireSignIn={() => openLoginModal(GUEST_ATTACH_REASON)}
-                                        disabled={isInputLocked}
+                                        disabled={attachmentsOffForMode || isInputLocked}
+                                        disabledReason={attachmentsOffForMode ? INVESTIGATE_ATTACH_NOTE : ''}
                                         source="home_searchbar"
                                     />
                                 </Box>
@@ -721,8 +680,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     pointerEvents: 'auto',
                                 }}
                             >
-                                {/* The model-and-effort chip (Chat) or the model chip (Literature Review),
-                                    then Options. Wrapped in a click guard: the row sits inside the
+                                {/* The model chip, then Options. The model is offered in every mode:
+                                    Investigate discards filters and ranking, but it is priced and run
+                                    by the tier. Wrapped in a click guard: the row sits inside the
                                     Autocomplete, whose root focuses the input on any click it sees,
                                     and `openOnFocus` then drops the example list open over the very
                                     menu the reader was aiming at. `preventDefault` on mousedown keeps
@@ -738,22 +698,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     }}
                                     sx={{ display: isMobileLayout ? 'none' : 'inline-flex', alignItems: 'center', gap: '8px', minWidth: 0, flexShrink: 0 }}
                                 >
-                                    {!isMobileLayout && (optionsForChat ? (
-                                        <EffortPicker
-                                            tier={serviceTier}
-                                            onTierChange={changeTier}
-                                            onTierResolveDefault={setServiceTier}
-                                            effort={effort}
-                                            onEffortChange={pickEffort}
-                                            isGuest={isGuest}
-                                            onRequireSignIn={requireSignIn}
-                                            hasFiles={attachments.hasItems}
-                                            placement="down"
-                                            anchorRef={composerBoxRef}
-                                            disabled={isInputLocked}
-                                            onOpenChange={setTierMenuOpen}
-                                        />
-                                    ) : tierPicker())}
+                                    {!isMobileLayout && tierPicker()}
                                     {optionsForChat && !isMobileLayout && (
                                         <OptionsButton
                                             open={optionsOpen}
@@ -764,7 +709,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 </Box>
 
                                 {/* The phone's Options: an icon alone, opening the sheet that holds the
-                                    model, the effort and the tools. */}
+                                    model and the tools. */}
                                 {isMobileLayout && (
                                     <OptionsButton
                                         compact
@@ -821,7 +766,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         <ComposerOptions
                             open={optionsOpen}
                             onClose={closeSearchOptions}
-                            effort={effort}
+                            investigate={investigateEnabled}
                             value={composerOptions}
                             onChange={setComposerOptions}
                             onReset={() => setComposerOptions(DEFAULT_COMPOSER_OPTIONS)}

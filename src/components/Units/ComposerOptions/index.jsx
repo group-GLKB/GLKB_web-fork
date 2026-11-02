@@ -3,15 +3,14 @@
  * drawer it opens: Research tools (Knowledge Graph, Figures: Off / Auto / On) and Search filters
  * (article type, sort).
  *
- * What the choices send (`answerFlags`, `searchFilters`):
- *   Knowledge Graph  -> `graph: true`   (the answer's knowledge-graph view). Auto: on from Medium up.
- *   Figures          -> `figures: true` (figures from the cited papers). Auto: on from High up,
- *                                         so off at Medium.
- * Extra (deep research) always includes both and runs its own retrieval, so at Extra the tools
- * say so and the filters give way to a note.
+ * What the choices send in Chat (`answerFlags`, `searchFilters`):
+ *   Knowledge Graph  -> `graph: true`   (the answer's knowledge-graph view). Auto: on.
+ *   Figures          -> `figures: true` (figures from the cited papers). Auto: off.
+ * Investigate (deep research) always includes both and runs its own retrieval, so in Investigate
+ * the tools say so, the filters give way to a note, and neither is sent.
  *
- * `children` renders above Research tools: the phone puts the model and the effort there, its
- * composer row having no room for the chip.
+ * `children` renders above Research tools: the phone puts the model there, its composer row
+ * having no room for the chip.
  */
 import './scoped.css';
 
@@ -19,7 +18,6 @@ import React from 'react';
 
 import { Drawer } from '@mui/material';
 
-import { effortLabel, isDeepEffort } from '../../../service/effortLevels';
 import { ReactComponent as BarChartIcon } from '../../../img/llm/bar_chart.svg';
 import { ReactComponent as GraphIcon } from '../../../img/llm/graph_share.svg';
 import { ReactComponent as SearchOptionsIcon } from '../../../img/llm/search_options.svg';
@@ -40,14 +38,14 @@ const TOOLS = [
         label: 'Knowledge Graph',
         Icon: GraphIcon,
         description: "Show how GLKB's knowledge graph connects the entities in the answer.",
-        hint: 'Auto uses it from Medium effort up.',
+        hint: 'Auto includes it in Chat answers.',
     },
     {
         key: 'fig',
         label: 'Figures',
         Icon: BarChartIcon,
         description: 'Add figures from the papers the answer cites to illustrate key findings.',
-        hint: 'Auto adds figures from High effort up.',
+        hint: 'Auto leaves them out of Chat answers; choose On to add them.',
     },
 ];
 
@@ -64,18 +62,21 @@ const FILTERS = [
     },
 ];
 
-// Auto's rule: the knowledge graph from Medium up, figures from High up.
-const AUTO_FROM = { kg: ['medium', 'high', 'extra', 'max'], fig: ['high', 'extra', 'max'] };
+/* What Auto means in Chat: the knowledge graph on, figures off. (Auto was set per effort level
+   until 2026-11-01; these are what it gave the chat agent, so a Chat question sends what it did.) */
+const AUTO_ON = { kg: true, fig: false };
 
-const toolOn = (key, choice, effort) => choice === 'on' || (choice === 'auto' && AUTO_FROM[key].includes(effort));
+const toolOn = (key, choice) => choice === 'on' || (choice === 'auto' && AUTO_ON[key]);
 
-/** `{ graph?, figures? }` for a chat request; deep research is sent neither (it does both). */
-export const answerFlags = (options, effort) => {
-    if (isDeepEffort(effort)) return {};
+/** `{ graph?, figures? }` for a Chat request; Investigate (deep research) is sent neither: it does
+ * both on its own. Each flag only when on, so a request that asks for neither is the request it
+ * always was. */
+export const answerFlags = (options, investigate = false) => {
+    if (investigate) return {};
     const value = options || DEFAULT_COMPOSER_OPTIONS;
     return {
-        ...(toolOn('fig', value.fig, effort) && { figures: true }),
-        ...(toolOn('kg', value.kg, effort) && { graph: true }),
+        ...(toolOn('fig', value.fig) && { figures: true }),
+        ...(toolOn('kg', value.kg) && { graph: true }),
     };
 };
 
@@ -116,7 +117,8 @@ export const OptionsButton = ({ open = false, changed = false, onClick, disabled
 const ComposerOptions = ({
     open,
     onClose,
-    effort,
+    // Investigate (deep research): the tools are always on and the filters do not apply.
+    investigate = false,
     value = DEFAULT_COMPOSER_OPTIONS,
     onChange,
     onReset,
@@ -125,7 +127,7 @@ const ComposerOptions = ({
     showTools = true,
     children,
 }) => {
-    const deep = isDeepEffort(effort);
+    const deep = Boolean(investigate);
     const set = (key, next) => {
         trackGtagEvent('composer_option_select', { option: key, value: next });
         onChange?.({ ...value, [key]: next });
@@ -154,7 +156,7 @@ const ComposerOptions = ({
                 {showTools && (<>
                     <div className="composer-options-section-title">Research tools</div>
                     <div className="composer-options-section-sub">
-                        Choose which tools to use when answering. Works at every effort level.
+                        Choose which tools to use when answering.
                     </div>
                     {TOOLS.map(({ key, label, Icon, description, hint }) => (
                         <div className="composer-options-tool" key={key}>
@@ -182,7 +184,7 @@ const ComposerOptions = ({
                                     })}
                                 </div>
                                 <div className="composer-options-tool-hint">
-                                    {deep ? `${effortLabel(effort)} always includes it.` : hint}
+                                    {deep ? 'Investigate always includes it.' : hint}
                                 </div>
                             </div>
                         </div>
@@ -191,7 +193,7 @@ const ComposerOptions = ({
                         <div className="composer-options-filters-title">Search filters</div>
                         {deep ? (
                             <div className="composer-options-filters-off">
-                                {effortLabel(effort)} runs its own multi-channel retrieval, so article type and sort don't apply.
+                                Investigate runs its own multi-channel retrieval, so article type and sort don't apply.
                             </div>
                         ) : FILTERS.map((filter) => (
                             <div className="composer-options-filter" key={filter.key}>

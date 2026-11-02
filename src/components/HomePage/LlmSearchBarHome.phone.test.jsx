@@ -56,13 +56,14 @@ it('picks the mode from a sheet, not from tabs', () => {
     expect(pill()).toHaveAccessibleName('Mode: Chat');
     fireEvent.click(pill());
     const rows = within(sheet()).getAllByRole('option');
-    // Investigate is the Extra effort now, picked in the Options sheet.
     expect(rows.map((r) => r.textContent)).toEqual([
-        expect.stringContaining('Chat'), expect.stringContaining('Literature Review'),
+        expect.stringContaining('Chat'), expect.stringContaining('Investigate'), expect.stringContaining('Literature Review'),
     ]);
     expect(rows[0]).toHaveAttribute('aria-selected', 'true');
+    expect(rows[1]).toHaveTextContent('Explore deeper. Compare evidence · 3–5 min');
     fireEvent.click(rows[1]);
-    expect(pill()).toHaveAccessibleName('Mode: Literature Review');
+    expect(pill()).toHaveAccessibleName('Mode: Investigate');
+    expect(send()).toHaveTextContent('Run');
 });
 
 it('marks the pill until the sheet has been opened once', () => {
@@ -87,24 +88,28 @@ it('sends a review topic to the review page, where its scope is set', () => {
     }));
 });
 
-it('keeps the model and the effort in the Options sheet, in every mode', async () => {
+it('keeps the model in the Options sheet, in every mode', async () => {
     setup();
     const options = screen.getByRole('button', { name: 'Options', hidden: true });
     fireEvent.click(options);
     await waitFor(() => expect(screen.getByRole('listbox', { name: 'Model', hidden: true })).toBeInTheDocument());
     expect(screen.getByText('Research tools')).toBeInTheDocument();
     expect(screen.getAllByText('Article type').length).toBeGreaterThan(0);
-    // the effort, picked here on a phone
-    fireEvent.click(screen.getByRole('menuitemradio', { name: /^Extra/, hidden: true }));
-    expect(screen.getByRole('menuitemradio', { name: /^Extra/, hidden: true })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByText(/Extra runs its own multi-channel retrieval/)).toBeInTheDocument();
+    // No effort to pick: Investigate is a mode, picked from the pill.
+    expect(screen.queryByText('Effort')).toBeNull();
+    fireEvent.click(screen.getAllByText('Done')[0]);
+
+    pickMode('Investigate');
+    fireEvent.click(screen.getByRole('button', { name: 'Options', hidden: true }));
+    expect(screen.getByRole('listbox', { name: 'Model', hidden: true })).toBeInTheDocument();
+    // Deep research ignores the search controls, and the sheet says so.
+    expect(screen.getByText(/Investigate runs its own multi-channel retrieval/)).toBeInTheDocument();
     fireEvent.click(screen.getAllByText('Done')[0]);
 
     pickMode('Literature Review');
     fireEvent.click(screen.getByRole('button', { name: 'Options', hidden: true }));
     expect(screen.getByRole('listbox', { name: 'Model', hidden: true })).toBeInTheDocument();
-    // A review has no tools, filters or effort: only the model is offered.
+    // A review has no tools or filters: only the model is offered.
     expect(screen.queryByText('Research tools')).toBeNull();
-    expect(screen.queryAllByRole('menuitemradio', { name: /^Extra/, hidden: true })).toHaveLength(0);
     expect(screen.queryAllByRole('button', { name: 'Reset', hidden: true })).toHaveLength(0);
 });

@@ -138,13 +138,7 @@ import {
   toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import { createQuerySubmitSuccessTracker, trackGtagEvent } from '../../utils/gtag';
-import { CREDITS_PURCHASE_URL, INVESTIGATE_ENABLED } from '../../config/features';
-import {
-    getEffortPref,
-    isDeepEffort,
-    setEffortPref,
-    subscribeToEffortPref,
-} from '../../service/effortLevels';
+import { CREDITS_PURCHASE_URL } from '../../config/features';
 import {
     answerFlags,
     DEFAULT_COMPOSER_OPTIONS,
@@ -166,7 +160,7 @@ import {
     setTierPref,
     subscribeToTierPref,
 } from '../../service/serviceTiers';
-import { GUEST_INVESTIGATE_REASON, refusalNeedsSignIn, refusalText } from '../../utils/refusals';
+import { refusalNeedsSignIn, refusalText } from '../../utils/refusals';
 import {
     attachmentIdsOf,
     defaultQuestionFor,
@@ -2094,6 +2088,9 @@ function LLMAgent({ isRouteActive = true }) {
     useEffect(() => subscribeToNotifyPrefs(
         (prefs) => setNotifyEmailEnabled(prefs.email),
     ), []);
+    /* Whether this conversation is an Investigate one: fixed when it starts (the home composer's
+       tabs), so its follow-ups go to the same pipeline. */
+    const chatInvestigateEnabled = getConversationInvestigateMode(activeConversationId, chatHistory);
     /* Which model answers the next question.
 
        Seeded from localStorage, so a reader's choice survives a reload, and '' until the
@@ -2107,15 +2104,6 @@ function LLMAgent({ isRouteActive = true }) {
     const handleServiceTierChange = useCallback((tierId) => {
         setServiceTier(tierId);
         setTierPref(tierId);
-    }, []);
-    /* The effort the next question is sent at (service/effortLevels.js): Medium asks the chat
-       agent, Extra runs deep research. Per question, so one conversation can hold both; one
-       preference with the home composer. */
-    const [composerEffort, setComposerEffort] = useState(() => getEffortPref());
-    useEffect(() => subscribeToEffortPref(setComposerEffort), []);
-    const handleEffortChange = useCallback((next) => {
-        setComposerEffort(next);
-        setEffortPref(next);
     }, []);
     // The Options drawer's choices for the next question (Units/ComposerOptions).
     const [composerOptions, setComposerOptions] = useState(DEFAULT_COMPOSER_OPTIONS);
@@ -2502,14 +2490,6 @@ function LLMAgent({ isRouteActive = true }) {
     const requestPremiumSignIn = useCallback((tier) => {
         requireSignIn(`${tier?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`);
     }, [requireSignIn]);
-    // The composer's guest gate: GPT-6.1 Sol, or Extra effort.
-    const requestComposerSignIn = useCallback((kind, entry) => {
-        if (kind === 'effort') {
-            requireSignIn(GUEST_INVESTIGATE_REASON);
-            return;
-        }
-        requestPremiumSignIn(entry);
-    }, [requireSignIn, requestPremiumSignIn]);
     /* Images and PDFs waiting on the composer (service/attachments.js). Held here, not in the
        composer, because the send reads them: `submitOrQueue` puts them on the turn's options
        and clears the chips once the question has left. Signed-in readers and AI Chat only. */
@@ -7795,25 +7775,24 @@ function LLMAgent({ isRouteActive = true }) {
                                                         // A guest at the limit keeps a live composer: sending
                                                         // opens the sign-in overlay instead (handleSubmit).
                                                         isQueryLimitReached={isLimitReachedEffective && !isGuest}
+                                                        investigateEnabled={chatInvestigateEnabled}
                                                         serviceTier={serviceTier}
+                                                        pipelineIsDeepResearch={chatInvestigateEnabled}
                                                         onServiceTierChange={handleServiceTierChange}
                                                         onServiceTierResolveDefault={setServiceTier}
-                                                        effort={composerEffort}
-                                                        onEffortChange={handleEffortChange}
                                                         composerOptions={composerOptions}
                                                         onComposerOptionsChange={setComposerOptions}
                                                         isGuest={isGuest}
-                                                        onRequireSignIn={requestComposerSignIn}
+                                                        onRequireSignIn={requestPremiumSignIn}
                                                         attachments={composerAttachments}
                                                         onAttachRequireSignIn={requestAttachSignIn}
                                                         onSubmit={(event, submissionMeta) => {
-                                                            /* The effort picks the pipeline for THIS
-                                                               question: Extra is deep research, which
-                                                               takes no filters and does figures and
-                                                               the graph on its own. */
-                                                            const deep = INVESTIGATE_ENABLED
-                                                                && isDeepEffort(composerEffort);
-                                                            const flags = answerFlags(composerOptions, composerEffort);
+                                                            /* The conversation's mode picks the
+                                                               pipeline: Investigate is deep research,
+                                                               which takes no filters and does figures
+                                                               and the graph on its own. */
+                                                            const deep = chatInvestigateEnabled;
+                                                            const flags = answerFlags(composerOptions, deep);
                                                             submitOrQueue(event, {
                                                                 investigateEnabled: deep,
                                                                 serviceTier,

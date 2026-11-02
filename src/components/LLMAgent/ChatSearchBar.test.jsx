@@ -1,7 +1,7 @@
-/** The composer at the foot of a conversation (design: GLKB Effort A). A single Agent run owns
- *  it until it settles; the effort picks each question's pipeline. */
+/** The composer at the foot of a conversation. A single Agent run owns it until it settles; the
+ *  conversation's mode (Chat or Investigate, fixed when it starts) picks the pipeline. */
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import ChatSearchBar from './ChatSearchBar';
@@ -149,10 +149,11 @@ describe('ChatSearchBar while an answer is streaming', () => {
 });
 
 describe('ChatSearchBar when nothing is running', () => {
-    it('tracks a question asked at Extra effort as an Investigate question', () => {
+    it('tracks a question in a resolved Investigate conversation', () => {
         const { onSubmit } = setup({
             userInput: 'what is TP53?',
-            effort: 'extra',
+            investigateEnabled: false,
+            pipelineIsDeepResearch: true,
         });
         fireEvent.keyDown(field(), { key: 'Enter' });
 
@@ -164,8 +165,8 @@ describe('ChatSearchBar when nothing is running', () => {
         expect(onSubmit).toHaveBeenCalledTimes(1);
     });
 
-    it('does not emit the Investigate question event at Medium', () => {
-        setup({ userInput: 'what is TP53?', effort: 'medium' });
+    it('does not emit the Investigate question event in an ordinary conversation', () => {
+        setup({ userInput: 'what is TP53?', pipelineIsDeepResearch: false });
         fireEvent.keyDown(field(), { key: 'Enter' });
 
         expect(trackGtagEvent).not.toHaveBeenCalledWith(
@@ -199,71 +200,67 @@ describe('ChatSearchBar when nothing is running', () => {
 });
 
 
-describe('the model and effort the composer offers', () => {
-    const chip = () => document.querySelector('button.effort-chip');
-    const openMenu = async () => {
-        await waitFor(() => expect(chip()).not.toBeDisabled());
-        fireEvent.click(chip());
-        return Array.from(document.querySelectorAll('.effort-model-desc')).map((n) => n.textContent).join(' ');
+describe('the tier the composer offers', () => {
+    const openPicker = async () => {
+        const chip = await screen.findByRole('button', { name: /^Model: / });
+        fireEvent.click(chip);
+        return (await screen.findAllByRole('option')).map((o) => o.textContent).join(' ');
     };
 
-    it('names the model and the effort on the chip', async () => {
-        setup({ serviceTier: 'advanced', effort: 'medium' });
-        await waitFor(() => expect(chip()).toHaveTextContent('GPT-6.1 Terra · Medium'));
+    it('names the model on the chip, with no effort beside it', async () => {
+        setup({ serviceTier: 'advanced' });
+        expect(await screen.findByRole('button', { name: 'Model: GPT-6.1 Terra' })).toBeInTheDocument();
+        expect(document.querySelector('.effort-chip')).toBeNull();
+        expect(screen.queryByText(/Medium|Extra|effort/i)).toBeNull();
     });
 
-    it('prices a Medium question as a chat', async () => {
-        setup({ effort: 'medium', serviceTier: 'standard' });
-        const text = await openMenu();
-        expect(text).toContain('10 credits');
-        expect(text).toContain('1 credit');
+    it('prices an ordinary conversation as AI Chat', async () => {
+        setup({ pipelineIsDeepResearch: false, serviceTier: 'standard' });
+        const text = await openPicker();
+        expect(text).toContain('10 credits/query');
+        expect(text).toContain('1 credit/query');
     });
 
-    it('prices an Extra question as deep research', async () => {
-        setup({ effort: 'extra', serviceTier: 'standard' });
-        const text = await openMenu();
-        expect(text).toContain('45 credits');
-        expect(text).toContain('20 credits');
+    it('prices a deep-research conversation as Investigate', async () => {
+        // Includes the case the parent resolves from `isInvestigateConversation`: a reader who
+        // reopens an investigate conversation from History.
+        setup({ pipelineIsDeepResearch: true, serviceTier: 'standard' });
+        const text = await openPicker();
+        expect(text).toContain('45 credits/query');
+        expect(text).toContain('20 credits/query');
     });
 
-    it('opens its menu upward, at the foot of the conversation', async () => {
-        setup({ effort: 'medium', serviceTier: 'standard' });
-        await openMenu();
-        fireEvent.click(document.querySelector('.effort-sub-row'));
-        expect(document.querySelector('.effort-submenu')).toHaveClass('is-up');
+    it('does not read the analytics-only `investigateEnabled` for this', async () => {
+        setup({ investigateEnabled: false, pipelineIsDeepResearch: true, serviceTier: 'standard' });
+        expect(await openPicker()).toContain('45 credits/query');
     });
 
-    it('changes the effort for the next question', async () => {
-        const onEffortChange = jest.fn();
-        setup({ effort: 'medium', serviceTier: 'standard', onEffortChange });
-        await openMenu();
-        fireEvent.click(document.querySelector('.effort-sub-row'));
-        fireEvent.click(screen.getByRole('menuitemradio', { name: /^Extra/ }));
-        expect(onEffortChange).toHaveBeenCalledWith('extra');
-    });
-
-    it('asks a guest to sign in for GPT-6.1 Sol, or for Extra, instead of selecting it', async () => {
+    it("asks a guest to sign in for GPT-6.1 Sol instead of selecting it", async () => {
         const onRequireSignIn = jest.fn();
         const onServiceTierChange = jest.fn();
-        const onEffortChange = jest.fn();
-        setup({ isGuest: true, serviceTier: 'standard', onRequireSignIn, onServiceTierChange, onEffortChange });
-        await openMenu();
-        fireEvent.click(screen.getByRole('menuitemradio', { name: /GPT-6.1 Sol/ }));
-        expect(onRequireSignIn).toHaveBeenCalledWith('model', expect.objectContaining({ id: 'premium' }));
+        setup({ isGuest: true, serviceTier: 'standard', onRequireSignIn, onServiceTierChange });
+        await openPicker();
+        fireEvent.click(screen.getByRole('option', { name: /GPT-6.1 Sol/ }));
+        expect(onRequireSignIn).toHaveBeenCalledWith(expect.objectContaining({ id: 'premium' }));
         expect(onServiceTierChange).not.toHaveBeenCalled();
-        await openMenu();
-        fireEvent.click(document.querySelector('.effort-sub-row'));
-        fireEvent.click(screen.getByRole('menuitemradio', { name: /^Extra/ }));
-        expect(onRequireSignIn).toHaveBeenCalledWith('effort', expect.objectContaining({ id: 'extra' }));
-        expect(onEffortChange).not.toHaveBeenCalled();
     });
+});
 
-    it('opens Options, where the choices go to the parent', () => {
+describe('Options', () => {
+    it('opens, and the choices go to the parent', () => {
         const onComposerOptionsChange = jest.fn();
         setup({ onComposerOptionsChange });
         fireEvent.click(document.querySelector('button.composer-options-trigger'));
         fireEvent.click(screen.getAllByText('Reviews only')[0]);
         expect(onComposerOptionsChange).toHaveBeenCalledWith(expect.objectContaining({ paperType: 'Reviews only' }));
+    });
+
+    it('says in an Investigate conversation that the tools are always on and the filters do not apply', () => {
+        setup({ pipelineIsDeepResearch: true });
+        fireEvent.click(document.querySelector('button.composer-options-trigger'));
+        expect(screen.getAllByText('Investigate always includes it.')).toHaveLength(2);
+        expect(screen.getByText(/Investigate runs its own multi-channel retrieval/)).toBeInTheDocument();
+        expect(screen.queryAllByText('Reviews only')).toHaveLength(0);
     });
 });
 
@@ -309,9 +306,19 @@ describe('attachments', () => {
         expect(onAttachRequireSignIn).toHaveBeenCalledTimes(1);
     });
 
-    it('stays on at Extra: a file waiting there is flagged, not refused', () => {
-        setup({ effort: 'extra', attachments: controller() });
-        expect(paperclip()).toBeEnabled();
+    it('is off in an Investigate conversation', () => {
+        setup({ pipelineIsDeepResearch: true, attachments: controller() });
+        expect(paperclip()).toBeDisabled();
+    });
+
+    it('ignores files dropped on an Investigate conversation', () => {
+        const attachments = controller();
+        setup({ pipelineIsDeepResearch: true, attachments });
+        const doc = new File(['%PDF'], 'paper.pdf', { type: 'application/pdf' });
+        fireEvent.drop(document.querySelector('.chat-header > div'), {
+            dataTransfer: { types: ['Files'], files: [doc], items: [] },
+        });
+        expect(attachments.addFiles).not.toHaveBeenCalled();
     });
 
     it('sends a question that is only files', () => {
@@ -331,21 +338,18 @@ describe('attachments', () => {
         expect(onSubmit).not.toHaveBeenCalled();
     });
 
-    it('holds files back at Extra, says so, and offers Medium or removing them', () => {
+    it('holds files back from an Investigate conversation, says so, and offers removing them', () => {
         const attachments = withReadyPdf();
-        const onEffortChange = jest.fn();
         const { onSubmit } = setup({
             userInput: 'and this figure?',
-            effort: 'extra',
-            onEffortChange,
+            pipelineIsDeepResearch: true,
             attachments,
         });
-        expect(screen.getByRole('status')).toHaveTextContent("Extra doesn't read attached files.");
-        expect(document.querySelector('button.effort-chip .effort-warn-dot')).not.toBeNull();
+        expect(screen.getByRole('status')).toHaveTextContent("Investigate doesn't read attached files.");
         fireEvent.keyDown(field(), { key: 'Enter' });
         expect(onSubmit).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByRole('button', { name: 'Use Medium' }));
-        expect(onEffortChange).toHaveBeenCalledWith('medium');
+        // The conversation's mode is fixed: there is nothing to switch to here.
+        expect(screen.queryByRole('button', { name: /^Use / })).toBeNull();
         fireEvent.click(screen.getByRole('button', { name: 'Remove file' }));
         expect(attachments.clear).toHaveBeenCalled();
     });
@@ -374,9 +378,9 @@ describe('attachments', () => {
         expect(setUserInput).not.toHaveBeenCalled();
     });
 
-    it('lets a long paste land in the box at Extra, which reads no files', () => {
+    it('lets a long paste land in the box where nothing can be attached (Investigate)', () => {
         const attachments = controller();
-        setup({ attachments, effort: 'extra' });
+        setup({ attachments, pipelineIsDeepResearch: true });
         fireEvent.paste(field(), { clipboardData: { files: [], items: [], getData: () => 'x'.repeat(5000) } });
         expect(attachments.addFiles).not.toHaveBeenCalled();
     });

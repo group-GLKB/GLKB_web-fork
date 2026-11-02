@@ -306,18 +306,21 @@ const DesignChips = ({ items, notice, blockedNote, onRemove }) => (
 );
 
 /**
- * The composer's warning when the chosen effort does not read the waiting files (design: GLKB
- * Effort A): "Extra doesn't read attached files.  [Use Medium] [Remove file]".
+ * The composer's warning when its mode does not read the waiting files (design: GLKB Effort A):
+ * "Investigate doesn't read attached files.  [Use Chat] [Remove file]". Without `onUseFallback`
+ * (a conversation whose mode is fixed) only removing them is offered.
  */
-export const AttachConflict = ({ effortName, fallbackName, onUseFallback, onRemoveFiles, count = 1 }) => (
+export const AttachConflict = ({ modeName, fallbackName, onUseFallback, onRemoveFiles, count = 1 }) => (
     <div
         className="attach-conflict"
         role="status"
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
     >
-        <span className="attach-conflict-text">{effortName} doesn't read attached files.</span>
-        <button type="button" className="attach-conflict-primary" onClick={onUseFallback}>Use {fallbackName}</button>
+        <span className="attach-conflict-text">{modeName} doesn't read attached files.</span>
+        {onUseFallback && fallbackName && (
+            <button type="button" className="attach-conflict-primary" onClick={onUseFallback}>Use {fallbackName}</button>
+        )}
         <button type="button" className="attach-conflict-secondary" onClick={onRemoveFiles}>
             {count > 1 ? 'Remove files' : 'Remove file'}
         </button>

@@ -86,24 +86,35 @@ it('opens the file picker straight from the +, with no menu in between', () => {
     expect(document.querySelector('.attach-menu')).toBeNull();
 });
 
-it('says Extra does not read the file, and offers Medium or removing it', async () => {
+it('turns the + button off on Investigate, with the reason', () => {
+    mockAuth.isAuthenticated = true;
+    renderBar();
+    expect(paperclip()).toBeEnabled();
+    fireEvent.click(screen.getByTitle('Investigate off'));
+    expect(paperclip()).toBeDisabled();
+    // The tooltip's text, on the wrapper (a disabled button never sees the pointer).
+    expect(paperclip().closest('.attach-button-wrap')).toHaveAttribute('aria-label', 'Attachments work in AI Chat');
+});
+
+it('says Investigate does not read a file already waiting, and offers Chat or removing it', async () => {
     mockAuth.isAuthenticated = true;
     uploadAttachment.mockResolvedValueOnce({
         id: 'p1', kind: 'pdf', mime_type: 'application/pdf', filename: 'paper.pdf', size_bytes: 4, page_count: 3,
     });
-    window.localStorage.setItem('glkb_effort', 'extra');
     renderBar();
     pick([pdf()]);
-    expect(await screen.findByText("Extra doesn't read attached files.")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByTestId('attachment-chip')).toHaveClass('is-ready'));
-    fireEvent.change(screen.getByPlaceholderText(/Ask a question about the biomedical literature/i), {
+    fireEvent.click(screen.getByTitle('Investigate off'));
+    expect(screen.getByText("Investigate doesn't read attached files.")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('combobox'), {
         target: { value: 'What does this paper show?' },
     });
     startChat();
     expect(mockNavigate).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Use Medium' }));
-    expect(screen.queryByText("Extra doesn't read attached files.")).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Use Chat' }));
+    expect(screen.queryByText("Investigate doesn't read attached files.")).toBeNull();
+    expect(screen.getByTitle('Investigate off')).toBeInTheDocument();
     startChat();
     expect(mockNavigate.mock.calls[0][1].state.initialSearchOptions).toEqual(expect.objectContaining({
         investigateEnabled: false,
@@ -111,17 +122,18 @@ it('says Extra does not read the file, and offers Medium or removing it', async 
     }));
 });
 
-it('can remove the file instead and stay at Extra', async () => {
+it('can remove the file instead and stay on Investigate', async () => {
     mockAuth.isAuthenticated = true;
     uploadAttachment.mockResolvedValueOnce({
         id: 'p1', kind: 'pdf', mime_type: 'application/pdf', filename: 'paper.pdf', size_bytes: 4,
     });
-    window.localStorage.setItem('glkb_effort', 'extra');
     renderBar();
     pick([pdf()]);
-    fireEvent.click(await screen.findByRole('button', { name: 'Remove file' }));
+    await waitFor(() => expect(screen.getByTestId('attachment-chip')).toHaveClass('is-ready'));
+    fireEvent.click(screen.getByTitle('Investigate off'));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove file' }));
     expect(screen.queryByTestId('attachment-chip')).toBeNull();
-    fireEvent.change(screen.getByPlaceholderText(/Ask a question about the biomedical literature/i), {
+    fireEvent.change(screen.getByRole('combobox'), {
         target: { value: 'What does TP53 do?' },
     });
     startChat();

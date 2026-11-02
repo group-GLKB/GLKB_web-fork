@@ -8,6 +8,7 @@ import '@testing-library/jest-dom';
 
 import {
     AttachButton,
+    AttachConflict,
     AttachmentChips,
     attachmentBlockedNote,
     MessageAttachments,
@@ -106,6 +107,25 @@ describe('the chips', () => {
             .toMatch(/Attachments work in AI Chat/);
         expect(attachmentBlockedNote({ hasItems: false, hasErrors: false }, { investigate: true })).toBe('');
         expect(attachmentBlockedNote({ hasItems: true, hasErrors: false })).toBe('');
+    });
+});
+
+describe("the note when a mode doesn't read the files", () => {
+    it('names the mode, and offers the one that does or removing them', () => {
+        const onUseFallback = jest.fn();
+        const onRemoveFiles = jest.fn();
+        render(<AttachConflict modeName="Investigate" fallbackName="Chat" count={2}
+                               onUseFallback={onUseFallback} onRemoveFiles={onRemoveFiles} />);
+        expect(screen.getByRole('status')).toHaveTextContent("Investigate doesn't read attached files.");
+        fireEvent.click(screen.getByRole('button', { name: 'Use Chat' }));
+        expect(onUseFallback).toHaveBeenCalledTimes(1);
+        fireEvent.click(screen.getByRole('button', { name: 'Remove files' }));
+        expect(onRemoveFiles).toHaveBeenCalledTimes(1);
+    });
+
+    it('offers only removing them where the mode cannot be changed', () => {
+        render(<AttachConflict modeName="Investigate" count={1} onRemoveFiles={() => {}} />);
+        expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Remove file']);
     });
 });
 
