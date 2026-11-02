@@ -49,13 +49,19 @@ beforeAll(() => {
 beforeEach(() => {
     window.localStorage.clear();
     mockNavigate.mockClear();
+    onCreditNotice.mockClear();
     mockUsage = parseCredits({
         remaining: 10, monthly_allowance: 100, monthly_remaining: 10, resets_at: '2026-12-01T00:00:00',
     });
 });
 
+// The bar prices the mode and model; the page draws the notice under its news strip.
+const onCreditNotice = jest.fn();
+const lastNotice = () => onCreditNotice.mock.calls[onCreditNotice.mock.calls.length - 1][0];
 const setup = async () => {
-    const view = render(<LlmSearchBarHome setOpen={() => {}} autocompleteOptions={[]} />);
+    const view = render(
+        <LlmSearchBarHome setOpen={() => {}} autocompleteOptions={[]} onCreditNotice={onCreditNotice} />,
+    );
     await act(async () => {});            // the prices
     return view;
 };
@@ -67,7 +73,7 @@ const ask = (text) => {
 
 it('warns quietly in Chat when a fifth of the month is left, and still sends', async () => {
     await setup();
-    expect(screen.getByRole('status')).toHaveTextContent('10 credits left this month.');
+    expect(lastNotice()).toMatchObject({ level: 'low', brief: '10 credits left · resets Dec 1' });
     ask('What does TP53 do?');
     expect(mockNavigate).toHaveBeenCalled();
 });
@@ -75,12 +81,13 @@ it('warns quietly in Chat when a fifth of the month is left, and still sends', a
 it('says Investigate cannot be paid for, and pops up instead of opening a conversation', async () => {
     await setup();
     fireEvent.click(investigateTab());
-    expect(screen.getByRole('status')).toHaveTextContent(
-        'An Investigate run on GPT-6.1 Terra costs 30 credits and you have 10 left.',
-    );
+    expect(lastNotice()).toMatchObject({ level: 'short', brief: 'Investigate needs 30 credits · 10 left' });
     ask('Map resistance mechanisms of KRAS G12C inhibitors');
     expect(mockNavigate).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog')).toHaveTextContent('Not enough credits');
+    expect(screen.getByRole('dialog')).toHaveTextContent(
+        'An Investigate run on GPT-6.1 Terra costs 30 credits and you have 10 left.',
+    );
     // The question stays in the box (behind the modal, so aria-hidden).
     expect(screen.getByRole('combobox', { hidden: true })).toHaveValue('Map resistance mechanisms of KRAS G12C inhibitors');
 });
@@ -89,5 +96,5 @@ it('says nothing with plenty left', async () => {
     mockUsage = parseCredits({ remaining: 80, monthly_allowance: 100, resets_at: '2026-12-01T00:00:00' });
     await setup();
     fireEvent.click(investigateTab());
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(lastNotice()).toBeNull();
 });

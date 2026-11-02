@@ -1,6 +1,6 @@
 /**
- * The composer's notice about the reader's credits (service/credits.js `creditNotice`), as Claude
- * shows its usage — a tab floating on the composer's top edge, with an × to close it: a quiet "10 credits left this month. … come back on Dec 1." once the month runs
+ * The notice about the reader's credits (service/credits.js `creditNotice`), as Claude shows its
+ * usage — a few words floating by the composer, with an × to close it: a quiet "10 credits left this month. … come back on Dec 1." once the month runs
  * low, and a plain "An Investigate run on GPT-6.1 Terra costs 30 credits and you have 10 left. …"
  * when the question as set up cannot be paid for. Sending it then opens `CreditDialog` instead of
  * starting anything, so the reader is not left to find out from a refused answer (or, as on
@@ -93,7 +93,15 @@ const dismiss = (key) => {
     window.dispatchEvent(new CustomEvent(DISMISS_EVENT, { detail: key }));
 };
 
-const CreditNotice = ({ notice, source = '' }) => {
+/**
+ * `variant`:
+ *   'float'  the chat page: a small card floating just above the composer, its corners the
+ *            composer's;
+ *   'strip'  the home page: under the news strip, drawn as one (the same pill, tag, text and ×;
+ *            `compact` on a phone, as the strip is).
+ * Either shows the few words (`brief`); the whole sentence is the pop-up's and the tooltip's.
+ */
+const CreditNotice = ({ notice, source = '', variant = 'float', compact = false }) => {
     const [dismissed, setDismissed] = useState(readDismissed);
     useEffect(() => {
         const onDismiss = (event) => setDismissed(event.detail);
@@ -103,33 +111,49 @@ const CreditNotice = ({ notice, source = '' }) => {
     if (!notice) return null;
     const key = `${notice.level}:${notice.text}`;
     if (dismissed === key) return null;
-    const close = () => {
+    const close = (event) => {
+        event.stopPropagation();
         dismiss(key);
         trackGtagEvent('credit_notice_close', { source, level: notice.level });
     };
+    const words = notice.brief || notice.text;
+    const buy = CREDITS_PURCHASE_URL ? (
+        <a
+            className={variant === 'strip' ? 'news-strip-cta' : 'credit-float-buy'}
+            href={CREDITS_PURCHASE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackGtagEvent('credits_buy_click', { source: `${source}_credit_notice` })}
+        >
+            Buy credits
+        </a>
+    ) : null;
+    if (variant === 'strip') {
+        return (
+            <div className={`news-strip-region credit-strip${compact ? ' is-compact' : ''}`} role="status">
+                <div className="news-strip">
+                    <span className={`news-strip-tag ${notice.level === 'short' ? 'is-amber' : 'is-blue'}`}>Credits</span>
+                    <span className="news-strip-text" title={notice.text}>{words}</span>
+                    {buy}
+                    <button type="button" className="news-strip-close" aria-label="Dismiss" onClick={close}>
+                        <CloseIcon style={{ width: compact ? 16 : 14, height: compact ? 16 : 14 }} />
+                    </button>
+                </div>
+            </div>
+        );
+    }
     return (
-        <div className={`credit-notice credit-notice-${notice.level}`} role="status">
-            <span className="credit-notice-text">{notice.text}</span>
-            {/* Once a store is configured (config/features.js). */}
-            {CREDITS_PURCHASE_URL && (
-                <a
-                    className="credit-notice-buy"
-                    href={CREDITS_PURCHASE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackGtagEvent('credits_buy_click', { source: `${source}_credit_notice` })}
-                >
-                    Buy credits
-                </a>
-            )}
+        <div className={`credit-float credit-float-${notice.level}`} role="status">
+            <span className="credit-float-dot" aria-hidden="true" />
+            <span className="credit-float-text" title={notice.text}>{words}</span>
+            {buy}
             <button
                 type="button"
-                className="credit-notice-close"
+                className="credit-float-close"
                 aria-label="Dismiss"
                 title="Dismiss"
-                // The home composer's box focuses its field on any mousedown it sees.
                 onMouseDown={(event) => event.stopPropagation()}
-                onClick={(event) => { event.stopPropagation(); close(); }}
+                onClick={close}
             >
                 <CloseIcon fontSize="inherit" />
             </button>

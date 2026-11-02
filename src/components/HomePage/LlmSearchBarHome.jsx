@@ -20,7 +20,7 @@ import { INVESTIGATE_ENABLED, LITERATURE_REVIEW_ENABLED } from '../../config/fea
 import { CHAT_NEW_PATH } from '../../config/entryRoutes';
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { trackGtagEvent } from '../../utils/gtag';
-import CreditNotice, { CreditDialog, useCreditNotice } from '../Units/CreditNotice';
+import { CreditDialog, useCreditNotice } from '../Units/CreditNotice';
 import TierPicker from '../Units/TierPicker';
 import ComposerOptions, {
     answerFlags,
@@ -205,14 +205,22 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     // A review needs its topic in words; its papers are what it reads, not a question.
     const canStart = (Boolean(llmQuery.trim()) || (!reviewEnabled && readyAttachments.length > 0))
         && !isInputLocked && !attachments.isUploading && !attachmentNote;
-    /* The reader's credits for the mode and model picked (Units/CreditNotice): a line in the box
-       when they run low or cannot pay for this question, and the pop-up if it is sent anyway. */
+    /* The reader's credits for the mode and model picked (Units/CreditNotice): the page shows the
+       notice under its news strip (`onCreditNotice`), and sending what cannot be paid for opens
+       the pop-up here. */
     const creditNotice = useCreditNotice({
         pipeline: reviewEnabled ? 'literature_review' : (investigateEnabled ? 'deep_research' : 'chat'),
         tierId: effectiveTier(serviceTier, { isGuest }),
         enabled: !isGuest,
     });
     const [creditDialog, setCreditDialog] = useState(null);
+    const { onCreditNotice } = props;
+    const creditNoticeKey = creditNotice ? `${creditNotice.level}:${creditNotice.text}` : '';
+    React.useEffect(() => {
+        onCreditNotice?.(creditNotice);
+        // Told again only when it says something else.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [creditNoticeKey, onCreditNotice]);
     const takeFiles = (files) => {
         if (!files?.length) return;
         if (isGuest) {
@@ -468,8 +476,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 takeFiles(filesFromTransfer(event.dataTransfer));
             }}
             sx={{
-                // The credit notice floats off this box's top edge (Units/CreditNotice).
-                position: 'relative',
                 width: '100%',
                 display: 'flex',
                 gap: 2,
@@ -483,7 +489,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 borderColor: 'var(--color-border-default)',
                 boxShadow: 'none',
             }}>
-            <CreditNotice notice={creditNotice} source="home_searchbar" />
             <Autocomplete
                 freeSolo
                 fullWidth

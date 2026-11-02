@@ -36,6 +36,7 @@ import { fetchUsage, limitReachedText } from '../../service/credits';
 import { isRunActive, subscribeToActiveRun } from '../../service/activeRun';
 import { trackGtagEvent } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
+import CreditNotice from '../Units/CreditNotice';
 import exampleSchema from './exampleSchema.json';
 import LlmSearchBar from './LlmSearchBarHome';
 import NewsStrip from './NewsStrip';
@@ -56,6 +57,8 @@ const HomePage = () => {
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
     // What the reader has left — credits signed in, free questions as a guest (service/credits.js).
     const [usage, setUsage] = useState(null);
+    // The composer's credit notice (LlmSearchBarHome prices its mode and model), shown under the news.
+    const [creditNotice, setCreditNotice] = useState(null);
     const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
     const [isAgentRunActive, setIsAgentRunActive] = useState(() => isRunActive());
     // The composer's mode (Chat / Investigate / Literature Review): what shows under it follows.
@@ -300,6 +303,14 @@ const HomePage = () => {
                         />
                         <div className="news-strip-slot">
                             <NewsStrip onTry={tryNews} compact={isPhoneDevice} />
+                            {/* The reader's credits for the composer's mode and model, drawn as
+                                the strip is (Units/CreditNotice). */}
+                            <CreditNotice
+                                variant="strip"
+                                notice={creditNotice}
+                                compact={isPhoneDevice}
+                                source="home"
+                            />
                         </div>
                         <Box
                             className="homepage-hero"
@@ -368,6 +379,7 @@ const HomePage = () => {
                                             limitReachedText={limitText}
                                             isAgentRunActive={isAgentRunActive}
                                             onModeChange={setComposerMode}
+                                            onCreditNotice={setCreditNotice}
                                             requestedMode={requestedMode}
                                         />
                                         {activePill && (

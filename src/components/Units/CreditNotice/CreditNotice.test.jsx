@@ -37,7 +37,7 @@ describe('the composer credit notice', () => {
 
     it('warns quietly once a fifth of the month is left, while the question still fits', () => {
         const notice = noticeFor(usage(10), pricing, 'chat', 'advanced');
-        expect(notice).toEqual({
+        expect(notice).toMatchObject({
             level: 'low',
             text: '10 credits left this month. Your free monthly credits come back on Dec 1.',
         });
@@ -82,8 +82,29 @@ describe('the composer credit notice', () => {
         expect(container.innerHTML).toBe('');
         rerender(<CreditNotice notice={{ level: 'low', text: '10 credits left this month.' }} />);
         expect(screen.getByRole('status').textContent).toBe('10 credits left this month.');
-        expect(screen.getByRole('status').className).toContain('credit-notice-low');
+        expect(screen.getByRole('status').className).toContain('credit-float-low');
         rerender(<CreditNotice notice={null} />);
+    });
+});
+
+describe('the few words it shows', () => {
+    it('keeps the floating notice short; the whole sentence is its tooltip and the pop-up', () => {
+        expect(noticeFor(usage(10), pricing, 'chat', 'advanced').brief).toBe('10 credits left · resets Dec 1');
+        expect(noticeFor(usage(10), pricing, 'deep_research', 'advanced').brief)
+            .toBe('Investigate needs 30 credits · 10 left');
+        const notice = noticeFor(usage(10), pricing, 'deep_research', 'advanced');
+        render(<CreditNotice notice={notice} />);
+        expect(screen.getByRole('status').textContent).toBe('Investigate needs 30 credits · 10 left');
+        expect(screen.getByTitle(notice.text)).toBeTruthy();
+    });
+
+    it("draws the home page's as the news strip is, tag and all", () => {
+        sessionStorage.clear();
+        render(<CreditNotice variant="strip" notice={noticeFor(usage(10), pricing, 'deep_research', 'advanced')} />);
+        const strip = screen.getByRole('status');
+        expect(strip.querySelector('.news-strip .news-strip-tag.is-amber').textContent).toBe('Credits');
+        expect(strip.querySelector('.news-strip-text').textContent).toBe('Investigate needs 30 credits · 10 left');
+        expect(strip.querySelector('.news-strip-close')).toBeTruthy();
     });
 });
 

@@ -204,7 +204,8 @@ export const affordableChoice = (pricing, pipeline, remaining, tierId = '') => {
 };
 
 /**
- * The composer's credit notice for a signed-in reader, or null:
+ * The composer's credit notice for a signed-in reader, or null — `{ level, text, brief }`, where
+ * `text` is the whole sentence (the pop-up) and `brief` the few words the floating notice shows:
  *   'short'  the question as set up costs `cost` and the balance is less — the send is held back;
  *   'low'    at most LOW_CREDITS_SHARE of the monthly allowance is left.
  * Guests (their ten questions have their own notice), an unknown balance and an empty one
@@ -228,11 +229,19 @@ export const creditNotice = (usage, {
                 ? ` Switch to ${model} (${creditCount(alternative.credits)}) to go ahead now.`
                 : ` ${PIPELINE_NAMES[alternative.pipeline]} on ${model} (${creditCount(alternative.credits)}) still works.`;
         }
-        return { level: 'short', text };
+        return {
+            level: 'short',
+            text,
+            brief: `${PIPELINE_NAMES[pipeline] || 'This question'} needs ${creditCount(cost)} · ${remaining} left`,
+        };
     }
     const allowance = usage.monthlyAllowance;
     if (Number.isFinite(allowance) && allowance > 0 && remaining <= allowance * LOW_CREDITS_SHARE) {
-        return { level: 'low', text: `${creditCount(remaining)} left this month.${back}` };
+        return {
+            level: 'low',
+            text: `${creditCount(remaining)} left this month.${back}`,
+            brief: `${creditCount(remaining)} left${resets ? ` · resets ${resets}` : ' this month'}`,
+        };
     }
     return null;
 };
