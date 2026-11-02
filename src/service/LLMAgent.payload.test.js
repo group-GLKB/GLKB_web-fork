@@ -202,6 +202,38 @@ describe('a request refused before the stream opened', () => {
         expect(updates.filter((u) => u.type === 'error')).toHaveLength(0);
     }, 5000);
 
+    it('retries SERVER_BUSY (the backend is out of database connections) without showing an error', async () => {
+        const waits = [];
+        const timer = jest.spyOn(global, 'setTimeout').mockImplementation((fn, ms) => { waits.push(ms); fn(); return 0; });
+        try {
+            axios.post
+                .mockRejectedValueOnce(httpError(503, { detail: { code: 'SERVER_BUSY', message: 'busy' } }))
+                .mockRejectedValueOnce(httpError(503, { detail: { code: 'SERVER_BUSY', message: 'busy' } }))
+                .mockResolvedValueOnce({ data: '' });
+            const updates = [];
+            await new LLMAgentService().chat('q', new AbortController(), (u) => updates.push(u), {});
+            expect(axios.post).toHaveBeenCalledTimes(3);
+            expect(waits).toEqual([5000, 5000]);
+            expect(updates.filter((u) => u.type === 'error')).toHaveLength(0);
+        } finally {
+            timer.mockRestore();
+        }
+    });
+
+    it('shows SERVER_BUSY once its retries are spent', async () => {
+        const timer = jest.spyOn(global, 'setTimeout').mockImplementation((fn) => { fn(); return 0; });
+        try {
+            axios.post.mockRejectedValue(httpError(503, { detail: { code: 'SERVER_BUSY', message: 'GLKB is busy right now. Please try again in a moment.' } }));
+            const updates = [];
+            await expect(new LLMAgentService().chat('q', new AbortController(), (u) => updates.push(u), {})).rejects.toThrow();
+            expect(axios.post).toHaveBeenCalledTimes(4);
+            expect(updates.filter((u) => u.type === 'error')[0].error).toBe('GLKB is busy right now. Please try again in a moment.');
+        } finally {
+            axios.post.mockReset();
+            timer.mockRestore();
+        }
+    });
+
     it('does not retry any other refusal', async () => {
         axios.post.mockRejectedValueOnce(httpError(429, { detail: { code: 'INSUFFICIENT_CREDITS' } }));
         await expect(new LLMAgentService().chat('q', new AbortController(), () => {}, {})).rejects.toThrow();

@@ -696,18 +696,24 @@ export class LLMAgentService {
                     processSSEChunk(chunk);
                 },
             });
-            try {
-                await post();
-            } catch (error) {
-                // 503 CREDITS_BUSY: the balance covers the query but three concurrent charges
-                // raced for it. The backend asks for one retry after a second; nothing was taken.
-                if (refusalOf(error)?.code !== 'CREDITS_BUSY') throw error;
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-                // The refused response's body went through the progress handler; the retry is a
-                // new response, read from its start.
-                processedLength = 0;
-                buffer = '';
-                await post();
+            // 503 CREDITS_BUSY: the balance covers the query but three concurrent charges raced
+            // for it; the backend asks for one retry after a second. 503 SERVER_BUSY: the backend
+            // ran out of database connections for a moment; it asks for a retry after 5 s. Nothing
+            // was taken either way, so the reader never sees these.
+            const BUSY_RETRIES = { CREDITS_BUSY: [1000], SERVER_BUSY: [5000, 5000, 10000] };
+            for (let attempt = 0; ; attempt += 1) {
+                try {
+                    await post();
+                    break;
+                } catch (error) {
+                    const waits = BUSY_RETRIES[refusalOf(error)?.code];
+                    if (!waits || attempt >= waits.length) throw error;
+                    await new Promise((resolve) => setTimeout(resolve, waits[attempt]));
+                    // The refused response's body went through the progress handler; the retry
+                    // is a new response, read from its start.
+                    processedLength = 0;
+                    buffer = '';
+                }
             }
 
             // Flush trailing buffer without newline
