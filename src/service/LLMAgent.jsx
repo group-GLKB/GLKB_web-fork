@@ -725,6 +725,14 @@ export class LLMAgentService {
                 return;
             }
             console.error('Chat error:', error);
+            /* The connection dropped with no HTTP answer (axios's "Network Error": the reader's
+               wifi blinking, a laptop waking). The run is still going on the server, and both
+               callers poll it back in their catch. An 'error' update here would write
+               "Error: Network Error" over an answer that is still being written (2026-11-02). */
+            if (!error?.response) {
+                error.connectionLost = true;
+                throw error;
+            }
             const refusal = refusalOf(error);
             onUpdate({
                 type: 'error',

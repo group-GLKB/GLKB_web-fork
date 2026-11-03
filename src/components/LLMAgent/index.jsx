@@ -5661,6 +5661,9 @@ function LLMAgent({ isRouteActive = true }) {
                exchange visibly unfinished, for the reattach path to collect. */
             const pollSessionId = runSessionId || sessionIdRef.current;
             let outcome = refusal ? 'refused' : 'unknown';
+            if (error?.connectionLost && pollSessionId && activeStreamIdRef.current === streamId) {
+                setStreamingStepName('Connection interrupted — reconnecting to the answer');
+            }
             /* A first turn refused for credits leaves the row createConversation made with
                nothing in it, and the address bar already naming it: reloading that row is what
                showed an empty page (2026-11-02). Take the row away and start over with the

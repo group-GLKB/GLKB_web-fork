@@ -192,6 +192,26 @@ describe('a request refused before the stream opened', () => {
         });
     });
 
+    it('a dropped connection is not an error update: the caller recovers the run', async () => {
+        axios.post.mockRejectedValueOnce(Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' }));
+        const updates = [];
+        const thrown = await new LLMAgentService()
+            .chat('q', new AbortController(), (u) => updates.push(u), {})
+            .catch((e) => e);
+        expect(thrown.connectionLost).toBe(true);
+        expect(updates.filter((u) => u.type === 'error')).toHaveLength(0);
+    });
+
+    it('a server failure with an HTTP answer is still an error update', async () => {
+        axios.post.mockRejectedValueOnce(httpError(502, ''));
+        const updates = [];
+        const thrown = await new LLMAgentService()
+            .chat('q', new AbortController(), (u) => updates.push(u), {})
+            .catch((e) => e);
+        expect(thrown.connectionLost).toBeUndefined();
+        expect(updates.filter((u) => u.type === 'error')).toHaveLength(1);
+    });
+
     it('retries once after a second on CREDITS_BUSY, as the backend asks', async () => {
         axios.post
             .mockRejectedValueOnce(httpError(503, { detail: { code: 'CREDITS_BUSY' } }))
