@@ -1,5 +1,6 @@
 /**
- * The tier a picker shows, and the tiers it offers (TierPicker's chip and its phone list).
+ * The tier a picker shows, and the tiers it offers: shared by TierPicker and the composer's
+ * model-and-effort menu (Units/EffortPicker), which list the same rows.
  *
  * The parent may hold nothing yet, a tier this pipeline does not offer, or (a guest) a tier they
  * may not use. Each is replaced by the default, VISIBLY — the chip re-renders before anything is

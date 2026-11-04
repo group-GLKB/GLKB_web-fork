@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 import CloseIcon from '@mui/icons-material/Close';
 import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
@@ -10,6 +10,11 @@ import {
 
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { INVESTIGATE_ATTACH, INVESTIGATE_IMAGES_NOTE, pastedAttachments } from '../../service/attachments';
+import {
+    DEFAULT_EFFORT,
+    effortLabel,
+    isDeepEffort,
+} from '../../service/effortLevels';
 import { trackGtagEvent } from '../../utils/gtag';
 import {
     AttachButton,
@@ -26,13 +31,14 @@ import ComposerOptions, {
     optionsChanged,
 } from '../Units/ComposerOptions';
 import CreditNotice, { useCreditNotice } from '../Units/CreditNotice';
+import EffortPicker, { chooseEffort, EffortLevels } from '../Units/EffortPicker';
 import TierPicker from '../Units/TierPicker';
 import { quotePreview } from './quoteReply';
 
 /**
  * The composer at the foot of a conversation (design: GLKB Effort A) — the field, then a row:
- * "+", the model chip, Options, send. Whether the conversation is a Chat or an Investigate one is
- * fixed when it starts (the home composer's tabs); this bar follows it rather than choosing.
+ * "+", the model-and-effort chip, Options, send. The effort is per question: Medium asks the chat
+ * agent, Extra runs deep research, in the same conversation.
  */
 const ChatSearchBar = ({
     userInput,
@@ -40,25 +46,23 @@ const ChatSearchBar = ({
     isLoading,
     isRunElsewhere = false,
     isQueryLimitReached = false,
-    // Investigate is fixed for the life of a session, so the bar reports the
-    // mode for analytics but renders no toggle.
-    investigateEnabled = false,
-    // Which service tier answers the next question (service/serviceTiers.js). Per-turn, unlike
-    // `investigateEnabled`: the picker is right here in the composer, so a reader can change it
-    // between two turns of one conversation and expects the next answer to honour the change.
+    // Which service tier answers the next question (service/serviceTiers.js). Per-turn: the
+    // reader can change it between two turns of one conversation and expects the next answer to
+    // honour the change.
     serviceTier,
     onServiceTierChange,
     onServiceTierResolveDefault,
+    // How hard the next question is worked on (service/effortLevels.js): Medium is the chat
+    // agent, Extra deep research. Per-turn, like the tier.
+    effort = DEFAULT_EFFORT,
+    onEffortChange,
     // The Options drawer's choices (Units/ComposerOptions) for the next question.
     composerOptions = DEFAULT_COMPOSER_OPTIONS,
     onComposerOptionsChange,
-    // A guest is held to Terra or Luna; picking GPT-6.1 Sol asks them to sign in.
+    // A guest is held to Terra or Luna at Medium; reaching past asks them to sign in.
     isGuest = false,
+    // (kind: 'model' | 'effort', entry)
     onRequireSignIn,
-    // Resolved by the parent, which is the only place that can see both signals (the
-    // conversation's stored mode and its live run — `chatInvestigateEnabled` in LLMAgent). Not
-    // derived from `investigateEnabled` above: that one is for analytics.
-    pipelineIsDeepResearch = false,
     /* The files waiting on this question (Units/AttachmentChips/useAttachments), owned by the
        parent because it reads them at send time. Absent: no "+" at all. */
     attachments = null,
@@ -76,7 +80,8 @@ const ChatSearchBar = ({
     const isMobileViewport = useMediaQuery('(max-width:767px)');
     const [isDragOver, setIsDragOver] = useState(false);
     const [optionsOpen, setOptionsOpen] = useState(false);
-    const deep = Boolean(pipelineIsDeepResearch);
+    const boxRef = useRef(null);
+    const deep = isDeepEffort(effort);
     /* Two different situations wear the same `isLoading`, and the field stays usable in both.
 
        THIS conversation is answering: a submit is queued by the parent, so a follow-up that
@@ -88,11 +93,11 @@ const ChatSearchBar = ({
        question simply starts, and the other answer goes on being written. */
     const canType = !isQueryLimitReached;
     /* A guest's question has no owner to keep a file for, so the "+" asks them to sign in.
-       An Investigate conversation reads documents and not images (since 2026-11-02): the parent
-       gives its attachments Investigate's limits, so an image dropped or pasted here is turned
-       away with the reason, and one still waiting from before holds the send back, with the
-       design's note offering to remove it, rather than being dropped without a word. The note
-       is that row, not the chips' line as well. */
+       Extra (deep research) reads documents and not images (since 2026-11-02): the parent gives
+       its attachments Investigate's limits, so an image dropped or pasted at Extra is turned
+       away with the reason, and one still waiting from Medium holds the send back, with the
+       design's note offering Medium or removing it, rather than being dropped without a word.
+       The note is that row, not the chips' line as well. */
     const attachDisabled = !canType;
     const imagesWaiting = deep ? waitingImages(attachments) : [];
     const attachConflict = imagesWaiting.length > 0;
@@ -108,7 +113,7 @@ const ChatSearchBar = ({
             onAttachRequireSignIn?.();
             return;
         }
-        if (attachDisabled) return;
+        if (!canType) return;
         attachments.addFiles(files);
     };
     // Stop is what the button offers when there is nothing to send. Typing turns it back into
@@ -151,6 +156,7 @@ const ChatSearchBar = ({
     return (
         <div className="chat-header">
         <Box
+            ref={boxRef}
             className={`chat-composer${isDragOver ? ' attachment-drop-target' : ''}`}
             onDragOver={(event) => {
                 if (!attachments || !dragHasFiles(event)) return;
@@ -263,13 +269,14 @@ const ChatSearchBar = ({
                 fullWidth
             />
             {attachConflict && (
-                // No "Use Chat" here: the conversation's mode is fixed (ask in a new Chat instead).
                 <AttachConflict
-                    modeName="Investigate"
+                    modeName={effortLabel(effort)}
+                    fallbackName={effortLabel(DEFAULT_EFFORT)}
                     text={INVESTIGATE_IMAGES_NOTE}
                     noun="image"
                     count={imagesWaiting.length}
-                    // Only the images: the documents beside them are Investigate's.
+                    onUseFallback={onEffortChange ? () => onEffortChange(DEFAULT_EFFORT) : undefined}
+                    // Only the images: the documents beside them are Extra's.
                     onRemoveFiles={() => imagesWaiting.forEach((item) => attachments.remove(item.key))}
                 />
             )}
@@ -295,16 +302,19 @@ const ChatSearchBar = ({
                 )}
                 <Box sx={{ flex: 1 }} />
                 {!isMobileViewport && (
-                    // Left usable while an answer streams. A follow-up typed mid-answer is
-                    // queued by the parent, and it should be able to name its own tier — the
-                    // choice applies to the NEXT request, never to the one in flight.
-                    <TierPicker
-                        value={serviceTier}
-                        onChange={onServiceTierChange}
-                        onResolveDefault={onServiceTierResolveDefault}
-                        pipeline={deep ? 'deep_research' : 'chat'}
+                    // Left usable while an answer streams: the choice applies to the NEXT
+                    // request, never to the one in flight.
+                    <EffortPicker
+                        tier={serviceTier}
+                        onTierChange={onServiceTierChange}
+                        onTierResolveDefault={onServiceTierResolveDefault}
+                        effort={effort}
+                        onEffortChange={onEffortChange}
                         isGuest={isGuest}
                         onRequireSignIn={onRequireSignIn}
+                        hasFiles={Boolean(attachments?.hasItems)}
+                        placement="up"
+                        anchorRef={boxRef}
                         disabled={isQueryLimitReached}
                     />
                 )}
@@ -363,7 +373,7 @@ const ChatSearchBar = ({
                             if (!canSend) return;
                             trackGtagEvent('chat_submit_click', {
                                 source: 'chat_searchbar',
-                                investigate: Boolean(investigateEnabled),
+                                investigate: deep,
                                 queued: false,
                             });
                             submit(event, 'button');
@@ -396,7 +406,7 @@ const ChatSearchBar = ({
             <ComposerOptions
                 open={optionsOpen}
                 onClose={() => setOptionsOpen(false)}
-                investigate={deep}
+                effort={effort}
                 value={composerOptions}
                 onChange={onComposerOptionsChange}
                 onReset={() => onComposerOptionsChange?.(DEFAULT_COMPOSER_OPTIONS)}
@@ -411,7 +421,18 @@ const ChatSearchBar = ({
                             onResolveDefault={onServiceTierResolveDefault}
                             pipeline={deep ? 'deep_research' : 'chat'}
                             isGuest={isGuest}
-                            onRequireSignIn={onRequireSignIn}
+                            onRequireSignIn={(tier) => onRequireSignIn?.('model', tier)}
+                        />
+                    </div>
+                    <div className="composer-options-group-title">Effort</div>
+                    <div className="composer-options-group">
+                        <EffortLevels
+                            effort={effort}
+                            isGuest={isGuest}
+                            hasFiles={Boolean(attachments?.hasItems)}
+                            onPick={(level) => chooseEffort({
+                                level, effort, isGuest, onEffortChange, onRequireSignIn,
+                            })}
                         />
                     </div>
                 </>)}

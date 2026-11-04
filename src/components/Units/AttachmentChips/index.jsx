@@ -307,13 +307,12 @@ const DesignChips = ({ items, notice, blockedNote, onRemove }) => (
 );
 
 /**
- * The composer's warning when its mode does not read some of the waiting files (design: GLKB
- * Effort A). Since Investigate reads documents (2026-11-02) that is an image waiting on an
- * Investigate question: "Images work in AI Chat — Investigate reads documents.  [Use Chat]
- * [Remove image]". `text` says what is wrong (the default is the original wording, for a mode
- * that reads no file at all), `count` how many files the remove button takes away and `noun`
- * what they are. Without `onUseFallback` (a conversation whose mode is fixed) only removing them
- * is offered.
+ * The composer's warning when the chosen effort does not read some of the waiting files (design:
+ * GLKB Effort A). Since Extra (deep research) reads documents (2026-11-02) that is an image waiting
+ * on an Extra question: "Images work at Medium — Extra reads documents.  [Use Medium] [Remove image]".
+ * `text` says what is wrong (the default is the original wording, for an effort that reads no file
+ * at all), `count` how many files the remove button takes away and `noun` what they are. Without
+ * `onUseFallback` (a conversation whose pipeline is fixed) only removing them is offered.
  */
 export const AttachConflict = ({
     modeName, fallbackName, onUseFallback, onRemoveFiles, count = 1, text = '', noun = 'file',

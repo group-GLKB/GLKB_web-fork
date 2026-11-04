@@ -37,9 +37,9 @@ describe('a turn sent to Investigate', () => {
         );
     });
 
-    it("gives an Investigate conversation's composer the documents-only limits", () => {
+    it('gives the composer the documents-only limits at Extra effort', () => {
         expect(source).toMatch(
-            /useAttachments\(\{\s*onRequireSignIn: requestAttachSignIn,\s*limits: chatInvestigateEnabled \? INVESTIGATE_ATTACH_LIMITS : undefined,\s*\}\)/,
+            /useAttachments\(\{\s*onRequireSignIn: requestAttachSignIn,\s*limits: INVESTIGATE_ENABLED && isDeepEffort\(composerEffort\) \? INVESTIGATE_ATTACH_LIMITS : undefined,\s*\}\)/,
         );
     });
 

@@ -1,10 +1,11 @@
-/** Files on the home page's first question: signed-in readers; AI Chat any type, Investigate documents. */
+/** Files on the home page's first question: signed-in readers; Medium any type, Extra (Investigate) documents. */
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import LlmSearchBar from './LlmSearchBarHome';
 import { uploadAttachment } from '../../service/attachments';
+import { setEffortPref } from '../../service/effortLevels';
 
 const mockAuth = { isAuthenticated: false, loading: false, openLoginModal: jest.fn() };
 const mockNavigate = jest.fn();
@@ -88,13 +89,15 @@ it('opens the file picker straight from the +, with no menu in between', () => {
 
 const docButton = () => screen.getByRole('button', { name: 'Attach a document (PDF, Word, text)' });
 const image = () => new File(['png'], 'fig.png', { type: 'image/png' });
-const IMAGES_NOTE = 'Images work in AI Chat — Investigate reads documents (PDF, Word, text).';
+const IMAGES_NOTE = 'Images work at Medium — Extra reads documents (PDF, Word, text).';
+// The effort is one preference with the chat page's composer (service/effortLevels.js).
+const switchToExtra = () => act(() => { setEffortPref('extra'); });
 
-it('keeps the + on Investigate for documents (since 2026-11-02), with a picker that offers no images', () => {
+it('keeps the + at Extra for documents (since 2026-11-02), with a picker that offers no images', () => {
     mockAuth.isAuthenticated = true;
     renderBar();
     expect(paperclip()).toBeEnabled();
-    fireEvent.click(screen.getByTitle('Investigate off'));
+    switchToExtra();
     expect(docButton()).toBeEnabled();
     const accept = screen.getByTestId('attachment-file-input').getAttribute('accept');
     expect(accept).toContain('.pdf');
@@ -102,15 +105,16 @@ it('keeps the + on Investigate for documents (since 2026-11-02), with a picker t
     expect(accept).not.toMatch(/\.png|\.jpe?g|image\//);
 });
 
-it('sends the documents with an Investigate question', async () => {
+it('sends the documents with an Extra question', async () => {
     mockAuth.isAuthenticated = true;
     uploadAttachment.mockResolvedValueOnce({
         id: 'p1', kind: 'pdf', mime_type: 'application/pdf', filename: 'paper.pdf', size_bytes: 4, page_count: 3,
     });
+    window.localStorage.setItem('glkb_effort', 'extra');
     renderBar();
-    fireEvent.click(screen.getByTitle('Investigate off'));
     pick([pdf()]);
     await waitFor(() => expect(screen.getByTestId('attachment-chip')).toHaveClass('is-ready'));
+    expect(screen.queryByText(IMAGES_NOTE)).toBeNull();
     fireEvent.change(screen.getByRole('combobox'), {
         target: { value: 'How does this paper fit the literature?' },
     });
@@ -128,10 +132,10 @@ it('sends the documents with an Investigate question', async () => {
     expect(screen.queryByTestId('attachment-chip')).toBeNull();
 });
 
-it('turns an image away on Investigate before uploading it, and says why', async () => {
+it('turns an image away at Extra before uploading it, and says why', async () => {
     mockAuth.isAuthenticated = true;
+    window.localStorage.setItem('glkb_effort', 'extra');
     renderBar();
-    fireEvent.click(screen.getByTitle('Investigate off'));
     pick([image()]);
     expect(await screen.findByText(IMAGES_NOTE)).toBeInTheDocument();
     expect(uploadAttachment).not.toHaveBeenCalled();
@@ -143,29 +147,29 @@ const waitingImageAndPdf = async () => {
         .mockResolvedValueOnce({ id: 'i1', kind: 'image', mime_type: 'image/png', filename: 'fig.png', size_bytes: 3 })
         .mockResolvedValueOnce({ id: 'p1', kind: 'pdf', mime_type: 'application/pdf', filename: 'paper.pdf', size_bytes: 4 });
     renderBar();
-    // Attached in Chat, which reads both; then the mode switched.
+    // Attached at Medium, which reads both; then the effort switched.
     pick([image(), pdf()]);
     await waitFor(() => {
         const chips = screen.getAllByTestId('attachment-chip');
         expect(chips).toHaveLength(2);
         chips.forEach((chip) => expect(chip).toHaveClass('is-ready'));
     });
-    fireEvent.click(screen.getByTitle('Investigate off'));
+    switchToExtra();
     fireEvent.change(screen.getByRole('combobox'), {
         target: { value: 'What does this paper show?' },
     });
 };
 
-it('holds an Investigate question back while an image from Chat waits, and offers Chat', async () => {
+it('holds an Extra question back while an image from Medium waits, and offers Medium', async () => {
     mockAuth.isAuthenticated = true;
     await waitingImageAndPdf();
     expect(screen.getByText(IMAGES_NOTE)).toBeInTheDocument();
     startChat();
     expect(mockNavigate).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Use Chat' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use Medium' }));
     expect(screen.queryByText(IMAGES_NOTE)).toBeNull();
-    expect(screen.getByTitle('Investigate off')).toBeInTheDocument();
+    expect(window.localStorage.getItem('glkb_effort')).toBe('medium');
     startChat();
     expect(mockNavigate.mock.calls[0][1].state.initialSearchOptions).toEqual(expect.objectContaining({
         investigateEnabled: false,
@@ -173,7 +177,7 @@ it('holds an Investigate question back while an image from Chat waits, and offer
     }));
 });
 
-it('can remove just the image instead, and send the document to Investigate', async () => {
+it('can remove just the image instead, and send the document at Extra', async () => {
     mockAuth.isAuthenticated = true;
     await waitingImageAndPdf();
     fireEvent.click(screen.getByRole('button', { name: 'Remove image' }));

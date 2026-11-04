@@ -1,7 +1,7 @@
 /**
- * What the Options drawer's choices send. Both tools start Off, so a Chat question at the defaults
- * asks for neither. Auto means the knowledge graph on and figures off — what the chat agent was sent
- * at the old "Medium" effort. Investigate (deep research) is sent neither: it does both on its own.
+ * What the Options drawer's choices send. Both tools start Off (2026-11-02), so a question at the
+ * defaults asks for neither. Auto follows the effort: the knowledge graph from Medium up, figures
+ * from High up. Extra (deep research) is sent neither: it does both on its own.
  */
 import {
     answerFlags,
@@ -11,20 +11,21 @@ import {
 } from './index';
 
 describe('answerFlags', () => {
-    it('sends neither the knowledge graph nor figures for the defaults in Chat', () => {
+    it('sends neither the knowledge graph nor figures for the defaults at Medium', () => {
         expect(DEFAULT_COMPOSER_OPTIONS).toMatchObject({ kg: 'off', fig: 'off' });
-        expect(answerFlags(DEFAULT_COMPOSER_OPTIONS)).toEqual({});
-        expect(answerFlags(undefined)).toEqual({});
+        expect(answerFlags(DEFAULT_COMPOSER_OPTIONS, 'medium')).toEqual({});
+        expect(answerFlags(undefined, 'medium')).toEqual({});
     });
 
-    it('follows Off and On, and Auto leaves figures out', () => {
-        expect(answerFlags({ ...DEFAULT_COMPOSER_OPTIONS, kg: 'off', fig: 'on' })).toEqual({ figures: true });
-        expect(answerFlags({ ...DEFAULT_COMPOSER_OPTIONS, kg: 'on', fig: 'auto' })).toEqual({ graph: true });
-        expect(answerFlags({ ...DEFAULT_COMPOSER_OPTIONS, kg: 'off', fig: 'off' })).toEqual({});
+    it('follows Off and On; Auto at Medium is the graph and no figures', () => {
+        expect(answerFlags({ ...DEFAULT_COMPOSER_OPTIONS, kg: 'off', fig: 'on' }, 'medium')).toEqual({ figures: true });
+        expect(answerFlags({ ...DEFAULT_COMPOSER_OPTIONS, kg: 'on', fig: 'auto' }, 'medium')).toEqual({ graph: true });
+        expect(answerFlags({ ...DEFAULT_COMPOSER_OPTIONS, kg: 'auto', fig: 'auto' }, 'medium')).toEqual({ graph: true });
+        expect(answerFlags({ ...DEFAULT_COMPOSER_OPTIONS, kg: 'off', fig: 'off' }, 'medium')).toEqual({});
     });
 
-    it('sends neither in Investigate, whatever was chosen', () => {
-        expect(answerFlags({ ...DEFAULT_COMPOSER_OPTIONS, kg: 'on', fig: 'on' }, true)).toEqual({});
+    it('sends neither at Extra, whatever was chosen', () => {
+        expect(answerFlags({ ...DEFAULT_COMPOSER_OPTIONS, kg: 'on', fig: 'on' }, 'extra')).toEqual({});
     });
 });
 

@@ -8,6 +8,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import LlmSearchBarHome from './LlmSearchBarHome';
+import { setEffortPref } from '../../service/effortLevels';
 
 const mockNavigate = jest.fn();
 let mockUsage = null;
@@ -65,7 +66,8 @@ const setup = async () => {
     await act(async () => {});            // the prices
     return view;
 };
-const investigateTab = () => screen.getByRole('tab', { name: /investigate/i, hidden: true });
+// Investigate is the composer's Extra effort (service/effortLevels.js).
+const chooseExtra = () => act(() => { setEffortPref('extra'); });
 const ask = (text) => {
     fireEvent.change(screen.getByRole('combobox'), { target: { value: text } });
     fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
@@ -80,7 +82,7 @@ it('warns quietly in Chat when a fifth of the month is left, and still sends', a
 
 it('says Investigate cannot be paid for, and pops up instead of opening a conversation', async () => {
     await setup();
-    fireEvent.click(investigateTab());
+    chooseExtra();
     expect(lastNotice()).toMatchObject({ level: 'short', brief: 'Investigate needs 30 credits · 10 left' });
     ask('Map resistance mechanisms of KRAS G12C inhibitors');
     expect(mockNavigate).not.toHaveBeenCalled();
@@ -95,6 +97,6 @@ it('says Investigate cannot be paid for, and pops up instead of opening a conver
 it('says nothing with plenty left', async () => {
     mockUsage = parseCredits({ remaining: 80, monthly_allowance: 100, resets_at: '2026-12-01T00:00:00' });
     await setup();
-    fireEvent.click(investigateTab());
+    chooseExtra();
     expect(lastNotice()).toBeNull();
 });

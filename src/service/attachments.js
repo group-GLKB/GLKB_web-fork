@@ -62,10 +62,10 @@ export const LONG_PASTE_CHARS = 4000;
 export const PASTED_TEXT_NAME = 'Pasted text.txt';
 
 export const GUEST_ATTACH_REASON = "Sign in to attach files — it's free.";
-/* Investigate's "+" and the note when an image is waiting on an Investigate question (attached
-   in Chat, then the mode switched), which holds the send back until it is removed. */
+/* Extra effort's (Investigate's) "+" and the note when an image is waiting on an Extra question
+   (attached at Medium, then the effort switched), which holds the send back until it is removed. */
 export const INVESTIGATE_ATTACH_LABEL = 'Attach a document (PDF, Word, text)';
-export const INVESTIGATE_IMAGES_NOTE = 'Images work in AI Chat — Investigate reads documents (PDF, Word, text).';
+export const INVESTIGATE_IMAGES_NOTE = 'Images work at Medium — Extra reads documents (PDF, Word, text).';
 export const UNSUPPORTED_TYPE_MESSAGE = "This file type can't be attached.";
 
 const EXTENSION_MIME = {
