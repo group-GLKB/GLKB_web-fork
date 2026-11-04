@@ -56,6 +56,13 @@ export const USE_CASES = [
                 pmid: '30581122',
                 citations: 39,
             },
+            {
+                title: 'GLP-1 receptor agonists synergize with DYRK1A inhibitors to potentiate functional human β cell regeneration.',
+                meta: 'Courtney Ackeifi et al. · 2020 · Sci Transl Med',
+                quote: '“Here, we provide evidence that combining any member of the GLP1R agonist class with any member of the DYRK1A inhibitor class induces a synergistic increase in human β cell replication ...”',
+                pmid: '32051230',
+                citations: 47,
+            },
         ],
     },
 

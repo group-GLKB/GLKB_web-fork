@@ -13,6 +13,7 @@
 import './scoped.css';
 
 import React, {
+    useCallback,
     useEffect,
     useRef,
     useState,
@@ -50,7 +51,8 @@ import browserFavicon from '../../img/GLKB_logo_icon.png';
 import { CHAT_HOME_PATH, markAboutSeen } from '../../config/entryRoutes';
 import { useAuth } from '../Auth/AuthContext';
 import { posts } from '../Blog/posts';
-import { DEMO_VIDEO_URL, PostCard, SiteFooter, SiteNav } from '../SiteChrome';
+import { PostCard, SiteFooter, SiteNav } from '../SiteChrome';
+import { DemoModal, DemoPlayer } from './DemoVideo';
 import faqData from './faqData.json';
 import {
     CountUp,
@@ -61,6 +63,7 @@ import {
     useReveal,
     useScrollProgress,
 } from './motion';
+import LocalNav from './LocalNav';
 import ScaleScene from './ScaleScene';
 import { USE_CASES } from './useCases';
 import WorkflowScene from './WorkflowScene';
@@ -151,6 +154,9 @@ const AboutPage = () => {
     const heroRef = useRef(null);
     const statementRef = useRef(null);
     const motion = useMotionAllowed();
+    const [demoOpen, setDemoOpen] = useState(false);
+    const openDemo = useCallback(() => setDemoOpen(true), []);
+    const closeDemo = useCallback(() => setDemoOpen(false), []);
 
     useReveal(pageRef, motion);
 
@@ -225,6 +231,7 @@ const AboutPage = () => {
 
             <div className={`about-page${motion ? ' about-page--motion' : ''}`} ref={pageRef}>
                 <SiteNav active="home" onGetStarted={handleGetStarted} />
+                <LocalNav motion={motion} onTry={handleGetStarted} />
 
                 <section className="about-hero" id="top" ref={heroRef}>
                     <div className="about-hero-stage">
@@ -261,7 +268,7 @@ const AboutPage = () => {
                                 <button type="button" className="site-button" onClick={() => navigate(CHAT_HOME_PATH)}>
                                     Try GLKB
                                 </button>
-                                <button type="button" className="site-button site-button--ghost" onClick={() => window.open(DEMO_VIDEO_URL, '_blank', 'noopener,noreferrer')}>
+                                <button type="button" className="site-button site-button--ghost" onClick={openDemo}>
                                     View Demo
                                 </button>
                             </div>
@@ -334,6 +341,19 @@ const AboutPage = () => {
                 <ScaleScene motion={motion} />
 
                 <WorkflowScene />
+
+                <section className="about-section about-demo" id="demo">
+                    <div className="about-inner">
+                        <p className="about-eyebrow" data-reveal>See it in action</p>
+                        <h2 className="about-heading" data-reveal style={{ '--d': 1 }}>Watch the GLKB research agent at work</h2>
+                        <p className="about-demo-lede" data-reveal style={{ '--d': 2 }}>
+                            A walkthrough of GLKB answering a research question, from the query to the cited answer.
+                        </p>
+                        <div className="about-demo-frame" data-reveal style={{ '--d': 3 }}>
+                            <DemoPlayer />
+                        </div>
+                    </div>
+                </section>
 
                 <section className="about-section about-different" id="why">
                     <div className="about-inner">
@@ -480,6 +500,9 @@ const AboutPage = () => {
                                 </div>
                             </div>
                             ) : null}
+                            <p className="about-sample-note">
+                                An excerpt of a GLKB answer, shortened for this page. The references are the papers it cites.
+                            </p>
                         </div>
                     </div>
                 </section>
@@ -563,8 +586,9 @@ const AboutPage = () => {
                     </div>
                 </section>
 
-                <SiteFooter />
+                <SiteFooter onViewDemo={openDemo} />
             </div>
+            <DemoModal open={demoOpen} onClose={closeDemo} />
         </>
     );
 };

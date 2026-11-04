@@ -4,6 +4,7 @@ import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { StaticRouter } from 'react-router-dom/server';
 import AboutPage from './index';
+import { PAGE_SECTIONS } from './LocalNav';
 import { measureProgress, segment } from './motion';
 import { USE_CASES } from './useCases';
 import { useAuth } from '../Auth/AuthContext';
@@ -70,20 +71,48 @@ describe('the About page', () => {
     });
 });
 
+describe('the in-page navigation', () => {
+    it('links to a section that exists for every entry', () => {
+        const { container } = render(<MemoryRouter><AboutPage /></MemoryRouter>);
+        const nav = screen.getByRole('navigation', { name: 'On this page' });
+        PAGE_SECTIONS.forEach(([id, label]) => {
+            expect(container.querySelector(`#${id}`)).toBeTruthy();
+            expect(nav.querySelector(`.about-localnav-links a[href="#${id}"]`).textContent).toBe(label);
+        });
+    });
+
+    it('scrolls to a section and folds the contents menu away', () => {
+        const scrollIntoView = jest.fn();
+        Element.prototype.scrollIntoView = scrollIntoView;
+        render(<MemoryRouter><AboutPage /></MemoryRouter>);
+        const nav = screen.getByRole('navigation', { name: 'On this page' });
+        const toggle = nav.querySelector('.about-localnav-toggle');
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        fireEvent.click(toggle);
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+        const menu = nav.querySelector('#about-localnav-menu');
+        expect(menu.hidden).toBe(false);
+        fireEvent.click(menu.querySelector('a[href="#use-cases"]'));
+        expect(scrollIntoView).toHaveBeenCalledTimes(1);
+        expect(scrollIntoView.mock.instances[0].id).toBe('use-cases');
+        expect(menu.hidden).toBe(true);
+        expect(window.location.hash).toBe('#use-cases');
+        delete Element.prototype.scrollIntoView;
+    });
+});
+
 describe('use-case data', () => {
-    it.each(USE_CASES.map((item) => [item.id, item]))('%s lists three references, each with its own PMID', (id, item) => {
-        expect(item.references).toHaveLength(3);
+    it.each(USE_CASES.map((item) => [item.id, item]))('%s lists its references, each with its own PMID', (id, item) => {
+        expect(item.references.length).toBeGreaterThanOrEqual(3);
         const pmids = item.references.map((reference) => reference.pmid);
         expect(new Set(pmids).size).toBe(pmids.length);
         pmids.forEach((pmid) => expect(pmid).toMatch(/^\d{7,8}$/));
     });
 
-    // The first example is the design's sample, clipped by its frame, and cites a
-    // fourth paper it does not list. The condensed ones must cite only what they list.
-    it.each(USE_CASES.slice(1).map((item) => [item.id, item]))('%s cites only the references it lists', (id, item) => {
+    it.each(USE_CASES.map((item) => [item.id, item]))('%s cites every reference it lists, and nothing else', (id, item) => {
         const text = item.answer.flatMap((block) => block.items || [block.text]).join(' ');
         // Citation markers follow a non-breaking space, as the agent writes them.
         const cited = [...text.matchAll(/ (\d)(?=[.;,]|$|\s)/g)].map((match) => Number(match[1]));
-        expect(new Set(cited)).toEqual(new Set([1, 2, 3]));
+        expect(new Set(cited)).toEqual(new Set(item.references.map((reference, index) => index + 1)));
     });
 });

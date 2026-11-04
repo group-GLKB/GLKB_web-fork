@@ -26,7 +26,7 @@ const App = () => (
 );
 beforeEach(() => { openLoginModal.mockClear(); auth(false); });
 
-it('opens the demo video from both hero and footer without leaving About or requiring login', () => {
+it('plays the demo video on the page from both hero and footer, without leaving About or requiring login', () => {
     const open = jest.spyOn(window, 'open').mockImplementation(() => null);
     try {
         render(<App />);
@@ -35,18 +35,29 @@ it('opens the demo video from both hero and footer without leaving About or requ
         buttons.forEach(button => {
             expect(button.disabled).toBe(false);
             fireEvent.click(button);
+            const dialog = screen.getByRole('dialog', { name: 'GLKB demo video' });
+            expect(within(dialog).getByTitle('GLKB demo video').getAttribute('src'))
+                .toBe('https://www.youtube-nocookie.com/embed/63b3-MuTUCA?autoplay=1&rel=0&playsinline=1');
+            fireEvent.click(within(dialog).getByRole('button', { name: 'Close video' }));
+            expect(screen.queryByRole('dialog')).toBeNull();
         });
-        expect(open).toHaveBeenCalledTimes(2);
-        expect(open).toHaveBeenNthCalledWith(1, 'https://www.youtube.com/watch?v=63b3-MuTUCA', '_blank', 'noopener,noreferrer');
-        expect(open).toHaveBeenNthCalledWith(2, 'https://www.youtube.com/watch?v=63b3-MuTUCA', '_blank', 'noopener,noreferrer');
+        expect(open).not.toHaveBeenCalled();
         expect(screen.getByTestId('location').textContent).toBe('/');
         expect(openLoginModal).not.toHaveBeenCalled();
     } finally { open.mockRestore(); }
 });
 
+it('closes the demo on Escape', () => {
+    render(<App />);
+    fireEvent.click(screen.getAllByRole('button', { name: 'View Demo' })[0]);
+    expect(screen.getByRole('dialog', { name: 'GLKB demo video' })).toBeTruthy();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+});
+
 it('sends a guest to chat on the navigation Try GLKB button without opening login', () => {
     render(<App />);
-    fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Try GLKB' }));
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Site' })).getByRole('button', { name: 'Try GLKB' }));
     expect(openLoginModal).not.toHaveBeenCalled();
     expect(screen.getByTestId('location').textContent).toBe('/chat');
 });
@@ -66,7 +77,7 @@ it('sends an already signed-in reader to chat on the navigation Try GLKB button 
     auth(true);
     render(<App />);
     expect(screen.getByTestId('location').textContent).toBe('/');
-    fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Try GLKB' }));
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Site' })).getByRole('button', { name: 'Try GLKB' }));
     expect(screen.getByTestId('location').textContent).toBe('/chat');
     expect(openLoginModal).not.toHaveBeenCalled();
 });

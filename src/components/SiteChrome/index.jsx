@@ -19,7 +19,8 @@ import siteWordmark from '../../img/navbar/logo.png';
 
 /** Where the article list lives now that About owns it. */
 export const BLOG_LIST_PATH = '/#from-the-lab';
-export const DEMO_VIDEO_URL = 'https://www.youtube.com/watch?v=63b3-MuTUCA';
+export const DEMO_VIDEO_ID = '63b3-MuTUCA';
+export const DEMO_VIDEO_URL = `https://www.youtube.com/watch?v=${DEMO_VIDEO_ID}`;
 
 const DATASET_URL = 'https://available-inventions.umich.edu/product/genomic-literature-knowledge-base';
 
@@ -41,7 +42,7 @@ export const SiteNav = ({ active, onGetStarted }) => {
                 <img className="site-logo-mark" src={siteMark} alt="" />
                 <img className="site-logo-wordmark" src={siteWordmark} alt="GLKB" />
             </Link>
-            <nav className="site-nav-actions">
+            <nav className="site-nav-actions" aria-label="Site">
                 {active === 'home' ? null : (
                     <Link to={ABOUT_PATH} className="site-nav-link">
                         Home
@@ -69,7 +70,8 @@ export const SiteNav = ({ active, onGetStarted }) => {
     );
 };
 
-export const SiteFooter = ({ withCta = true }) => {
+/** `onViewDemo` lets a page play the demo in place; without it the button opens YouTube. */
+export const SiteFooter = ({ withCta = true, onViewDemo }) => {
     const navigate = useNavigate();
 
     return (
@@ -82,7 +84,7 @@ export const SiteFooter = ({ withCta = true }) => {
                     <button type="button" className="site-button" onClick={() => navigate(CHAT_HOME_PATH)}>
                         Try GLKB
                     </button>
-                    <button type="button" className="site-button site-button--ghost" onClick={() => window.open(DEMO_VIDEO_URL, '_blank', 'noopener,noreferrer')}>
+                    <button type="button" className="site-button site-button--ghost" onClick={onViewDemo || (() => window.open(DEMO_VIDEO_URL, '_blank', 'noopener,noreferrer'))}>
                         View Demo
                     </button>
                 </div>
