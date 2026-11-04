@@ -1,0 +1,89 @@
+import React from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
+import { StaticRouter } from 'react-router-dom/server';
+import AboutPage from './index';
+import { measureProgress, segment } from './motion';
+import { USE_CASES } from './useCases';
+import { useAuth } from '../Auth/AuthContext';
+
+jest.mock('../Auth/AuthContext', () => ({ useAuth: jest.fn() }));
+jest.mock('react-helmet-async', () => ({ Helmet: () => null }));
+jest.mock('@mui/icons-material/Add', () => () => null);
+jest.mock('@mui/icons-material/Remove', () => () => null);
+jest.mock('@mui/icons-material/ChevronRight', () => () => null);
+
+beforeEach(() => { useAuth.mockReturnValue({ isAuthenticated: false, loading: false, openLoginModal: jest.fn() }); });
+
+describe('scroll progress', () => {
+    it('measures a pinned section from its top meeting the viewport top to its bottom meeting the bottom', () => {
+        const viewport = 800;
+        const height = 3200;
+        expect(measureProgress({ top: 400, height }, viewport, 'pin')).toBe(0);
+        expect(measureProgress({ top: 0, height }, viewport, 'pin')).toBe(0);
+        expect(measureProgress({ top: -1200, height }, viewport, 'pin')).toBe(0.5);
+        expect(measureProgress({ top: -2400, height }, viewport, 'pin')).toBe(1);
+        expect(measureProgress({ top: -5000, height }, viewport, 'pin')).toBe(1);
+    });
+
+    it('measures a passing element from entering at the bottom to leaving at the top', () => {
+        expect(measureProgress({ top: 800, height: 400 }, 800, 'pass')).toBe(0);
+        expect(measureProgress({ top: 200, height: 400 }, 800, 'pass')).toBe(0.5);
+        expect(measureProgress({ top: -400, height: 400 }, 800, 'pass')).toBe(1);
+    });
+
+    it('maps a sub-range onto 0..1', () => {
+        expect(segment(0.1, 0.2, 0.4)).toBe(0);
+        expect(segment(0.3, 0.2, 0.4)).toBeCloseTo(0.5);
+        expect(segment(0.9, 0.2, 0.4)).toBe(1);
+    });
+});
+
+describe('the About page', () => {
+    it('states the corpus figures and no longer the old relationship count', () => {
+        const { container } = render(<MemoryRouter><AboutPage /></MemoryRouter>);
+        const text = container.textContent;
+        ['41.2M+', '3.71M+', '14.6M+'].forEach((figure) => expect(text).toContain(figure));
+        expect(text).not.toContain('149,168');
+    });
+
+    it('offers every use case as a tab and shows its question and references', () => {
+        render(<MemoryRouter><AboutPage /></MemoryRouter>);
+        const tabs = screen.getAllByRole('tab');
+        expect(tabs.map((tab) => tab.textContent)).toEqual(USE_CASES.map((item) => item.label));
+        USE_CASES.forEach((item, index) => {
+            fireEvent.click(tabs[index]);
+            expect(tabs[index].getAttribute('aria-selected')).toBe('true');
+            expect(screen.getByText(`Q: ${item.question}`)).toBeTruthy();
+            item.references.forEach((reference) => {
+                expect(screen.getAllByText(reference.title).length).toBeGreaterThan(0);
+            });
+        });
+    });
+
+    it('prerenders every figure and every step with nothing left hidden by script', () => {
+        const html = renderToString(<StaticRouter location="/"><AboutPage /></StaticRouter>);
+        ['41.2M+', '3.71M+', '14.6M+', 'Ask', 'Retrieve', 'Reason', 'Verify'].forEach((text) => expect(html).toContain(text));
+        // Motion is switched on only after mount; the server copy is the still page.
+        expect(html).not.toContain('about-page--motion');
+    });
+});
+
+describe('use-case data', () => {
+    it.each(USE_CASES.map((item) => [item.id, item]))('%s lists three references, each with its own PMID', (id, item) => {
+        expect(item.references).toHaveLength(3);
+        const pmids = item.references.map((reference) => reference.pmid);
+        expect(new Set(pmids).size).toBe(pmids.length);
+        pmids.forEach((pmid) => expect(pmid).toMatch(/^\d{7,8}$/));
+    });
+
+    // The first example is the design's sample, clipped by its frame, and cites a
+    // fourth paper it does not list. The condensed ones must cite only what they list.
+    it.each(USE_CASES.slice(1).map((item) => [item.id, item]))('%s cites only the references it lists', (id, item) => {
+        const text = item.answer.flatMap((block) => block.items || [block.text]).join(' ');
+        // Citation markers follow a non-breaking space, as the agent writes them.
+        const cited = [...text.matchAll(/ (\d)(?=[.;,]|$|\s)/g)].map((match) => Number(match[1]));
+        expect(new Set(cited)).toEqual(new Set([1, 2, 3]));
+    });
+});

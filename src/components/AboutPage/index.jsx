@@ -1,5 +1,10 @@
 /**
- * About, from Figma 604:7226.
+ * About, first drawn from Figma 604:7226 and since turned into a scroll story:
+ * the hero's screen tilts up into view, a statement lights word by word, the
+ * knowledge base and the workflow each pin a screen while their content turns
+ * over, and the rest of the page rises in as it is reached. motion.jsx holds
+ * the machinery; without motion (prerender, reduced motion) every section is
+ * simply there.
  *
  * This page is also where the blog lives: "From the Lab" lists the articles,
  * and /blog sends readers here. See SiteChrome for the nav and footer both
@@ -8,15 +13,15 @@
 import './scoped.css';
 
 import React, {
-  useEffect,
-  useRef,
-  useState,
+    useEffect,
+    useRef,
+    useState,
 } from 'react';
 
 import PublicPageSeo from '../Units/PublicPageSeo';
 import {
-  useLocation,
-  useNavigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import AddIcon from '@mui/icons-material/Add';
@@ -47,7 +52,18 @@ import { useAuth } from '../Auth/AuthContext';
 import { posts } from '../Blog/posts';
 import { DEMO_VIDEO_URL, PostCard, SiteFooter, SiteNav } from '../SiteChrome';
 import faqData from './faqData.json';
+import {
+    CountUp,
+    Track,
+    easeInOut,
+    segment,
+    useMotionAllowed,
+    useReveal,
+    useScrollProgress,
+} from './motion';
+import ScaleScene from './ScaleScene';
 import { USE_CASES } from './useCases';
+import WorkflowScene from './WorkflowScene';
 
 /* Figma 604:7257 — the six, in the design's order and at its widths. These are
    the frame's own exports: the repo's older logo files are cropped differently,
@@ -61,26 +77,64 @@ const TRUSTED_LOGOS = [
     { src: logoUcSanDiego, name: 'UC San Diego', width: 205 },
 ];
 
-/* Figma 604:7362 */
-const STEPS = [
-    ['Ask', 'Type any biomedical query: a gene, variant, drug target, or disease.'],
-    ['Retrieve', 'GLKB searches 3.71M+ biomedical terms and 149,168 relationships, surfacing the most relevant PubMed papers.'],
-    ['Reason', 'The AI synthesizes retrieved evidence into a structured, concise, cited answer.'],
-    ['Verify', 'Review the cited sources to check the supporting evidence and identify where further investigation is needed.'],
+/* The hero's backdrop: terms drifting at three depths, so they part at three
+   speeds as the screen rises. Positions are percentages of the stage. */
+const HERO_TERMS = [
+    { label: 'TP53', type: 'gene', x: 7, y: 24, depth: 1 },
+    { label: 'Insulin resistance', type: 'disease', x: 91, y: 20, depth: 1 },
+    { label: 'Harmine', type: 'chemical', x: 6, y: 54, depth: 2 },
+    { label: 'APOE ε4', type: 'variant', x: 93, y: 48, depth: 2 },
+    { label: 'DYRK1A', type: 'gene', x: 8, y: 82, depth: 3 },
+    { label: 'Type 2 diabetes', type: 'disease', x: 91, y: 78, depth: 3 },
 ];
+const HERO_DOTS = [
+    [18, 10, 1], [26, 36, 2], [3, 38, 1], [94, 30, 1], [76, 40, 2], [70, 8, 1],
+    [97, 66, 2], [9, 70, 1], [30, 92, 2], [62, 94, 1], [88, 92, 1], [46, 6, 3],
+];
+
+/* Lit word by word as the reader scrolls through it. */
+const STATEMENT = [
+    ['Biomedical literature grows faster than anyone can read.', false],
+    ['GLKB reads it for you, links what it finds, and shows you', false],
+    ['exactly where every answer comes from.', true],
+];
+const STATEMENT_WORDS = STATEMENT.flatMap(([text, accent]) => text.split(' ').map((word) => [word, accent]));
 
 /* Figma 604:7399 — the three cards under the wide one. */
 const DIFFERENTIATORS = [
-    ['Biomedical-native', 'Built on the full PubMed corpus: 3.71M+ biomedical terms and 149,168 relationships across gene-disease associations, pathways, and ontology hierarchies.'],
+    ['Biomedical-native', 'Built on the full PubMed corpus: 41.2M+ papers, 3.71M+ biomedical terms and 14.6M+ relationships across gene-disease associations, pathways, and ontology hierarchies.'],
     ['Built for verification', 'Answers include literature references so you can review the supporting evidence and assess how it relates to your research question.'],
     ['Built for scale', 'Analyze hundreds of targets, variants, or genes in parallel. Structured, cited outputs feed directly into your downstream pipeline.'],
 ];
 
-/* Figma 604:7600 */
+/* Questions of the kind researchers bring, in two rows that slide apart. */
+const EXAMPLE_QUESTIONS = [
+    [
+        'What is known about DYRK1A as a therapeutic target in type 2 diabetes?',
+        'Which genes are associated with both obesity and type 2 diabetes?',
+        'What is the evidence for LRRK2 G2019S in Parkinson’s disease?',
+        'How does BRCA1 loss sensitize tumors to PARP inhibitors?',
+        'Which pathways connect APOE ε4 to tau pathology?',
+        'What drives osimertinib resistance in EGFR-mutant lung cancer?',
+        'Which variants in PCSK9 lower LDL cholesterol?',
+    ],
+    [
+        'What evidence supports repurposing metformin as an anticancer therapy?',
+        'How does TREM2 signaling shape the microglial response to amyloid?',
+        'Which circulating biomarkers detect pancreatic cancer early?',
+        'How do SGLT2 inhibitors protect the kidney?',
+        'What links the gut microbiome to response to immunotherapy?',
+        'Which genes regulate both circadian rhythm and insulin secretion?',
+        'What is the role of IL-6 signaling in cytokine release syndrome?',
+    ],
+];
+
+/* Figma 604:7600, with the corpus figures added. */
 const STATS = [
-    ['+24.8%', 'Accuracy improvement\non PubMedQA-HC'],
+    ['41.2M+', 'Papers indexed\nfrom the literature'],
     ['3.71M+', 'Biomedical terms in\nthe knowledge graph'],
-    ['149,168', 'Relationships\nencoded'],
+    ['14.6M+', 'Relationships\nencoded'],
+    ['+24.8%', 'Accuracy improvement\non PubMedQA-HC'],
     ['~30 min', 'To process 1,500 candidate\ngenes with full citations'],
 ];
 
@@ -93,6 +147,22 @@ const AboutPage = () => {
     const previousAuth = useRef(null);
     const railRef = useRef(null);
     const [railOverflows, setRailOverflows] = useState(false);
+    const pageRef = useRef(null);
+    const heroRef = useRef(null);
+    const statementRef = useRef(null);
+    const motion = useMotionAllowed();
+
+    useReveal(pageRef, motion);
+
+    // The hero's screen rises and flattens over the first part of the pin; the
+    // eased value drives it so it settles rather than stops.
+    useScrollProgress(heroRef, {
+        mode: 'pin',
+        onProgress: (progress) => {
+            heroRef.current.style.setProperty('--e', easeInOut(segment(progress, 0, 0.8)).toFixed(4));
+        },
+    });
+    useScrollProgress(statementRef, { mode: 'pin' });
 
     // Redirect a sign-in completed on About, not a restored session or a signed-in
     // reader deliberately returning to About from inside the app.
@@ -153,83 +223,284 @@ const AboutPage = () => {
         <>
             <PublicPageSeo title="GLKB: Genomic Literature Knowledge Base" description="GLKB synthesizes biomedical literature into structured, evidence-backed answers. Every claim links directly to its source paper." />
 
-            <div className="about-page">
+            <div className={`about-page${motion ? ' about-page--motion' : ''}`} ref={pageRef}>
                 <SiteNav active="home" onGetStarted={handleGetStarted} />
 
-                <section className="about-hero" id="top">
-                    <div className="about-hero-copy">
-                        <p className="about-eyebrow">AI-Powered Biomedical Research Engine</p>
-                        <h1 className="about-hero-title">
-                            Weeks of research,
-                            <br />
-                            done in minutes.
-                        </h1>
-                        <p className="about-hero-lede">
-                            GLKB synthesizes biomedical literature into structured, evidence-
-                            <br />
-                            backed answers. Every claim links directly to its source paper.
-                        </p>
-                        <div className="about-hero-actions">
-                            <button type="button" className="site-button" onClick={() => navigate(CHAT_HOME_PATH)}>
-                                Try GLKB
-                            </button>
-                            <button type="button" className="site-button site-button--ghost" onClick={() => window.open(DEMO_VIDEO_URL, '_blank', 'noopener,noreferrer')}>
-                                View Demo
-                            </button>
+                <section className="about-hero" id="top" ref={heroRef}>
+                    <div className="about-hero-stage">
+                        <div className="about-hero-backdrop" aria-hidden="true">
+                            {[1, 2, 3].map((depth) => (
+                                <div className={`about-hero-layer about-hero-layer--${depth}`} key={depth}>
+                                    {HERO_DOTS.filter(([, , d]) => d === depth).map(([x, y]) => (
+                                        <i className="about-hero-dot" style={{ left: `${x}%`, top: `${y}%` }} key={`${x}-${y}`} />
+                                    ))}
+                                    {HERO_TERMS.filter((term) => term.depth === depth).map((term) => (
+                                        <span
+                                            className={`about-hero-term is-${term.type}`}
+                                            style={{ left: `${term.x}%`, top: `${term.y}%` }}
+                                            key={term.label}
+                                        >
+                                            {term.label}
+                                        </span>
+                                    ))}
+                                </div>
+                            ))}
                         </div>
-                    </div>
-                    <div className="about-hero-media">
-                        {/* Figma 1088:28340 — the Chrome frame, 79px of chrome over the
-                            app, running off the right edge of the band. */}
-                        <div className="about-browser">
-                            <div className="about-browser-tabs">
-                                <span className="about-browser-lights" aria-hidden="true">
-                                    <i /><i /><i />
-                                </span>
-                                <span className="about-browser-tab">
-                                    <img className="about-browser-tab-shape" src={browserTabShape} alt="" />
-                                    <img className="about-browser-favicon" src={browserFavicon} alt="" />
-                                    <span className="about-browser-tab-title">GLKB API Docs</span>
-                                    <img className="about-browser-tab-close" src={browserTabClose} alt="" />
-                                </span>
-                                <img className="about-browser-newtab" src={browserNewTab} alt="" />
+                        <div className="about-hero-copy">
+                            <p className="about-eyebrow">AI-Powered Biomedical Research Engine</p>
+                            <h1 className="about-hero-title">
+                                Weeks of research,
+                                <br />
+                                done in minutes.
+                            </h1>
+                            <p className="about-hero-lede">
+                                GLKB synthesizes biomedical literature into structured, evidence-backed
+                                answers. Every claim links directly to its source paper.
+                            </p>
+                            <div className="about-hero-actions">
+                                <button type="button" className="site-button" onClick={() => navigate(CHAT_HOME_PATH)}>
+                                    Try GLKB
+                                </button>
+                                <button type="button" className="site-button site-button--ghost" onClick={() => window.open(DEMO_VIDEO_URL, '_blank', 'noopener,noreferrer')}>
+                                    View Demo
+                                </button>
                             </div>
-                            <div className="about-browser-toolbar">
-                                <img className="about-browser-actions" src={browserActions} alt="" />
-                                <span className="about-browser-address">
-                                    <img className="about-browser-secure" src={browserSecure} alt="" />
-                                    <span className="about-browser-url">https://glkb.org/</span>
-                                </span>
-                                <img className="about-browser-menu" src={browserMenu} alt="" />
+                        </div>
+                        <div className="about-hero-media">
+                            <div className="about-hero-glow" aria-hidden="true" />
+                            {/* Figma 1088:28340 — the Chrome frame, 79px of chrome over the app. */}
+                            <div className="about-browser">
+                                <div className="about-browser-tabs">
+                                    <span className="about-browser-lights" aria-hidden="true">
+                                        <i /><i /><i />
+                                    </span>
+                                    <span className="about-browser-tab">
+                                        <img className="about-browser-tab-shape" src={browserTabShape} alt="" />
+                                        <img className="about-browser-favicon" src={browserFavicon} alt="" />
+                                        <span className="about-browser-tab-title">GLKB</span>
+                                        <img className="about-browser-tab-close" src={browserTabClose} alt="" />
+                                    </span>
+                                    <img className="about-browser-newtab" src={browserNewTab} alt="" />
+                                </div>
+                                <div className="about-browser-toolbar">
+                                    <img className="about-browser-actions" src={browserActions} alt="" />
+                                    <span className="about-browser-address">
+                                        <img className="about-browser-secure" src={browserSecure} alt="" />
+                                        <span className="about-browser-url">https://glkb.org/</span>
+                                    </span>
+                                    <img className="about-browser-menu" src={browserMenu} alt="" />
+                                </div>
+                                <img className="about-browser-body" src={heroAppImage} alt="A GLKB answer with its citations" />
                             </div>
-                            <img className="about-browser-body" src={heroAppImage} alt="A GLKB answer with its citations" />
                         </div>
                     </div>
                 </section>
 
                 <section className="about-trusted">
                     <p className="about-trusted-title">Trusted by the biomedical researchers at:</p>
-                    <div className="about-trusted-logos">
-                        {TRUSTED_LOGOS.map((logo) => (
-                            <img
-                                key={logo.name}
-                                className="about-trusted-logo"
-                                style={{ width: `${logo.width}px` }}
-                                src={logo.src}
-                                alt={logo.name}
-                            />
-                        ))}
+                    <div className="about-trusted-marquee">
+                        <div className="about-trusted-logos">
+                            {[...TRUSTED_LOGOS, ...TRUSTED_LOGOS].map((logo, index) => {
+                                const copy = index >= TRUSTED_LOGOS.length;
+                                return (
+                                    <img
+                                        key={`${logo.name}-${copy ? 'copy' : 'first'}`}
+                                        className={`about-trusted-logo${copy ? ' is-copy' : ''}`}
+                                        style={{ width: `${logo.width}px` }}
+                                        src={logo.src}
+                                        alt={copy ? '' : logo.name}
+                                        aria-hidden={copy ? 'true' : undefined}
+                                    />
+                                );
+                            })}
+                        </div>
                     </div>
+                </section>
+
+                <section className="about-statement" ref={statementRef} style={{ '--n': STATEMENT_WORDS.length }}>
+                    <div className="about-statement-stage">
+                        <p className="about-statement-text">
+                            {STATEMENT_WORDS.map(([word, accent], index) => (
+                                // eslint-disable-next-line react/no-array-index-key
+                                <React.Fragment key={index}>
+                                    <span className={`about-statement-word${accent ? ' is-accent' : ''}`} style={{ '--i': index }}>{word}</span>
+                                    {' '}
+                                </React.Fragment>
+                            ))}
+                        </p>
+                    </div>
+                </section>
+
+                <ScaleScene motion={motion} />
+
+                <WorkflowScene />
+
+                <section className="about-section about-different" id="why">
+                    <div className="about-inner">
+                        <p className="about-eyebrow" data-reveal>By researcher, for researcher</p>
+                        <h2 className="about-heading" data-reveal style={{ '--d': 1 }}>What Makes GLKB Different</h2>
+                        <article className="about-evidence" data-reveal style={{ '--d': 2 }}>
+                            <div className="about-evidence-text">
+                                <h3 className="about-card-title">Explore the supporting evidence</h3>
+                                <p className="about-card-body">
+                                    GLKB uses retrieved literature to help synthesize answers to biomedical
+                                    research questions. References and source excerpts let you review the
+                                    supporting evidence, assess its relevance, and identify questions that
+                                    need further investigation.
+                                </p>
+                            </div>
+                            <Track className="about-evidence-media">
+                                <img src={evidenceImage} alt="A citation list with its source sentences" />
+                            </Track>
+                        </article>
+                        <div className="about-different-grid">
+                            {DIFFERENTIATORS.map(([title, body], index) => (
+                                <article className="about-card" key={title} data-reveal style={{ '--d': index }}>
+                                    <h3 className="about-card-title">{title}</h3>
+                                    <p className="about-card-body">{body}</p>
+                                </article>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                <Track as="section" className="about-section about-graph" id="knowledge-graph">
+                    <div className="about-inner about-graph-inner">
+                        <div className="about-graph-copy">
+                            <p className="about-eyebrow" data-reveal>The Knowledge Graph</p>
+                            <h2 className="about-heading about-lines">
+                                {['Visualize what', 'the literature knows and', 'where the gaps are.'].map((line, index) => (
+                                    // The clipped line is what is watched: its sliding child is
+                                    // fully clipped until it moves, so it never "intersects".
+                                    <span className="about-line" data-reveal="line" style={{ '--d': index }} key={line}>
+                                        <span>{line}</span>
+                                    </span>
+                                ))}
+                            </h2>
+                            <p className="about-graph-body" data-reveal style={{ '--d': 3 }}>
+                                Explore connections between genes, diseases, drugs, and pathways, then jump
+                                directly to the supporting papers. Not just what science has established, but
+                                where the evidence runs thin.
+                            </p>
+                        </div>
+                        <div className="about-graph-media">
+                            <img src={knowledgeGraphImage} alt="A knowledge graph linking genes, diseases, drugs and variants" />
+                        </div>
+                    </div>
+                </Track>
+
+                <Track as="section" className="about-ask" aria-labelledby="about-ask-heading">
+                    <div className="about-ask-head">
+                        <p className="about-eyebrow" data-reveal>Ask anything</p>
+                        <h2 className="about-heading" id="about-ask-heading" data-reveal style={{ '--d': 1 }}>
+                            From a single gene to a whole field.
+                        </h2>
+                    </div>
+                    {EXAMPLE_QUESTIONS.map((row, rowIndex) => (
+                        <div className={`about-ask-row about-ask-row--${rowIndex + 1}`} key={row[0]}>
+                            <ul className="about-ask-track">
+                                {row.map((question) => (
+                                    <li className="about-ask-chip" key={question}>{question}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
+                </Track>
+
+                <section className="about-section about-use" id="use-cases">
+                    <div className="about-inner">
+                        <p className="about-eyebrow" data-reveal>Use cases</p>
+                        <h2 className="about-heading" data-reveal style={{ '--d': 1 }}>Built for Your Research</h2>
+                        <div className="about-tabs" role="tablist" data-reveal style={{ '--d': 2 }}>
+                            {USE_CASES.map((item) => (
+                                <button
+                                    key={item.id}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={item.id === activeUseCase.id}
+                                    className={`about-tab${item.id === activeUseCase.id ? ' is-active' : ''}`}
+                                    onClick={() => setUseCase(item.id)}
+                                >
+                                    {item.label}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="about-use-panel" key={activeUseCase.id}>
+                            {activeUseCase.lede ? (
+                                <p className="about-use-lede">{activeUseCase.lede}</p>
+                            ) : null}
+                            {activeUseCase.answer ? (
+                            <div className="about-sample">
+                                <div className="about-sample-question-bar">
+                                    <div className="about-sample-question">Q: {activeUseCase.question}</div>
+                                </div>
+                                <div className="about-sample-body">
+                                    <div className="about-sample-answer">
+                                        <div className="about-sample-answer-content">
+                                            {activeUseCase.answer.map((block, index) => {
+                                                const key = `${block.type}-${block.text?.slice(0, 40) || index}`;
+                                                if (block.type === 'heading') {
+                                                    return <p className="about-sample-answer-heading" key={key}>{block.text}</p>;
+                                                }
+                                                if (block.type === 'list') {
+                                                    return (
+                                                        <ul className="about-sample-answer-list" key={key}>
+                                                            {block.items.map((item) => <li key={item.slice(0, 48)}>{item}</li>)}
+                                                        </ul>
+                                                    );
+                                                }
+                                                return <p key={key}>{block.text}</p>;
+                                            })}
+                                        </div>
+                                    </div>
+                                    <aside className="about-sample-references">
+                                        <h3 className="about-sample-references-title">References</h3>
+                                        {activeUseCase.references.map((reference, index) => (
+                                            <div className="about-reference" key={reference.pmid}>
+                                                <span className="about-reference-index">{index + 1}</span>
+                                                <div className="about-reference-body">
+                                                    <p className="about-reference-title">{reference.title}</p>
+                                                    <p className="about-reference-meta">{reference.meta}</p>
+                                                    <div className="about-reference-quote">{reference.quote}</div>
+                                                    <div className="about-reference-footer">
+                                                        <p className="about-reference-pmid">
+                                                            {reference.citations == null
+                                                                ? `PubMed ID: ${reference.pmid}`
+                                                                : `PubMed ID: ${reference.pmid} · ${reference.citations} Citations`}
+                                                        </p>
+                                                        <span className="about-reference-actions" aria-hidden="true">
+                                                            <img src={useCaseQuote} alt="" />
+                                                            <img src={useCaseBookmark} alt="" />
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </aside>
+                                </div>
+                            </div>
+                            ) : null}
+                        </div>
+                    </div>
+                </section>
+
+                <section className="about-stats" aria-label="GLKB in numbers">
+                    {STATS.map(([value, label], index) => (
+                        <div className="about-stat" key={value} data-reveal style={{ '--d': index }}>
+                            <CountUp className="about-stat-value" value={value} motion={motion} />
+                            <div className="about-stat-label">{label}</div>
+                        </div>
+                    ))}
                 </section>
 
                 {/* The blog lives here: /blog sends readers to this section. */}
                 <section className="about-section about-lab" id="from-the-lab">
                     <div className="about-inner">
-                        <h2 className="about-lab-title">
+                        <h2 className="about-lab-title" data-reveal>
                             From the Lab
                             <ChevronRightIcon className="about-lab-chevron" />
                         </h2>
-                        <div className="about-lab-rail-wrap">
+                        <div className="about-lab-rail-wrap" data-reveal style={{ '--d': 1 }}>
                             <div className="about-lab-rail" ref={railRef}>
                                 {posts.map((post) => (
                                     <div className="about-lab-slot" key={post.slug}>
@@ -251,160 +522,10 @@ const AboutPage = () => {
                     </div>
                 </section>
 
-                <section className="about-section about-works" id="how-it-works">
-                    <div className="about-inner">
-                        <p className="about-eyebrow">From query to answer</p>
-                        <h2 className="about-heading">How GLKB Works</h2>
-                        <ol className="about-steps">
-                            {STEPS.map(([name, body], index) => (
-                                <li className="about-step" key={name}>
-                                    <span className="about-step-number">{index + 1}</span>
-                                    <h3 className="about-step-name">{name}</h3>
-                                    <p className="about-step-body">{body}</p>
-                                </li>
-                            ))}
-                        </ol>
-                    </div>
-                </section>
-
-                <section className="about-section about-different" id="why">
-                    <div className="about-inner">
-                        <p className="about-eyebrow">By researcher, for researcher</p>
-                        <h2 className="about-heading">What Makes GLKB Different</h2>
-                        <article className="about-evidence">
-                            <div className="about-evidence-text">
-                                <h3 className="about-card-title">Explore the supporting evidence</h3>
-                                <p className="about-card-body">
-                                    GLKB uses retrieved literature to help synthesize answers to biomedical
-                                    research questions. References and source excerpts let you review the
-                                    supporting evidence, assess its relevance, and identify questions that
-                                    need further investigation.
-                                </p>
-                            </div>
-                            <div className="about-evidence-media">
-                                <img src={evidenceImage} alt="A citation list with its source sentences" />
-                            </div>
-                        </article>
-                        <div className="about-different-grid">
-                            {DIFFERENTIATORS.map(([title, body]) => (
-                                <article className="about-card" key={title}>
-                                    <h3 className="about-card-title">{title}</h3>
-                                    <p className="about-card-body">{body}</p>
-                                </article>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-
-                <section className="about-section about-graph" id="knowledge-graph">
-                    <div className="about-inner about-graph-inner">
-                        <div className="about-graph-copy">
-                            <p className="about-eyebrow">The Knowledge Graph</p>
-                            <h2 className="about-heading">
-                                Visualize what
-                                <br />
-                                the literature knows and
-                                <br />
-                                where the gaps are.
-                            </h2>
-                            <p className="about-graph-body">
-                                Explore connections between genes, diseases, drugs, and pathways, then jump
-                                directly to the supporting papers. Not just what science has established, but
-                                where the evidence runs thin.
-                            </p>
-                        </div>
-                        <img className="about-graph-media" src={knowledgeGraphImage} alt="A knowledge graph linking genes, diseases, drugs and variants" />
-                    </div>
-                </section>
-
-                <section className="about-section about-use" id="use-cases">
-                    <div className="about-inner">
-                        <p className="about-eyebrow">Use cases</p>
-                        <h2 className="about-heading">Built for Your Research</h2>
-                        <div className="about-tabs" role="tablist">
-                            {USE_CASES.map((item) => (
-                                <button
-                                    key={item.id}
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={item.id === activeUseCase.id}
-                                    className={`about-tab${item.id === activeUseCase.id ? ' is-active' : ''}`}
-                                    onClick={() => setUseCase(item.id)}
-                                >
-                                    {item.label}
-                                </button>
-                            ))}
-                        </div>
-                        {activeUseCase.lede ? (
-                            <p className="about-use-lede">{activeUseCase.lede}</p>
-                        ) : null}
-                        {/* The first tab is the worked example supplied by the design. */}
-                        {activeUseCase.answer ? (
-                        <div className="about-sample">
-                            <div className="about-sample-question-bar">
-                                <div className="about-sample-question">Q: {activeUseCase.question}</div>
-                            </div>
-                            <div className="about-sample-body">
-                                <div className="about-sample-answer">
-                                    <div className="about-sample-answer-content">
-                                        {activeUseCase.answer.map((block, index) => {
-                                            const key = `${block.type}-${block.text?.slice(0, 40) || index}`;
-                                            if (block.type === 'heading') {
-                                                return <p className="about-sample-answer-heading" key={key}>{block.text}</p>;
-                                            }
-                                            if (block.type === 'list') {
-                                                return (
-                                                    <ul className="about-sample-answer-list" key={key}>
-                                                        {block.items.map((item) => <li key={item.slice(0, 48)}>{item}</li>)}
-                                                    </ul>
-                                                );
-                                            }
-                                            return <p key={key}>{block.text}</p>;
-                                        })}
-                                    </div>
-                                </div>
-                                <aside className="about-sample-references">
-                                    <h3 className="about-sample-references-title">References</h3>
-                                    {activeUseCase.references.map((reference, index) => (
-                                        // eslint-disable-next-line react/no-array-index-key
-                                        <div className="about-reference" key={`${reference.pmid}-${index}`}>
-                                            <span className="about-reference-index">{index + 1}</span>
-                                            <div className="about-reference-body">
-                                                <p className="about-reference-title">{reference.title}</p>
-                                                <p className="about-reference-meta">{reference.meta}</p>
-                                                <div className="about-reference-quote">{reference.quote}</div>
-                                                <div className="about-reference-footer">
-                                                    <p className="about-reference-pmid">
-                                                        {`PubMed ID: ${reference.pmid} · ${reference.citations} Citations`}
-                                                    </p>
-                                                    <span className="about-reference-actions" aria-hidden="true">
-                                                        <img src={useCaseQuote} alt="" />
-                                                        <img src={useCaseBookmark} alt="" />
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </aside>
-                            </div>
-                        </div>
-                        ) : null}
-                    </div>
-                </section>
-
-                <section className="about-stats">
-                    {STATS.map(([value, label]) => (
-                        <div className="about-stat" key={value}>
-                            <div className="about-stat-value">{value}</div>
-                            <div className="about-stat-label">{label}</div>
-                        </div>
-                    ))}
-                </section>
-
                 <section className="about-section about-team" id="team">
                     <div className="about-inner about-team-inner">
-                        <img className="about-team-logo" src={teamLogo} alt="Michigan Medicine, University of Michigan" />
-                        <div className="about-team-copy">
+                        <img className="about-team-logo" src={teamLogo} alt="Michigan Medicine, University of Michigan" data-reveal />
+                        <div className="about-team-copy" data-reveal style={{ '--d': 1 }}>
                             <p className="about-eyebrow">Behind GLKB</p>
                             <h2 className="about-heading">The Team</h2>
                             <p className="about-team-body">
@@ -417,7 +538,7 @@ const AboutPage = () => {
 
                 <section className="about-section about-faq" id="faq">
                     <div className="about-inner">
-                        <h2 className="about-heading about-faq-heading">Frequently Asked Questions</h2>
+                        <h2 className="about-heading about-faq-heading" data-reveal>Frequently Asked Questions</h2>
                         <div className="about-faq-columns">
                             {faqData.map((item) => {
                                 const isOpen = openFaqId === item.id;
