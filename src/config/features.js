@@ -47,23 +47,14 @@ export const INVESTIGATE_ENABLED = true;
  * file's line in WITHOUT a conflict (checked with `git merge-tree` on 2026-09-30): whatever master
  * says here is what glkb.org gets with the next release.
  *
- * THE SWITCH is the last line of this file — one value, nothing else to change:
+ * THE SWITCH is the `LITERATURE_REVIEW_ENABLED` line near the end of this file — one value, nothing
+ * else to change:
  *   false                 off everywhere (2026-10-09; also 10-03 to 10-06)
  *   !isProductionSite()   on for dev.glkb.org and localhost, off on glkb.org (internal testing,
  *                         2026-10-10 to 10-14, for the redesigned review pages)
  *   true                  on everywhere (launch; current since 2026-10-14)
  * Off hides the entry points only; the page, the client and the pipeline stay in the codebase.
  */
-/**
- * Whether a literature review stops at its outline for the reader to approve before anything is
- * written (OutlineStep; the phone design's "You'll approve an outline before any writing starts").
- *
- * OFF until the user schedules it (2026-10-13: "确认大纲留在之后做"). Off, the review runs straight
- * through as it always has: Scope says "Start writing", no request asks for approval, and nothing
- * looks for a waiting outline. On needs glkb-agent a5eec61 and glkb-backend d1951de deployed first.
- * `false` is also the safe value on `production`, which has no line for it.
- */
-export const LR_OUTLINE_APPROVAL_ENABLED = false;
 
 /**
  * Where a signed-in reader BUYS CREDITS: the e-Lucid store page for GLKB credits.
@@ -87,3 +78,18 @@ export const isProductionSite = (hostname = (typeof window !== 'undefined' ? win
 );
 
 export const LITERATURE_REVIEW_ENABLED = true;
+
+/**
+ * Whether a literature review stops at its outline for the reader to approve before anything is
+ * written (OutlineStep: rename, reorder, resize or leave out sections, then "Approve & start writing").
+ *
+ *   false                 off everywhere (2026-10-13 to 10-27: "确认大纲留在之后做"); the review runs
+ *                         straight through, Scope says "Start writing", nothing looks for an outline
+ *   !isProductionSite()   on for dev.glkb.org and localhost, off on glkb.org (current since
+ *                         2026-10-27, the outline page's first version)
+ *   true                  on everywhere
+ *
+ * On needs glkb-agent and glkb-backend with section lengths in the approval (2026-10-27) deployed
+ * first. Defined after isProductionSite, which it calls when the module loads.
+ */
+export const LR_OUTLINE_APPROVAL_ENABLED = !isProductionSite();
