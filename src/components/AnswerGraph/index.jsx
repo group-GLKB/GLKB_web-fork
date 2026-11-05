@@ -7,6 +7,7 @@ import fcose from 'cytoscape-fcose';
 import { nodeStyle } from '../Graph/nodeStyle';
 import { GRAPH_FONT, loadGraphFont } from '../Graph/labels';
 import { cardLayout, curatedLabel, presentTypes, typeName } from './answerGraph';
+import ZoomControls, { MAX_ZOOM, ZOOM_GUTTER } from './ZoomControls';
 
 Cytoscape.use(fcose);
 
@@ -218,13 +219,14 @@ export default function AnswerGraph({ graph, caption }) {
         if (!visible.length) return;
         const pad = layout.size === 'sm' ? 12 : 24;
         const legendH = legendOpen && layout.legend !== 'below' ? (legendRef.current?.offsetHeight || 0) + 12 : 0;
-        const w = host.clientWidth - pad * 2;
+        // The zoom buttons sit on the left edge: the fit keeps the graph clear of them.
+        const w = host.clientWidth - pad * 2 - ZOOM_GUTTER;
         const h = host.clientHeight - legendH - pad * 2;
         if (w <= 0 || h <= 0) return;
         const bb = visible.boundingBox();
         const zoom = Math.max(0.35, Math.min(1, w / bb.w, h / bb.h));
         cy.zoom(zoom);
-        cy.pan({ x: pad + w / 2 - (bb.x1 + bb.w / 2) * zoom, y: pad + h / 2 - (bb.y1 + bb.h / 2) * zoom });
+        cy.pan({ x: pad + ZOOM_GUTTER + w / 2 - (bb.x1 + bb.w / 2) * zoom, y: pad + h / 2 - (bb.y1 + bb.h / 2) * zoom });
     }, [layout.size, layout.legend, legendOpen]);
 
     // Build the graph once per data (and once the font can be measured).
@@ -241,7 +243,7 @@ export default function AnswerGraph({ graph, caption }) {
         const cy = Cytoscape({
             container: cyHostRef.current, elements, style: STYLE,
             userZoomingEnabled: false, boxSelectionEnabled: false, autoungrabify: false,
-            minZoom: 0.35, maxZoom: 1.6,
+            minZoom: 0.35, maxZoom: MAX_ZOOM,
         });
         cyRef.current = cy;
         withSeededRandom(hash(nodes.map((n) => n.id).join('|')), () => cy.layout({
@@ -301,6 +303,7 @@ export default function AnswerGraph({ graph, caption }) {
         <figure className={`ag-card ag-${layout.size}`} ref={wrapRef} aria-label="Knowledge graph of this answer">
             <div className="ag-canvas" style={{ height: layout.height || 336 }}>
                 <div className="ag-cy" ref={cyHostRef} data-testid="answer-graph-canvas" />
+                <ZoomControls cyRef={cyRef} onFit={fit} />
                 <Detail item={item} nodesById={nodesById} onClose={() => setSelected(null)} />
                 <div className="ag-bottom">
                     <button

@@ -19,6 +19,7 @@ import {
     visibleGraph,
 } from './answerGraphV2Data';
 import { showSentence } from './sentenceHighlight';
+import ZoomControls, { MAX_ZOOM, ZOOM_GUTTER } from './ZoomControls';
 
 /* The card, canvas, legend and detail panel are the basic graph's (index.jsx, Figma "KG 4-3"),
    so the two read as one component; what differs is what the lines say. fcose is registered by
@@ -274,13 +275,14 @@ export default function AnswerGraphV2({ graph, caption, references, onShowSenten
         if (!all.length) return;
         const pad = layout.size === 'sm' ? 12 : 24;
         const legendH = legendOpen && layout.legend !== 'below' ? (legendRef.current?.offsetHeight || 0) + 12 : 0;
-        const w = host.clientWidth - pad * 2;
+        // The zoom buttons sit on the left edge: the fit keeps the graph clear of them.
+        const w = host.clientWidth - pad * 2 - ZOOM_GUTTER;
         const h = host.clientHeight - legendH - pad * 2;
         if (w <= 0 || h <= 0) return;
         const bb = all.boundingBox();
         const zoom = Math.max(0.35, Math.min(1, w / bb.w, h / bb.h));
         cy.zoom(zoom);
-        cy.pan({ x: pad + w / 2 - (bb.x1 + bb.w / 2) * zoom, y: pad + h / 2 - (bb.y1 + bb.h / 2) * zoom });
+        cy.pan({ x: pad + ZOOM_GUTTER + w / 2 - (bb.x1 + bb.w / 2) * zoom, y: pad + h / 2 - (bb.y1 + bb.h / 2) * zoom });
     }, [layout.size, layout.legend, legendOpen]);
 
     useEffect(() => {
@@ -288,7 +290,7 @@ export default function AnswerGraphV2({ graph, caption, references, onShowSenten
         const cy = Cytoscape({
             container: cyHostRef.current, elements: buildElements(drawn), style: STYLE,
             userZoomingEnabled: false, boxSelectionEnabled: false, autoungrabify: false,
-            minZoom: 0.35, maxZoom: 1.6,
+            minZoom: 0.35, maxZoom: MAX_ZOOM,
         });
         cyRef.current = cy;
         withSeededRandom(hash(drawn.nodes.map((n) => n.key).join('|')), () => cy.layout(layoutOptions(drawn)).run());
@@ -346,6 +348,7 @@ export default function AnswerGraphV2({ graph, caption, references, onShowSenten
         <figure className={`ag-card ag-v2 ag-${layout.size}`} ref={wrapRef} aria-label="Knowledge graph of what this answer says">
             <div className="ag-canvas" style={{ height: layout.height || 336 }}>
                 <div className="ag-cy" ref={cyHostRef} data-testid="answer-graph-v2-canvas" />
+                <ZoomControls cyRef={cyRef} onFit={fit} />
                 <Detail
                     key={selected ? `${selected.kind}:${selected.id}` : 'none'}
                     item={item} nodesByKey={nodesByKey} references={references}

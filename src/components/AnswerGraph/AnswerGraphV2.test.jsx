@@ -100,6 +100,9 @@ describe('the card', () => {
         ['Increases / activates', 'Decreases / inhibits', 'Suggested', 'Conflicting evidence', 'Also a GLKB relation']
             .forEach((text) => expect(screen.getByText(text)).toBeInTheDocument());
         expect(screen.getByRole('button', { name: 'GLKB indirect links' })).toHaveAttribute('aria-pressed', 'false');
+        // Wheel zoom is off in a scrolling chat, so the buttons are how a reader zooms.
+        ['Zoom in', 'Zoom out', 'Fit to view'].forEach((name) =>
+            expect(screen.getByRole('button', { name })).toBeInTheDocument());
     });
 
     it('shows GLKB\'s indirect links when asked', async () => {
