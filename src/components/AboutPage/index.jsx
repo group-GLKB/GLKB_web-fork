@@ -156,6 +156,24 @@ const AboutPage = () => {
     });
     useScrollProgress(statementRef, { mode: 'pin' });
 
+    // The screen starts just under the copy, however tall the copy is at this width (it
+    // wraps differently per window, and a news line can sit above the title).
+    const heroCopyRef = useRef(null);
+    useEffect(() => {
+        const copy = heroCopyRef.current;
+        const hero = heroRef.current;
+        if (!copy || !hero) return undefined;
+        const measure = () => hero.style.setProperty('--copy-h', `${copy.offsetHeight}px`);
+        measure();
+        if (typeof window.ResizeObserver !== 'function') {
+            window.addEventListener('resize', measure);
+            return () => window.removeEventListener('resize', measure);
+        }
+        const observer = new window.ResizeObserver(measure);
+        observer.observe(copy);
+        return () => observer.disconnect();
+    }, []);
+
     // Redirect a sign-in completed on About, not a restored session or a signed-in
     // reader deliberately returning to About from inside the app.
     useEffect(() => {
@@ -246,7 +264,7 @@ const AboutPage = () => {
                                 </div>
                             ))}
                         </div>
-                        <div className="about-hero-copy">
+                        <div className="about-hero-copy" ref={heroCopyRef}>
                             {/* The newest post, where a first-time reader will see it. */}
                             <Link className="about-hero-news" to={`/blog/${posts[0].slug}`}>
                                 <span className="about-hero-news-tag">New</span>

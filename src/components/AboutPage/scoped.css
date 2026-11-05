@@ -202,7 +202,8 @@
         height: auto;
         margin: 0;
         perspective: 2000px;
-        transform: translate(-50%, calc((11vh + 330px) * (1 - var(--e, 0)) + (100vh - var(--bh)) / 2 * var(--e, 0)));
+        /* --copy-h: the copy's measured height (index.jsx); 300px until it is measured. */
+        transform: translate(-50%, calc((11vh + var(--copy-h, 300px) + 30px) * (1 - var(--e, 0)) + (100vh - var(--bh)) / 2 * var(--e, 0)));
     }
 
     .about-page--motion .about-browser {
