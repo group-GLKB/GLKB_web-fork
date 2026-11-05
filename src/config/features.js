@@ -97,3 +97,17 @@ export const LITERATURE_REVIEW_ENABLED = true;
  * first. Defined after isProductionSite, which it calls when the module loads.
  */
 export const LR_OUTLINE_APPROVAL_ENABLED = !isProductionSite();
+
+/**
+ * Whether an answer at High, Extra or Max draws the ANSWER graph — what the answer says, built
+ * after it by the backend (`POST /api/v1/new-llm-agent/answer-graph`; components/AnswerGraph/
+ * AnswerGraphV2.jsx) — instead of the basic co-occurrence graph.
+ *
+ *   !isProductionSite()   on for dev.glkb.org and localhost, off on glkb.org (current since
+ *                         2026-11-05: the effort levels are dev-only until the owner says otherwise)
+ *   true                  on everywhere
+ *
+ * Safe on a backend that does not have the endpoint yet: its 404 is remembered for the page load
+ * and every answer draws the basic graph, as before. Off, nothing asks for it at all.
+ */
+export const ANSWER_GRAPH_V2_ENABLED = !isProductionSite();

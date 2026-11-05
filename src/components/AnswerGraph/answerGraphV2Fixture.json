@@ -1,0 +1,30 @@
+{
+  "answer": "Metformin activates AMPK in hepatocytes [12345678]. AMPK inhibits mTORC1 signalling, which may slow tumour growth [23456789, 34567890]. Whether metformin lowers cancer risk in people with type 2 diabetes is debated [45678901].",
+  "answer_graph": {
+    "version": 1,
+    "nodes": [
+      {"key": "n1", "name": "Metformin", "type": "ChemicalEntity", "glkb_id": "mesh:D008687", "focus": true, "bridge": false, "description": "A biguanide antidiabetic agent.", "n_citation": 1234},
+      {"key": "n2", "name": "AMPK", "type": "Gene", "glkb_id": "hgnc:9376", "focus": false, "bridge": false, "description": null, "n_citation": 900},
+      {"key": "n3", "name": "mTORC1", "type": "Gene", "glkb_id": null, "focus": false, "bridge": false, "description": null, "n_citation": null},
+      {"key": "n4", "name": "Tumour growth", "type": "BiologicalProcessOrActivity", "glkb_id": null, "focus": false, "bridge": false, "description": null, "n_citation": null},
+      {"key": "n5", "name": "Cancer", "type": "DiseaseOrPhenotypicFeature", "glkb_id": "mondo:0004992", "focus": true, "bridge": false, "description": null, "n_citation": 50000},
+      {"key": "n6", "name": "LKB1", "type": "Gene", "glkb_id": "hgnc:11389", "focus": false, "bridge": true, "description": "Serine/threonine kinase 11", "n_citation": 700}
+    ],
+    "edges": [
+      {"id": "e1", "source": "n1", "target": "n2", "layer": "answer", "relation": "activates", "label": "activates", "polarity": "positive", "certainty": "established",
+       "sentence": "Metformin activates AMPK in hepatocytes [12345678].", "sentence_index": 0, "pmids": ["12345678"],
+       "glkb": [{"type": "ChemicalAffectsGene", "subtype": "activation", "source": "primekg", "n_article": 1234}]},
+      {"id": "e2", "source": "n2", "target": "n3", "layer": "answer", "relation": "inhibits", "label": "inhibits", "polarity": "negative", "certainty": "established",
+       "sentence": "AMPK inhibits mTORC1 signalling, which may slow tumour growth [23456789, 34567890].", "sentence_index": 1, "pmids": ["23456789", "34567890"], "glkb": []},
+      {"id": "e3", "source": "n3", "target": "n4", "layer": "answer", "relation": "increases", "label": "drives", "polarity": "positive", "certainty": "suggested",
+       "sentence": "AMPK inhibits mTORC1 signalling, which may slow tumour growth [23456789, 34567890].", "sentence_index": 1, "pmids": ["23456789"], "glkb": []},
+      {"id": "e4", "source": "n1", "target": "n5", "layer": "answer", "relation": "prevents", "label": "may prevent", "polarity": "negative", "certainty": "conflicting",
+       "sentence": "Whether metformin lowers cancer risk in people with type 2 diabetes is debated [45678901].", "sentence_index": 2, "pmids": ["45678901"], "glkb": []},
+      {"id": "e5", "source": "n6", "target": "n2", "layer": "bridge", "relation": "activates", "label": "activates", "polarity": "positive", "certainty": "established",
+       "sentence": null, "sentence_index": null, "pmids": [],
+       "glkb": [{"type": "GeneToGeneAssociation", "subtype": "ppi", "source": "primekg", "n_article": 321}]}
+    ],
+    "chain": ["n1", "n2", "n3", "n4"],
+    "built_with": {"model": "gpt-6.1-terra", "effort": "high", "pipeline": "chat"}
+  }
+}

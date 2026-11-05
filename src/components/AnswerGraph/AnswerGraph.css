@@ -196,3 +196,75 @@
   line-height: 20px;
   color: var(--color-text-tertiary, #5E6E87);
 }
+
+/* The answer graph (v2, AnswerGraphV2.jsx): the same card, keyed by what the answer says. */
+.ag-v2-key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--color-text-tertiary, #5E6E87);
+  white-space: nowrap;
+}
+.ag-v2-rule { flex: none; width: 22px; border-top: 2px solid #7A8699; }
+.ag-v2-rule.is-dashed { border-top-style: dashed; }
+.ag-v2-rule.is-dotted { width: auto; flex: 0 0 22px; border-top: 2px dotted #7A8699; }
+.ag-v2-diamond { flex: none; width: 22px; text-align: center; font-size: 11px; color: #B7791F; }
+.ag-v2-glkb,
+.ag-v2-badge {
+  flex: none;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--color-brand-soft, #EEF3FF);
+  color: var(--color-brand-default, #2F5FD0);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+}
+.ag-v2-bridge { gap: 6px; justify-content: flex-start; font-size: 13px; line-height: 20px; }
+.ag-legend-compact .ag-v2-key,
+.ag-legend-compact .ag-v2-bridge { font-size: 12px; line-height: 18px; }
+.ag-legend-below .ag-v2-key { width: auto; }
+
+.ag-v2-detail { width: min(320px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow-y: auto; }
+.ag-v2-sentence {
+  margin: 8px 0 0;
+  padding: 4px 0 4px 8px;
+  border-left: 2px solid var(--color-border-strong, #CBD2E0);
+  color: var(--color-text-secondary, #222A38);
+  font-size: 13px;
+  line-height: 20px;
+}
+.ag-v2-section { margin-top: 8px; }
+.ag-v2-papers a { color: var(--color-brand-default, #2F5FD0); text-decoration: none; }
+.ag-v2-papers a:hover { text-decoration: underline; }
+.ag-v2-show {
+  margin-top: 10px;
+  padding: 2px 10px;
+  border: 1px solid var(--color-border-strong, #CBD2E0);
+  border-radius: 8px;
+  background: var(--color-background-surface, #fff);
+  color: var(--color-text-secondary, #222A38);
+  font: inherit;
+  font-size: 12px;
+  line-height: 22px;
+  cursor: pointer;
+}
+.ag-v2-show:hover { background: var(--color-background-muted, #F2F4F8); }
+
+/* While the answer graph is being built: one quiet line where the graph will be. */
+.ag-building {
+  margin: 20px 0;
+  padding: 12px 16px;
+  border: 1px dashed var(--color-border-default, #E5E9F0);
+  border-radius: 16px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--color-text-tertiary, #5E6E87);
+}
+
+/* "Show in answer": the sentence an edge came from, marked for a moment. */
+::highlight(ag-sentence) { background-color: #FDECC8; }
+.ag-sentence-flash { background-color: #FDECC8; transition: background-color 0.4s ease; border-radius: 4px; }

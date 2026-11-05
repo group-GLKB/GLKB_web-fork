@@ -47,5 +47,63 @@ export const fetchAnswerGraphForText = (answer) => {
     return request(`text:${text.length}:${text.slice(0, 200)}:${text.slice(-200)}`, { answer: text.slice(0, 20000) });
 };
 
+/* ---- v2: the answer graph (components/AnswerGraph/AnswerGraphV2.jsx) ----
+
+   For an answer at High, Extra or Max in a SAVED conversation the backend builds, once, a graph
+   of what the answer itself says (`POST /api/v1/new-llm-agent/answer-graph`, JWT, owner only;
+   the three-repo effort contract, 2026-11-05) and keeps it on the message. It answers
+   `{answer_graph: <v1> | null, basic?: true}`: null or `basic` — and any failure — mean "draw
+   the basic graph", which is what the caller then does, exactly as before. */
+const V2_ENDPOINT = '/api/v1/new-llm-agent/answer-graph';
+const BASIC = Object.freeze({ graph: null, basic: true });
+const v2Cache = new Map();
+/* A backend that does not have the route yet (dev until its deploy): FastAPI's bare 404 / 405.
+   Remembered for the page load, so the answers of a long conversation do not each ask. */
+let v2Missing = false;
+
+const routeMissing = (error) => {
+    const status = error?.response?.status;
+    return status === 405 || (status === 404 && error?.response?.data?.detail === 'Not Found');
+};
+
+/**
+ * `{ graph: <raw v1 payload> | null, basic: boolean }` for one saved answer, addressed by its row
+ * (`messageId`, preferred: chat and Investigate answers both have one) or its invocation id (chat
+ * only). Never rejects: a failure — 404, 429 ANSWER_GRAPH_RATE_LIMITED, 502
+ * ANSWER_GRAPH_UNAVAILABLE, a timeout — resolves to `{ graph: null, basic: true }`. One request
+ * per answer per page load; a failure other than a missing route is not cached, so the answer
+ * asks again the next time it is shown.
+ */
+export const fetchAnswerGraphV2 = ({ historyId, invocationId, messageId } = {}) => {
+    const hid = Number(historyId);
+    const invocation = typeof invocationId === 'string' ? invocationId.trim() : '';
+    const mid = Number(messageId);
+    if (v2Missing || !Number.isFinite(hid) || hid <= 0 || (!invocation && !(Number.isFinite(mid) && mid > 0))) {
+        return Promise.resolve(BASIC);
+    }
+    // The answer's row when there is one (an Investigate answer has no invocation id).
+    const byRow = Number.isFinite(mid) && mid > 0;
+    const key = byRow ? `${hid}:m${mid}` : `${hid}:${invocation}`;
+    if (!v2Cache.has(key)) {
+        const body = byRow ? { history_id: hid, message_id: mid } : { history_id: hid, invocation_id: invocation };
+        const pending = axios.post(V2_ENDPOINT, body, { timeout: 60000 })
+            .then(({ data }) => {
+                const graph = data?.answer_graph && typeof data.answer_graph === 'object' ? data.answer_graph : null;
+                return { graph, basic: !graph || data?.basic === true };
+            })
+            .catch((error) => {
+                if (routeMissing(error)) v2Missing = true;
+                else v2Cache.delete(key);
+                return BASIC;
+            });
+        v2Cache.set(key, pending);
+    }
+    return v2Cache.get(key);
+};
+
 /** For tests. */
-export const clearAnswerGraphCache = () => cache.clear();
+export const clearAnswerGraphCache = () => {
+    cache.clear();
+    v2Cache.clear();
+    v2Missing = false;
+};
