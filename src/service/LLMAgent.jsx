@@ -498,6 +498,9 @@ export const frameToUpdate = (data) => {
             // An `answer_from_prior` Complete is a CHAT Complete — this same shape — and the
             // answer is drawn as a chat answer inside the Investigate conversation.
             route: followupRouteOf(data.route),
+            // One of GLKB's example questions, answered from its stored answer (backend
+            // services/example_answers.py): free, so a guest's question is not counted.
+            example: data.example === true,
             messages: data.messages || [],
             sessionId: data.session_id || null,
             trajectory: data.trajectory || null,

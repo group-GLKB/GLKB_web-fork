@@ -1,10 +1,12 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { StaticRouter } from 'react-router-dom/server';
 import AboutPage from './index';
+import { EXAMPLE_QUESTIONS } from './exampleQuestions';
 import { PAGE_SECTIONS } from './LocalNav';
+import { REVIEW_STEPS } from './ReviewScene';
 import { measureProgress, segment } from './motion';
 import { USE_CASES } from './useCases';
 import { useAuth } from '../Auth/AuthContext';
@@ -114,5 +116,67 @@ describe('use-case data', () => {
         // Citation markers follow a non-breaking space, as the agent writes them.
         const cited = [...text.matchAll(/ (\d)(?=[.;,]|$|\s)/g)].map((match) => Number(match[1]));
         expect(new Set(cited)).toEqual(new Set(item.references.map((reference, index) => index + 1)));
+    });
+});
+
+/* Renders where a link or navigate() landed, with the state it carried. */
+const Landing = () => {
+    const location = useLocation();
+    return <pre data-testid="landing">{JSON.stringify({ path: location.pathname, state: location.state })}</pre>;
+};
+
+const renderAt = () => render(
+    <MemoryRouter initialEntries={['/']}>
+        <Routes>
+            <Route path="/" element={<AboutPage />} />
+            <Route path="*" element={<Landing />} />
+        </Routes>
+    </MemoryRouter>,
+);
+
+const landing = () => JSON.parse(screen.getByTestId('landing').textContent);
+
+describe('the example questions', () => {
+    it('are each a link that opens a new chat asking that question in the default mode', () => {
+        renderAt();
+        const questions = EXAMPLE_QUESTIONS.flat();
+        questions.forEach((question) => {
+            expect(screen.getByRole('link', { name: question }).getAttribute('href')).toBe('/chat/new');
+        });
+        fireEvent.click(screen.getByRole('link', { name: questions[2] }));
+        expect(landing()).toEqual({
+            path: '/chat/new',
+            state: {
+                initialQuery: questions[2],
+                initialSearchOptions: { filters: [], rankingMode: 'default', investigateEnabled: false, example: true },
+                initialQueryMethod: 'example',
+            },
+        });
+    });
+});
+
+describe('the literature review section', () => {
+    it('names the four steps of the review page and links to them from the contents', () => {
+        const { container } = render(<MemoryRouter><AboutPage /></MemoryRouter>);
+        const section = container.querySelector('#literature-review');
+        expect(section).toBeTruthy();
+        REVIEW_STEPS.forEach(([name]) => expect(section.textContent).toContain(name));
+        expect(PAGE_SECTIONS.map(([id]) => id)).toContain('literature-review');
+    });
+
+    it('asks a guest to sign in first', () => {
+        const openLoginModal = jest.fn();
+        useAuth.mockReturnValue({ isAuthenticated: false, loading: false, openLoginModal });
+        renderAt();
+        fireEvent.click(screen.getByRole('button', { name: 'Set up a review' }));
+        expect(openLoginModal).toHaveBeenCalledWith(expect.stringContaining('literature review'));
+        expect(screen.queryByTestId('landing')).toBeNull();
+    });
+
+    it('takes a signed-in reader to the review page', () => {
+        useAuth.mockReturnValue({ isAuthenticated: true, loading: false, openLoginModal: jest.fn() });
+        renderAt();
+        fireEvent.click(screen.getByRole('button', { name: 'Set up a review' }));
+        expect(landing().path).toBe('/literature-review');
     });
 });

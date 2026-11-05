@@ -17,12 +17,16 @@
 /**
  * Whether the API documentation is reachable.
  *
- * Gates BOTH the entry point (the "API Docs" button on the API dashboard) and
- * the `/api-docs` routes themselves. They have to move together: with the
- * routes redirected to `/` but the button showing, the button just bounces the
- * user to the home page.
+ * Gates BOTH the entry points (the "API Docs" button on the API dashboard, the
+ * footer link, the line on Contact) and the `/api-docs` routes themselves, which
+ * are then neither routed nor prerendered. They have to move together: with the
+ * routes redirected to `/` but a link showing, the link just bounces the user to
+ * the home page.
+ *
+ * Off everywhere since 2026-11-04 (owner: take the API Docs button down for now).
+ * Turning it back on restores all of it.
  */
-export const SHOW_API_DOCS = true;
+export const SHOW_API_DOCS = false;
 
 /**
  * Whether Investigate (deep research) is offered.

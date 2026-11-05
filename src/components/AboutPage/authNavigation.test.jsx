@@ -21,6 +21,7 @@ const App = () => (
         <Routes>
             <Route path="/" element={<AboutPage />} />
             <Route path="/chat" element={<p>Chat home</p>} />
+            <Route path="/literature-review" element={<p>Review scope</p>} />
         </Routes>
     </MemoryRouter>
 );
@@ -98,4 +99,18 @@ it('redirects a guest signing in after initial session loading finishes', () => 
     auth(true);
     view.rerender(<App />);
     expect(screen.getByTestId('location').textContent).toBe('/chat');
+});
+
+it('takes a guest who signs in to start a review on to the review page, not the chat', () => {
+    const view = render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Set up a review' }));
+    expect(openLoginModal).toHaveBeenCalledTimes(1);
+    auth(true);
+    view.rerender(<App />);
+    expect(screen.getByTestId('location').textContent).toBe('/literature-review');
+});
+
+it('no longer links to the API docs from the footer', () => {
+    render(<App />);
+    expect(screen.queryByRole('link', { name: 'API Docs' })).toBeNull();
 });

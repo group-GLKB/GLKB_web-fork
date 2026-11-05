@@ -7,6 +7,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 
+import { LITERATURE_REVIEW_ENABLED } from '../../config/features';
 import siteMark from '../../img/GLKB_logo_icon.png';
 
 /* In page order: a part is "current" from when its top passes 40% down the window. */
@@ -15,6 +16,7 @@ export const PAGE_SECTIONS = [
     ['knowledge-base', 'Knowledge Base'],
     ['how-it-works', 'How It Works'],
     ['demo', 'Demo'],
+    ...(LITERATURE_REVIEW_ENABLED ? [['literature-review', 'Literature Review']] : []),
     ['why', 'Why GLKB'],
     ['use-cases', 'Use Cases'],
     ['from-the-lab', 'Blog'],

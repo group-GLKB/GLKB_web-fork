@@ -80,6 +80,9 @@ async function main() {
             write(path.join(output, filename), html);
             console.log(`Prerendered ${page.path}`);
         }
+        // With the API docs switched off (src/config/features.js SHOW_API_DOCS) none of their pages
+        // is rendered, and nothing may still point at them.
+        const hasDocs = publicPages.some(page => page.path.startsWith('/api-docs'));
         write(path.join(output, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${indexablePages.map(page => `<url><loc>https://glkb.org${page.path}</loc></url>`).join('')}</urlset>\n`);
         // Import these ahead of Amplify's current catch-all SPA rule. This file contains no secrets.
         const redirects = [
@@ -88,8 +91,10 @@ async function main() {
             { source: '/about/', target: '/', status: '301' },
             { source: '/blog', target: '/#from-the-lab', status: '301' },
             { source: '/blog/', target: '/#from-the-lab', status: '301' },
-            { source: '/api-docs/overview', target: '/api-docs', status: '301' },
-            { source: '/api-docs/overview/', target: '/api-docs', status: '301' },
+            ...(hasDocs ? [
+                { source: '/api-docs/overview', target: '/api-docs', status: '301' },
+                { source: '/api-docs/overview/', target: '/api-docs', status: '301' },
+            ] : []),
             ...publicPages.filter(page => page.path !== '/').flatMap(page => [
                 { source: `${page.path}/`, target: page.path, status: '301' },
                 { source: page.path, target: `${page.path}/index.html`, status: '200' },
@@ -97,7 +102,7 @@ async function main() {
             { source: '</^[^.]+$/>', target: '/app.html', status: '200' },
         ];
         write(path.join(output, 'amplify-redirects.json'), JSON.stringify(redirects, null, 2));
-        for (const [from, to] of [['about', '/'], ['blog', '/#from-the-lab'], ['api-docs/overview', '/api-docs']]) {
+        for (const [from, to] of [['about', '/'], ['blog', '/#from-the-lab'], ...(hasDocs ? [['api-docs/overview', '/api-docs']] : [])]) {
             write(path.join(output, from, 'index.html'), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex, follow"><link rel="canonical" href="https://glkb.org${to.split('#')[0]}"><meta http-equiv="refresh" content="0;url=${to}"><title>GLKB — moved</title></head><body><a href="${to}">Continue to GLKB</a></body></html>`);
         }
     } finally { fs.rmSync(temp, { recursive: true, force: true }); }

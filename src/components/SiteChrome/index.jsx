@@ -11,6 +11,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { ABOUT_PATH, CHAT_HOME_PATH } from '../../config/entryRoutes';
+import { SHOW_API_DOCS } from '../../config/features';
 
 // The app's own mark and wordmark, not the About-only lockup that used to sit here:
 // this is one site, and the logo above the marketing pages is the logo above the app.
@@ -98,7 +99,7 @@ export const SiteFooter = ({ withCta = true, onViewDemo }) => {
                 <div className="site-footer-row">
                     <div className="site-footer-links">
                         <Link to={CHAT_HOME_PATH}>Chat</Link>
-                        <Link to="/api-docs">API Docs</Link>
+                        {SHOW_API_DOCS && <Link to="/api-docs">API Docs</Link>}
                         <Link to="/terms">Terms of Use</Link>
                         <Link to="/privacy">Privacy Policy</Link>
                         <button type="button">Refund &amp; Cancellation</button>

@@ -21,6 +21,7 @@ import React, {
 
 import PublicPageSeo from '../Units/PublicPageSeo';
 import {
+    Link,
     useLocation,
     useNavigate,
 } from 'react-router-dom';
@@ -49,10 +50,12 @@ import useCaseBookmark from '../../img/about/v2/use-cases/bookmark.svg';
 import useCaseQuote from '../../img/about/v2/use-cases/quote.svg';
 import browserFavicon from '../../img/GLKB_logo_icon.png';
 import { CHAT_HOME_PATH, markAboutSeen } from '../../config/entryRoutes';
+import { LITERATURE_REVIEW_ENABLED } from '../../config/features';
 import { useAuth } from '../Auth/AuthContext';
 import { posts } from '../Blog/posts';
 import { PostCard, SiteFooter, SiteNav } from '../SiteChrome';
 import { DemoModal, DemoPlayer } from './DemoVideo';
+import { EXAMPLE_QUESTIONS, exampleChatLink } from './exampleQuestions';
 import faqData from './faqData.json';
 import {
     CountUp,
@@ -64,6 +67,7 @@ import {
     useScrollProgress,
 } from './motion';
 import LocalNav from './LocalNav';
+import ReviewScene from './ReviewScene';
 import ScaleScene from './ScaleScene';
 import { USE_CASES } from './useCases';
 import WorkflowScene from './WorkflowScene';
@@ -111,27 +115,6 @@ const DIFFERENTIATORS = [
 ];
 
 /* Questions of the kind researchers bring, in two rows that slide apart. */
-const EXAMPLE_QUESTIONS = [
-    [
-        'What is known about DYRK1A as a therapeutic target in type 2 diabetes?',
-        'Which genes are associated with both obesity and type 2 diabetes?',
-        'What is the evidence for LRRK2 G2019S in Parkinson’s disease?',
-        'How does BRCA1 loss sensitize tumors to PARP inhibitors?',
-        'Which pathways connect APOE ε4 to tau pathology?',
-        'What drives osimertinib resistance in EGFR-mutant lung cancer?',
-        'Which variants in PCSK9 lower LDL cholesterol?',
-    ],
-    [
-        'What evidence supports repurposing metformin as an anticancer therapy?',
-        'How does TREM2 signaling shape the microglial response to amyloid?',
-        'Which circulating biomarkers detect pancreatic cancer early?',
-        'How do SGLT2 inhibitors protect the kidney?',
-        'What links the gut microbiome to response to immunotherapy?',
-        'Which genes regulate both circadian rhythm and insulin secretion?',
-        'What is the role of IL-6 signaling in cytokine release syndrome?',
-    ],
-];
-
 /* Figma 604:7600, with the corpus figures added. */
 const STATS = [
     ['41.2M+', 'Papers indexed\nfrom the literature'],
@@ -141,13 +124,18 @@ const STATS = [
     ['~30 min', 'To process 1,500 candidate\ngenes with full citations'],
 ];
 
+const REVIEW_PATH = '/literature-review';
+
 const AboutPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [openFaqId, setOpenFaqId] = useState(faqData[0]?.id ?? null);
     const [useCase, setUseCase] = useState(USE_CASES[0].id);
-    const { isAuthenticated, loading: authLoading } = useAuth();
+    const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
     const previousAuth = useRef(null);
+    // Where a sign-in started from this page goes next: the chat, unless the reader
+    // asked for something that needed the account (a literature review).
+    const afterSignIn = useRef(CHAT_HOME_PATH);
     const railRef = useRef(null);
     const [railOverflows, setRailOverflows] = useState(false);
     const pageRef = useRef(null);
@@ -175,13 +163,24 @@ const AboutPage = () => {
     useEffect(() => {
         if (authLoading) return;
         if (previousAuth.current === false && isAuthenticated) {
-            navigate(CHAT_HOME_PATH, { replace: true });
+            navigate(afterSignIn.current, { replace: true });
         }
         previousAuth.current = Boolean(isAuthenticated);
     }, [authLoading, isAuthenticated, navigate]);
 
     const handleGetStarted = () => {
         navigate(CHAT_HOME_PATH);
+    };
+
+    // A review needs an account (guests have AI Chat only), so a guest signs in first
+    // and lands on the review's Scope step afterwards.
+    const startReview = () => {
+        if (isAuthenticated) {
+            navigate(REVIEW_PATH);
+            return;
+        }
+        afterSignIn.current = REVIEW_PATH;
+        openLoginModal?.('Sign in to write a literature review. It’s free.');
     };
 
     // Once seen, `/` stops sending this browser here (config/entryRoutes.js).
@@ -355,6 +354,8 @@ const AboutPage = () => {
                     </div>
                 </section>
 
+                {LITERATURE_REVIEW_ENABLED && <ReviewScene motion={motion} onStart={startReview} />}
+
                 <section className="about-section about-different" id="why">
                     <div className="about-inner">
                         <p className="about-eyebrow" data-reveal>By researcher, for researcher</p>
@@ -415,12 +416,20 @@ const AboutPage = () => {
                         <h2 className="about-heading" id="about-ask-heading" data-reveal style={{ '--d': 1 }}>
                             From a single gene to a whole field.
                         </h2>
+                        <p className="about-ask-hint" data-reveal style={{ '--d': 2 }}>
+                            Pick a question to see GLKB&rsquo;s answer, with its sources. Free, no sign-in needed.
+                        </p>
                     </div>
                     {EXAMPLE_QUESTIONS.map((row, rowIndex) => (
                         <div className={`about-ask-row about-ask-row--${rowIndex + 1}`} key={row[0]}>
                             <ul className="about-ask-track">
                                 {row.map((question) => (
-                                    <li className="about-ask-chip" key={question}>{question}</li>
+                                    <li key={question}>
+                                        <Link className="about-ask-chip" {...exampleChatLink(question)}>
+                                            <span className="about-ask-text">{question}</span>
+                                            <ChevronRightIcon className="about-ask-go" aria-hidden="true" />
+                                        </Link>
+                                    </li>
                                 ))}
                             </ul>
                         </div>

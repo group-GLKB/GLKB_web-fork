@@ -4530,8 +4530,9 @@ function LLMAgent({ isRouteActive = true }) {
            left in (or put back into) the box. Before 2026-11-02 the turn went ahead, the
            backend refused it with a 429, and a question handed over from the home page left
            an empty conversation on screen. The backend still decides; this only spares the
-           reader a refusal the page could already see coming. */
-        if (isAuthenticated && !isGuest) {
+           reader a refusal the page could already see coming. An example question handed over
+           from About (AboutPage/exampleQuestions.js) is exempt: its stored answer is free. */
+        if (isAuthenticated && !isGuest && !requestSearchOptions?.example) {
             const shortfall = noticeFor(
                 getUsageSnapshot(),
                 tierPricing,
@@ -4817,6 +4818,8 @@ function LLMAgent({ isRouteActive = true }) {
            still writing keeps its registry mark, because taking it down would free the
            conversation for a second turn onto a history id that is still busy. */
         let streamOutcome = 'ok';
+        // Set by an example answer's Complete frame: nothing ran, so nothing is counted.
+        let servedExample = false;
         /* Saved refreshes the server-backed ordering. Keep this run marked active until that
            refresh has landed: Complete can arrive before the request below resolves, and
            removing the mark first briefly drops the row into the stale server order before
@@ -5366,6 +5369,7 @@ function LLMAgent({ isRouteActive = true }) {
                         break;
                     }
                     case 'final':
+                        if (update.example) servedExample = true;
                         if (!isActiveStream) {
                             persistDetachedCompletion(update);
                             return;
@@ -5811,7 +5815,9 @@ function LLMAgent({ isRouteActive = true }) {
             streamOutcome = outcome;
         } finally {
             // A guest's ten are counted per browser (service/credits.js), once the answer is in.
-            if (isGuest && !investigateEnabled && (streamOutcome === 'ok' || streamOutcome === 'recovered')) {
+            // An example answer is free (the backend served it without counting it either).
+            if (isGuest && !investigateEnabled && !servedExample
+                && (streamOutcome === 'ok' || streamOutcome === 'recovered')) {
                 recordGuestQuestion();
             }
             refreshTierStatus();

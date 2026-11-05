@@ -2,6 +2,7 @@ import './scoped.css';
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { SHOW_API_DOCS } from '../../config/features';
 import { SiteFooter, SiteNav } from '../SiteChrome';
 import PublicPageSeo from '../Units/PublicPageSeo';
 import { buildContactMailto, CONTACT_EMAIL, CONTACT_TOPICS, openContactDraft } from './contactEmail';
@@ -87,7 +88,8 @@ export default function ContactPage() {
 
                     <p className="contact-help">
                         Looking for licensing? See the <a href={DATASET_URL} target="_blank" rel="noopener noreferrer">dataset listing</a>{' '}
-                        at U-M Innovation Partnerships. Developers can start with the <Link to="/api-docs">API Docs</Link>.
+                        at U-M Innovation Partnerships.
+                        {SHOW_API_DOCS && <> Developers can start with the <Link to="/api-docs">API Docs</Link>.</>}
                     </p>
                 </section>
 
