@@ -21,6 +21,13 @@
  */
 // The configured instance: it carries `baseURL` (the reorg-api prefix) and the auth interceptor.
 import axios from '../utils/axiosConfig';
+import {
+    DEFAULT_EFFORT_BY_PIPELINE,
+    effortOf,
+    effortPipeline,
+    EFFORT_LEVELS,
+    setServerEfforts,
+} from './effortLevels';
 
 export const SERVICE_TIER_KEY = 'glkb_service_tier';
 const CHANGE_EVENT = 'glkb-service-tier-change';
@@ -69,12 +76,51 @@ export const FALLBACK_PRICING = {
 };
 
 /**
- * `{ defaultTier, tiers: [{ id, label, description, credits: { chat, deep_research } }] }`,
- * where a tier appears only if some pipeline enables it and `credits` holds only the enabled
- * pipelines.
+ * The pricing's `efforts` block (glkb-backend, 2026-11-05): `[{ id, pipeline, enabled, guest,
+ * default, prices: { standard, advanced, premium } }]` in menu order, or null when the backend
+ * sent none — which is how the web learns that only Medium and Extra exist
+ * (service/effortLevels.js). Rows naming a level this client does not know are dropped; a row's
+ * pipeline is the level's own, whatever the row says, so a typo cannot move High onto deep
+ * research.
+ */
+export const parseEfforts = (raw) => {
+    if (!Array.isArray(raw?.efforts)) return null;
+    const rows = [];
+    raw.efforts.forEach((row) => {
+        const id = effortOf(row?.id);
+        if (!id || rows.some((r) => r.id === id)) return;
+        const prices = {};
+        Object.entries(row?.prices && typeof row.prices === 'object' ? row.prices : {})
+            .forEach(([tier, value]) => {
+                const credits = value === null || value === undefined ? NaN : Number(value);
+                if (Number.isFinite(credits)) prices[String(tier).trim().toLowerCase()] = credits;
+            });
+        rows.push({
+            id,
+            pipeline: effortPipeline(id),
+            enabled: row?.enabled === true,
+            guest: row?.guest === true,
+            default: row?.default === true || DEFAULT_EFFORT_BY_PIPELINE[effortPipeline(id)] === id,
+            prices,
+        });
+    });
+    const order = EFFORT_LEVELS.map((level) => level.id);
+    rows.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+    return rows.length ? rows : null;
+};
+
+/**
+ * `{ defaultTier, tiers: [{ id, label, description, credits: { chat, deep_research },
+ * effortCredits: { low, high, ... } }], efforts }`, where a tier appears only if some pipeline
+ * enables it, `credits` holds only the enabled pipelines, and `effortCredits` the per-level
+ * prices of the `efforts` block (empty without one; see `creditsForEffort`).
  */
 export const parsePricing = (raw) => {
     const prices = Array.isArray(raw?.prices) ? raw.prices : [];
+    const efforts = parseEfforts(raw);
+    const effortCreditsOf = (tierId) => Object.fromEntries((efforts || [])
+        .filter((row) => Number.isFinite(row.prices[tierId]))
+        .map((row) => [row.id, row.prices[tierId]]));
     const byTier = {};
     prices.forEach((row) => {
         const id = String(row?.service_tier || '').trim().toLowerCase();
@@ -89,6 +135,7 @@ export const parsePricing = (raw) => {
                     || id.charAt(0).toUpperCase() + id.slice(1),
                 description: TIER_COPY[id]?.description || '',
                 credits: {},
+                effortCredits: effortCreditsOf(id),
             };
         }
         byTier[id].credits[pipeline] = Number.isFinite(credits) ? credits : null;
@@ -102,7 +149,7 @@ export const parsePricing = (raw) => {
     const defaultTier = tiers.some((t) => t.id === preferred)
         ? preferred
         : (tiers.find((t) => t.id === DEFAULT_TIER) || tiers[tiers.length - 1])?.id || DEFAULT_TIER;
-    return { defaultTier, tiers };
+    return { defaultTier, tiers, efforts };
 };
 
 let pricingPromise = null;
@@ -117,6 +164,8 @@ export const fetchTierPricing = () => {
             const parsed = parsePricing(response?.data);
             if (!parsed.tiers.length) throw new Error('no enabled service tier');
             pricingCache = parsed;
+            // The levels the composers offer (service/effortLevels.js); none = Medium and Extra.
+            setServerEfforts(parsed.efforts);
             return parsed;
         })
         .catch(() => {
@@ -148,6 +197,25 @@ export const creditsFor = (pricing, tierId, pipeline) => {
     const value = hit?.credits?.[pipeline];
     return Number.isFinite(value) ? value : null;
 };
+
+/**
+ * What one question at `effort` costs on a tier row (`parsePricing`'s): the level's own price
+ * from the `efforts` block, else — no block, or Medium and Extra, which are priced as their
+ * pipeline — the pipeline's price. Null when unknown. Without an effort, the chat price.
+ */
+export const tierCreditsForEffort = (tierRow, effort) => {
+    const id = effortOf(effort);
+    const own = id ? tierRow?.effortCredits?.[id] : undefined;
+    if (Number.isFinite(own)) return own;
+    const value = tierRow?.credits?.[effortPipeline(id || 'medium')];
+    return Number.isFinite(value) ? value : null;
+};
+
+/** The credits one question at `effort` on `tierId` costs, or null when unknown. */
+export const creditsForEffort = (pricing, tierId, effort) => tierCreditsForEffort(
+    (pricing?.tiers || []).find((t) => t.id === tierId),
+    effort,
+);
 
 export const tierLabel = (tierId) => TIER_COPY[tierId]?.label
     || (tierId ? tierId.charAt(0).toUpperCase() + tierId.slice(1) : '');

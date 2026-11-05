@@ -31,6 +31,8 @@ export const BUILT_ON_EARLIER_TEXT = 'Built on the earlier investigation';
  */
 export const FullInvestigationOffer = ({
     serviceTier = '',
+    // The level the follow-up was asked at, which the full run keeps: Extra or Max.
+    effort = 'extra',
     showPrice = true,
     disabled = false,
     onRun,
@@ -42,7 +44,7 @@ export const FullInvestigationOffer = ({
         fetchTierPricing().then((fetched) => { if (alive) setPricing(fetched); });
         return () => { alive = false; };
     }, [showPrice]);
-    const price = showPrice ? investigatePriceText(pricing, serviceTier) : '';
+    const price = showPrice ? investigatePriceText(pricing, serviceTier, effort) : '';
 
     return (
         <div className="search-limit-notice routed-answer-notice" role="note" data-followup-route="answer_from_prior">

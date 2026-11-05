@@ -2,15 +2,17 @@
  * The composer's model-and-effort control (design: GLKB Effort A).
  *
  * A chip reading "✦ GPT-6.1 Terra · Medium ▾" opens a menu of the models, then an "Effort ›" row
- * whose submenu lists the effort levels (service/effortLevels.js). Medium runs the chat agent and
- * Extra deep research; the other levels are greyed out until a pipeline backs them.
+ * whose submenu lists the effort levels (service/effortLevels.js). Low, Medium and High run the
+ * chat agent, Extra and Max deep research; a level the backend does not offer (or, for Low, High
+ * and Max, glkb.org) is greyed out. Each model row's price is the chosen level's.
  *
  * The menu hangs off the COMPOSER's edge, right-aligned to the chip: below the box on the home
  * page (`placement="down"`), above it at the foot of a conversation (`"up"`). `anchorRef` is the
  * composer; without one the chip itself is the anchor.
  *
- * A guest may use GPT-6.1 Terra and GPT-6 Luna at Medium. Choosing Sol or Extra asks them to sign
- * in (`onRequireSignIn(kind, entry)`) instead of selecting it, and the row says so.
+ * A guest may use GPT-6.1 Terra and GPT-6 Luna at Low or Medium. Choosing Sol, High, Extra or Max
+ * asks them to sign in (`onRequireSignIn(kind, entry)`) instead of selecting it, and the row says
+ * so.
  */
 import './scoped.css';
 
@@ -24,8 +26,9 @@ import {
     effortPipeline,
     isDeepEffort,
     isEffortEnabled,
+    isGuestLockedEffort,
 } from '../../../service/effortLevels';
-import { isGuestTier } from '../../../service/serviceTiers';
+import { isGuestTier, tierCreditsForEffort } from '../../../service/serviceTiers';
 import { ReactComponent as SparkleIcon } from '../../../img/llm/sparkle.svg';
 import { trackGtagEvent } from '../../../utils/gtag';
 import useTierChoice from '../TierPicker/useTierChoice';
@@ -42,7 +45,7 @@ export const EffortLevels = ({ effort, isGuest = false, hasFiles = false, onPick
         </p>
         {EFFORT_LEVELS.map((level) => {
             const enabled = isEffortEnabled(level.id);
-            const locked = enabled && isGuest && isDeepEffort(level.id);
+            const locked = enabled && isGuest && isGuestLockedEffort(level.id);
             const note = enabled && hasFiles && isDeepEffort(level.id) ? "Doesn't read attached files" : '';
             return (
                 <button
@@ -79,7 +82,7 @@ export const EffortLevels = ({ effort, isGuest = false, hasFiles = false, onPick
  */
 export const chooseEffort = ({ level, effort, isGuest, onEffortChange, onRequireSignIn }) => {
     if (!isEffortEnabled(level.id) || level.id === effort) return;
-    if (isGuest && isDeepEffort(level.id)) {
+    if (isGuest && isGuestLockedEffort(level.id)) {
         trackGtagEvent('effort_sign_in_prompt', { effort: level.id });
         onRequireSignIn?.('effort', level);
         return;
@@ -215,7 +218,7 @@ const EffortPicker = ({
                                     const locked = isGuest && !isGuestTier(entry.id);
                                     const isSelected = entry.id === selected;
                                     // One line, as the design's: "Balanced speed and depth · 5 credits".
-                                    const credits = entry.credits[pipeline];
+                                    const credits = tierCreditsForEffort(entry, effort);
                                     const desc = [entry.description, Number.isFinite(credits)
                                         ? `${credits} credit${credits === 1 ? '' : 's'}` : '']
                                         .filter(Boolean).join(' · ');

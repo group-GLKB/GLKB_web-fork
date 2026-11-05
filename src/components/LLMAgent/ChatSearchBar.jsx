@@ -148,6 +148,7 @@ const ChatSearchBar = ({
     const creditNotice = useCreditNotice({
         pipeline: deep ? 'deep_research' : 'chat',
         tierId: serviceTier,
+        effort,
         enabled: !isGuest,
     });
 
@@ -420,6 +421,7 @@ const ChatSearchBar = ({
                             onChange={onServiceTierChange}
                             onResolveDefault={onServiceTierResolveDefault}
                             pipeline={deep ? 'deep_research' : 'chat'}
+                            effort={effort}
                             isGuest={isGuest}
                             onRequireSignIn={(tier) => onRequireSignIn?.('model', tier)}
                         />

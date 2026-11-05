@@ -9,14 +9,28 @@ import { tierLabel } from '../service/serviceTiers';
 export const INSUFFICIENT_CREDITS = 'INSUFFICIENT_CREDITS';
 export const GUEST_LIMIT_REACHED = 'GUEST_LIMIT_REACHED';
 export const GUEST_LOGIN_REQUIRED = 'GUEST_LOGIN_REQUIRED';
+// 400 from the backend for a level its policy has switched off (effort contract, 2026-11-05).
+export const EFFORT_UNAVAILABLE = 'EFFORT_UNAVAILABLE';
 
 /* Since 2026-10-09 a guest gets plain AI Chat (10 questions in all) and nothing else: these are
    what the sign-in overlay says when they reach for Investigate or the Graph Viewer. The backend
    refuses a guest's Investigate with the same code (`reason: "investigate"`). */
 // Extra effort is deep research, the pipeline Investigate named before 2026-10-27.
 export const GUEST_INVESTIGATE_REASON = "Extra effort is available to signed-in users. Sign in to use it — it's free.";
+// High runs the chat agent, but longer (2026-11-05): signed-in readers only, as the backend says
+// with `GUEST_LOGIN_REQUIRED`, `reason: "effort"`.
+export const GUEST_HIGH_REASON = "High effort is available to signed-in users. Sign in to use it — it's free.";
+export const GUEST_MAX_REASON = "Max effort is available to signed-in users. Sign in to use it — it's free.";
 export const GUEST_GRAPH_VIEWER_REASON = "The Graph Viewer is available to signed-in users. Sign in to use it — it's free.";
 export const GUEST_REVIEW_REASON = "Literature Review is available to signed-in users. Sign in to use it — it's free.";
+
+/** What the sign-in overlay says when a guest reaches for an effort level (service/effortLevels.js). */
+export const guestEffortReason = (effortId) => {
+    const id = typeof effortId === 'string' ? effortId : effortId?.id;
+    if (id === 'high') return GUEST_HIGH_REASON;
+    if (id === 'max') return GUEST_MAX_REASON;
+    return GUEST_INVESTIGATE_REASON;
+};
 
 /** Whether answering this refusal means signing in — a guest's limit, or a tier only members get. */
 export const refusalNeedsSignIn = (refusal) => (
@@ -33,7 +47,9 @@ export const refusalText = (refusal) => {
     let text = refusal.message || '';
     if (!text) {
         if (refusal.code === INSUFFICIENT_CREDITS) text = 'Not enough credits for this query.';
+        else if (refusal.code === GUEST_LOGIN_REQUIRED && refusal.reason === 'effort') text = GUEST_HIGH_REASON;
         else if (refusalNeedsSignIn(refusal)) text = 'Please sign in to continue.';
+        else if (refusal.code === EFFORT_UNAVAILABLE) text = 'This effort level is not available right now. Pick another one and ask again.';
         else text = 'This request could not be started.';
     }
     const cheaper = refusal.code === INSUFFICIENT_CREDITS ? refusal.cheaper_option : null;

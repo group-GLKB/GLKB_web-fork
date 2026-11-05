@@ -184,21 +184,39 @@ const PIPELINE_NOUNS = {
     literature_review: 'A Literature Review',
 };
 const PIPELINE_NAMES = { chat: 'AI Chat', deep_research: 'Investigate', literature_review: 'Literature Review' };
+/* The levels that are not their pipeline's default name themselves (service/effortLevels.js);
+   Medium and Extra keep the pipeline's words, which is all there was before 2026-11-05. */
+const EFFORT_NOUNS = {
+    low: 'A Low-effort question',
+    high: 'A High-effort question',
+    max: 'A Max-effort Investigate run',
+};
+const EFFORT_NAMES = { low: 'Low effort', high: 'High effort', max: 'Max effort' };
 
 const creditCount = (n) => `${n} credit${n === 1 ? '' : 's'}`;
 
 /**
  * What the reader can still afford when the question as set up costs more than they have: the
- * most capable model on the same mode that fits; else AI Chat on their own model (`tierId`), or
- * the most capable chat that fits; else null. `pricing` is `parsePricing`'s shape (tiers most
- * capable first); `{ tierId, pipeline, credits }`.
+ * most capable model on the same mode (and effort level) that fits; else AI Chat at Medium on
+ * their own model (`tierId`), or the most capable chat that fits; else null. `pricing` is
+ * `parsePricing`'s shape (tiers most capable first); `{ tierId, pipeline, effort, credits }`.
+ * `effort` is a level other than its pipeline's default (Low, High, Max), priced from the
+ * `efforts` block; '' prices the pipeline as before.
  */
-export const affordableChoice = (pricing, pipeline, remaining, tierId = '') => {
+export const affordableChoice = (pricing, pipeline, remaining, tierId = '', effort = '') => {
     const tiers = pricing?.tiers || [];
-    const fitsOn = (t, p) => Number.isFinite(t.credits?.[p]) && t.credits[p] <= remaining;
-    const same = tiers.find((t) => fitsOn(t, pipeline));
-    if (same) return { tierId: same.id, pipeline, credits: same.credits[pipeline] };
-    if (pipeline === 'chat') return null;
+    const priceOn = (t, p, level) => {
+        const own = level ? t.effortCredits?.[level] : undefined;
+        return Number.isFinite(own) ? own : t.credits?.[p];
+    };
+    const fitsOn = (t, p, level = '') => Number.isFinite(priceOn(t, p, level)) && priceOn(t, p, level) <= remaining;
+    const same = tiers.find((t) => fitsOn(t, pipeline, effort));
+    if (same) {
+        return {
+            tierId: same.id, pipeline, ...(effort ? { effort } : {}), credits: priceOn(same, pipeline, effort),
+        };
+    }
+    if (pipeline === 'chat' && !effort) return null;
     const chat = tiers.find((t) => t.id === tierId && fitsOn(t, 'chat')) || tiers.find((t) => fitsOn(t, 'chat'));
     return chat ? { tierId: chat.id, pipeline: 'chat', credits: chat.credits.chat } : null;
 };
@@ -213,7 +231,7 @@ export const affordableChoice = (pricing, pipeline, remaining, tierId = '') => {
  * `affordableChoice`'s answer.
  */
 export const creditNotice = (usage, {
-    cost = null, pipeline = 'chat', tierId = '', labelFor = (id) => id, alternative = null,
+    cost = null, pipeline = 'chat', effort = '', tierId = '', labelFor = (id) => id, alternative = null,
 } = {}) => {
     if (usage?.kind !== 'credits' || usage.remaining === null || usage.remaining < 1) return null;
     const { remaining } = usage;
@@ -221,18 +239,24 @@ export const creditNotice = (usage, {
     const back = resets ? ` Your free monthly credits come back on ${resets}.` : '';
     if (Number.isFinite(cost) && remaining < cost) {
         const on = tierId ? ` on ${labelFor(tierId)}` : '';
-        let text = `${PIPELINE_NOUNS[pipeline] || 'This question'}${on} costs ${creditCount(cost)}`
+        const noun = EFFORT_NOUNS[effort] || PIPELINE_NOUNS[pipeline] || 'This question';
+        const name = EFFORT_NAMES[effort] || PIPELINE_NAMES[pipeline] || 'This question';
+        let text = `${noun}${on} costs ${creditCount(cost)}`
             + ` and you have ${remaining} left.${back}`;
         if (alternative) {
             const model = labelFor(alternative.tierId);
-            text += alternative.pipeline === pipeline
+            const sameKind = alternative.pipeline === pipeline
+                && (alternative.effort || '') === (effort || '');
+            // A Low or High question that does not fit falls back to Medium, which is AI Chat too.
+            const altName = alternative.pipeline === pipeline ? 'Medium effort' : PIPELINE_NAMES[alternative.pipeline];
+            text += sameKind
                 ? ` Switch to ${model} (${creditCount(alternative.credits)}) to go ahead now.`
-                : ` ${PIPELINE_NAMES[alternative.pipeline]} on ${model} (${creditCount(alternative.credits)}) still works.`;
+                : ` ${altName} on ${model} (${creditCount(alternative.credits)}) still works.`;
         }
         return {
             level: 'short',
             text,
-            brief: `${PIPELINE_NAMES[pipeline] || 'This question'} needs ${creditCount(cost)} · ${remaining} left`,
+            brief: `${name} needs ${creditCount(cost)} · ${remaining} left`,
         };
     }
     const allowance = usage.monthlyAllowance;

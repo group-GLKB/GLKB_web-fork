@@ -29,7 +29,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { ClickAwayListener, Popper, useMediaQuery } from '@mui/material';
 
-import { isGuestTier } from '../../../service/serviceTiers';
+import { isGuestTier, tierCreditsForEffort } from '../../../service/serviceTiers';
 import { trackGtagEvent } from '../../../utils/gtag';
 import useTierChoice, { creditsText } from './useTierChoice';
 
@@ -47,6 +47,9 @@ const TierPicker = ({
     // Called when a guest picks a tier only signed-in readers may use.
     onRequireSignIn,
     variant = 'chip',
+    /* The composer's effort level (service/effortLevels.js), when the price shown should be that
+       level's — High costs more than Medium on the same model. Omitted: the pipeline's price. */
+    effort = '',
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const anchorRef = useRef(null);
@@ -110,7 +113,12 @@ const TierPicker = ({
                             )}
                         </span>
                         <span className="model-picker-option-description">
-                            {[creditsText(entry.credits[pipeline], pipeline), entry.description]
+                            {[creditsText(
+                                effort && pipeline !== 'literature_review'
+                                    ? tierCreditsForEffort(entry, effort)
+                                    : entry.credits[pipeline],
+                                pipeline,
+                            ), entry.description]
                                 .filter(Boolean).join(' · ')}
                         </span>
                     </span>

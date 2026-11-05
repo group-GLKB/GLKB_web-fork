@@ -29,21 +29,34 @@ import {
     getUsageSnapshot,
     subscribeToUsage,
 } from '../../../service/credits';
-import { creditsFor, fetchTierPricing, tierLabel } from '../../../service/serviceTiers';
+import { effortOf, effortPipeline } from '../../../service/effortLevels';
+import {
+    creditsFor,
+    creditsForEffort,
+    fetchTierPricing,
+    tierLabel,
+} from '../../../service/serviceTiers';
 import { trackGtagEvent } from '../../../utils/gtag';
 
-/** The notice for a question on `pipeline` at `tierId` (the pricing's default when unset), or null. */
-export const noticeFor = (usage, pricing, pipeline, tierId) => {
+/**
+ * The notice for a question on `pipeline` at `tierId` (the pricing's default when unset), or null.
+ * `effort` (service/effortLevels.js), when given, prices the question at that level — High costs
+ * more than Medium on the same model — from the pricing's `efforts` block; without the block, or
+ * at Medium and Extra, it is the pipeline's price, as before.
+ */
+export const noticeFor = (usage, pricing, pipeline, tierId, effort = '') => {
     if (!usage) return null;
     const tier = tierId || pricing?.defaultTier || '';
-    const cost = creditsFor(pricing, tier, pipeline);
+    const level = effortOf(effort) && effortPipeline(effortOf(effort)) === pipeline ? effortOf(effort) : '';
+    const cost = level ? creditsForEffort(pricing, tier, level) : creditsFor(pricing, tier, pipeline);
     return creditNotice(usage, {
         cost,
         pipeline,
+        effort: level,
         tierId: tier,
         labelFor: tierLabel,
         alternative: Number.isFinite(cost) && usage.remaining < cost
-            ? affordableChoice(pricing, pipeline, usage.remaining, tier)
+            ? affordableChoice(pricing, pipeline, usage.remaining, tier, level)
             : null,
     });
 };
@@ -59,12 +72,12 @@ export const usePricing = () => {
     return pricing;
 };
 
-/** `noticeFor` the composer's mode and model, following the balance. Off (`enabled`) for a guest. */
-export const useCreditNotice = ({ pipeline, tierId, enabled = true }) => {
+/** `noticeFor` the composer's mode, model and effort, following the balance. Off (`enabled`) for a guest. */
+export const useCreditNotice = ({ pipeline, tierId, effort = '', enabled = true }) => {
     const [usage, setUsage] = useState(() => getUsageSnapshot());
     const pricing = usePricing();
     useEffect(() => subscribeToUsage(setUsage), []);
-    return enabled ? noticeFor(usage, pricing, pipeline, tierId) : null;
+    return enabled ? noticeFor(usage, pricing, pipeline, tierId, effort) : null;
 };
 
 /* A notice the reader closed stays closed for the browser session — across the home page and

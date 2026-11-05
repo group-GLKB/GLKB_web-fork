@@ -12,7 +12,7 @@ import React, { useEffect, useState } from 'react';
 
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 
-import { creditsFor, fetchTierPricing, tiersFor } from '../../service/serviceTiers';
+import { creditsForEffort, fetchTierPricing, tiersFor } from '../../service/serviceTiers';
 
 export const SEARCH_LIMIT_TEXT = 'This question needed more searching than a chat answer can hold, '
     + 'so the answer may be incomplete. Investigate reads many more papers.';
@@ -20,12 +20,14 @@ export const SEARCH_LIMIT_TEXT = 'This question needed more searching than a cha
 /**
  * What an Investigate run costs at `tierId` — "30 credits" — the way the app prices it
  * everywhere else (GET /credits/pricing, the deep_research rows). With no tier picked, the
- * pipeline's default tier, which is what a request naming none is charged at. '' when unknown.
+ * pipeline's default tier, which is what a request naming none is charged at. `effort` is Extra
+ * (the default, priced as the deep_research row) or Max (its own price, from the pricing's
+ * `efforts` block when the backend has one). '' when unknown.
  */
-export const investigatePriceText = (pricing, tierId) => {
+export const investigatePriceText = (pricing, tierId, effort = 'extra') => {
     if (!pricing) return '';
     const tier = tierId || tiersFor(pricing, 'deep_research').defaultTier;
-    const credits = creditsFor(pricing, tier, 'deep_research');
+    const credits = creditsForEffort(pricing, tier, effort === 'max' ? 'max' : 'extra');
     return credits === null ? '' : `${credits.toLocaleString('en-US')} credit${credits === 1 ? '' : 's'}`;
 };
 

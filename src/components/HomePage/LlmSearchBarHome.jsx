@@ -44,14 +44,16 @@ import { effectiveTier, getTierPref, setTierPref } from '../../service/serviceTi
 import {
     DEFAULT_EFFORT,
     EFFORT_EXTRA,
+    effortForTurn,
     effortLabel,
     effortLevel,
     getEffortPref,
+    isDefaultEffort,
     isDeepEffort,
     setEffortPref,
     subscribeToEffortPref,
 } from '../../service/effortLevels';
-import { GUEST_INVESTIGATE_REASON, GUEST_REVIEW_REASON } from '../../utils/refusals';
+import { GUEST_INVESTIGATE_REASON, GUEST_REVIEW_REASON, guestEffortReason } from '../../utils/refusals';
 import ComposerModes, { COMPOSER_MODES, ModePill, ModeSheet } from './ComposerModes';
 import ReviewScope, { initialScope } from './ReviewScope';
 import { setStylePref } from '../LiteratureReview/citationStyle';
@@ -236,6 +238,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const creditNotice = useCreditNotice({
         pipeline: reviewEnabled ? 'literature_review' : (investigateEnabled ? 'deep_research' : 'chat'),
         tierId: effectiveTier(serviceTier, { isGuest }),
+        // A review is priced per review, whatever the chat's level.
+        effort: reviewEnabled ? '' : effort,
         enabled: !isGuest,
     });
     const [creditDialog, setCreditDialog] = useState(null);
@@ -308,6 +312,14 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         />
     );
 
+    /* The question's effort level (service/effortLevels.js) rides with it only when it is not its
+       pipeline's default — Low or High, or Max — so a Medium or Extra hand-over is exactly what it
+       always was; the chat reads a missing level as the default. */
+    const levelOption = () => {
+        const level = effortForTurn(effort, investigateEnabled);
+        return isDefaultEffort(level) ? {} : { effort: level };
+    };
+
     const buildSearchOptionsPayload = () => {
         // Extra (deep research) ignores filters / ranking_mode and does figures and the graph on
         // its own, so it is sent the defaults; the tier survives: it is priced, and run, by it.
@@ -317,12 +329,14 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 rankingMode: 'default',
                 investigateEnabled: true,
                 serviceTier: effectiveTier(serviceTier, { isGuest }),
+                ...levelOption(),
             };
         }
         return {
             ...searchFilters(composerOptions),
             investigateEnabled,
             serviceTier: effectiveTier(serviceTier, { isGuest }),
+            ...levelOption(),
             // Only when on, so a request that asks for neither is the request it always was.
             ...answerFlags(composerOptions, effort),
         };
@@ -445,7 +459,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const requireSignIn = (kind, entry) => {
         setOptionsOpen(false);
         if (kind === 'effort') {
-            openLoginModal(GUEST_INVESTIGATE_REASON);
+            openLoginModal(guestEffortReason(entry));
             return;
         }
         openLoginModal(
@@ -473,6 +487,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             // Each pipeline has its own prices: a review, a chat, an Extra (deep research) one.
             pipeline={reviewEnabled ? 'literature_review'
                 : investigateEnabled ? 'deep_research' : 'chat'}
+            effort={reviewEnabled ? '' : effort}
             onOpenChange={setTierMenuOpen}
             disabled={isInputLocked}
             isGuest={isGuest}
