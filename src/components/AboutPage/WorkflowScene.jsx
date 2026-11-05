@@ -7,7 +7,7 @@
 import React, { useRef, useState } from 'react';
 
 import { easeOut, segment, useScrollProgress } from './motion';
-import { USE_CASES } from './useCases';
+import { DYRK1A_EXAMPLE } from './useCases';
 
 export const WORKFLOW_STEPS = [
     ['Ask', 'Type any biomedical query: a gene, variant, drug target, or disease.'],
@@ -16,7 +16,7 @@ export const WORKFLOW_STEPS = [
     ['Verify', 'Review the cited sources to check the supporting evidence and identify where further investigation is needed.'],
 ];
 
-const EXAMPLE = USE_CASES[0];
+const EXAMPLE = DYRK1A_EXAMPLE;
 const QUESTION = EXAMPLE.question;
 const REFERENCES = EXAMPLE.references;
 

@@ -30,6 +30,8 @@ export const SCALE_STAGES = [
 const STAGE_STARTS = [0, 0.33, 0.64];
 const stageAt = (progress) => (progress < STAGE_STARTS[1] ? 0 : progress < STAGE_STARTS[2] ? 1 : 2);
 
+const COUNT_MS = 1400;
+
 const countTo = (value, t) => {
     const [, digits, suffix] = /^([\d.]+)(.*)$/.exec(value);
     const decimals = (digits.split('.')[1] || '').length;
@@ -42,6 +44,9 @@ const ScaleScene = ({ motion }) => {
     const canvasRef = useRef(null);
     const valueRefs = useRef([]);
     const progressRef = useRef(0);
+    // The step whose figure last counted up while the scene was on screen; null off screen.
+    const countedRef = useRef(null);
+    const countFrameRef = useRef(0);
     const [stage, setStage] = useState(0);
 
     useScrollProgress(sectionRef, {
@@ -56,19 +61,52 @@ const ScaleScene = ({ motion }) => {
             const next = stageAt(progress);
             setStage((current) => (current === next ? current : next));
             if (!motion) return;
-            SCALE_STAGES.forEach((item, index) => {
-                const node = valueRefs.current[index];
-                const start = STAGE_STARTS[index];
-                if (node) node.textContent = countTo(item.value, easeOut(segment(progress, start, start + 0.12)));
-            });
+            // Each figure counts up from zero on its own clock when its step comes up on
+            // screen, rather than with the scroll; away from the scene they wait at zero,
+            // so coming back counts them again.
+            const onScreen = rect.top < viewport * 0.6 && rect.bottom > viewport * 0.4;
+            if (!onScreen) {
+                if (countedRef.current !== null) {
+                    countedRef.current = null;
+                    window.cancelAnimationFrame(countFrameRef.current);
+                    SCALE_STAGES.forEach((item, index) => {
+                        if (valueRefs.current[index]) valueRefs.current[index].textContent = countTo(item.value, 0);
+                    });
+                }
+                return;
+            }
+            if (countedRef.current !== next) {
+                countedRef.current = next;
+                countUp(next);
+            }
         },
     });
 
-    // Restore the plain figures if motion is switched off mid-visit.
+    // Zero to the figure in COUNT_MS, easing out, like a counter settling.
+    const countUp = (index) => {
+        const node = valueRefs.current[index];
+        if (!node) return;
+        window.cancelAnimationFrame(countFrameRef.current);
+        const started = performance.now();
+        const tick = (now) => {
+            const t = Math.min(1, (now - started) / COUNT_MS);
+            node.textContent = countTo(SCALE_STAGES[index].value, easeOut(t));
+            if (t < 1) countFrameRef.current = window.requestAnimationFrame(tick);
+        };
+        countFrameRef.current = window.requestAnimationFrame(tick);
+    };
+
+    useEffect(() => () => window.cancelAnimationFrame(countFrameRef.current), []);
+
+    // With motion the figures wait at zero until their step comes up (the prerender and the
+    // no-motion page show them whole); without it, or if motion is switched off mid-visit,
+    // they are the plain figures.
     useEffect(() => {
-        if (motion) return;
         SCALE_STAGES.forEach((item, index) => {
-            if (valueRefs.current[index]) valueRefs.current[index].textContent = item.value;
+            const node = valueRefs.current[index];
+            if (!node) return;
+            if (!motion) node.textContent = item.value;
+            else if (countedRef.current === null) node.textContent = countTo(item.value, 0);
         });
     }, [motion]);
 

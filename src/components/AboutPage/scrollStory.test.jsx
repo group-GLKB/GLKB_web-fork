@@ -6,7 +6,8 @@ import { StaticRouter } from 'react-router-dom/server';
 import AboutPage from './index';
 import { EXAMPLE_QUESTIONS } from './exampleQuestions';
 import { PAGE_SECTIONS } from './LocalNav';
-import { REVIEW_STEPS } from './ReviewScene';
+import { BENCHMARK, REVIEW_STEPS } from './ReviewScene';
+import { posts } from '../Blog/posts';
 import { measureProgress, segment } from './motion';
 import { USE_CASES } from './useCases';
 import { useAuth } from '../Auth/AuthContext';
@@ -54,14 +55,28 @@ describe('the About page', () => {
     it('offers every use case as a tab and shows its question and references', () => {
         render(<MemoryRouter><AboutPage /></MemoryRouter>);
         const tabs = screen.getAllByRole('tab');
-        expect(tabs.map((tab) => tab.textContent)).toEqual(USE_CASES.map((item) => item.label));
+        expect(tabs).toHaveLength(USE_CASES.length);
         USE_CASES.forEach((item, index) => {
             fireEvent.click(tabs[index]);
             expect(tabs[index].getAttribute('aria-selected')).toBe('true');
-            expect(screen.getByText(`Q: ${item.question}`)).toBeTruthy();
-            item.references.forEach((reference) => {
-                expect(screen.getAllByText(reference.title).length).toBeGreaterThan(0);
-            });
+            const panel = screen.getByRole('tabpanel');
+            expect(panel.textContent).toContain(item.question);
+            expect(panel.textContent).toContain(item.label);
+            item.references.forEach((reference) => expect(panel.textContent).toContain(reference.title));
+        });
+    });
+
+    it('opens the full answer of a use case as a free example chat', () => {
+        renderAt();
+        fireEvent.click(screen.getAllByRole('tab')[1]);
+        fireEvent.click(screen.getByRole('link', { name: 'Open the full answer' }));
+        expect(landing()).toEqual({
+            path: '/chat/new',
+            state: {
+                initialQuery: USE_CASES[1].question,
+                initialSearchOptions: { filters: [], rankingMode: 'default', investigateEnabled: false, example: true },
+                initialQueryMethod: 'example',
+            },
         });
     });
 
@@ -113,9 +128,13 @@ describe('use-case data', () => {
 
     it.each(USE_CASES.map((item) => [item.id, item]))('%s cites every reference it lists, and nothing else', (id, item) => {
         const text = item.answer.flatMap((block) => block.items || [block.text]).join(' ');
-        // Citation markers follow a non-breaking space, as the agent writes them.
-        const cited = [...text.matchAll(/ (\d)(?=[.;,]|$|\s)/g)].map((match) => Number(match[1]));
+        const cited = [...text.matchAll(/\[(\d+)\]/g)].map((match) => Number(match[1]));
         expect(new Set(cited)).toEqual(new Set(item.references.map((reference, index) => index + 1)));
+    });
+
+    it.each(USE_CASES.map((item) => [item.id, item]))('%s asks one of the example questions, so its full answer is stored', (id, item) => {
+        expect(EXAMPLE_QUESTIONS.flat()).toContain(item.question);
+        expect(item.sourceCount).toBeGreaterThanOrEqual(item.references.length);
     });
 });
 
@@ -178,5 +197,40 @@ describe('the literature review section', () => {
         renderAt();
         fireEvent.click(screen.getByRole('button', { name: 'Set up a review' }));
         expect(landing().path).toBe('/literature-review');
+    });
+});
+
+describe('the literature review steps and benchmark', () => {
+    it('lets the reader pick a step', () => {
+        const { container } = render(<MemoryRouter><AboutPage /></MemoryRouter>);
+        const section = container.querySelector('#literature-review');
+        const scope = screen.getByRole('button', { name: /^Scope/ });
+        fireEvent.click(scope);
+        expect(scope.getAttribute('aria-pressed')).toBe('true');
+        expect(section.getAttribute('data-stage')).toBe('0');
+        fireEvent.click(screen.getByRole('button', { name: /^Writing/ }));
+        expect(section.getAttribute('data-stage')).toBe('2');
+    });
+
+    it('shows every benchmark score from the paper, highest first', () => {
+        const { container } = render(<MemoryRouter><AboutPage /></MemoryRouter>);
+        const rows = [...container.querySelectorAll('.about-bench-row')];
+        expect(rows.map((row) => row.querySelector('.about-bench-track b').textContent)).toEqual(BENCHMARK.map((row) => row.score.toFixed(3)));
+        const scores = BENCHMARK.map((row) => row.score);
+        expect([...scores].sort((a, b) => b - a)).toEqual(scores);
+        ['Claude Science', 'Elicit Systematic Review', 'Claude Code', 'OpenAI tool loop'].forEach((name) => {
+            expect(BENCHMARK.some((row) => row.name === name)).toBe(true);
+        });
+    });
+});
+
+describe('the blog', () => {
+    it('sits right after the literature review and is linked from the hero', () => {
+        const { container } = render(<MemoryRouter><AboutPage /></MemoryRouter>);
+        const ids = [...container.querySelectorAll('section[id]')].map((section) => section.id);
+        expect(ids.indexOf('from-the-lab')).toBe(ids.indexOf('literature-review') + 1);
+        const news = container.querySelector('.about-hero-news');
+        expect(news.getAttribute('href')).toBe(`/blog/${posts[0].slug}`);
+        posts.forEach((post) => expect(container.querySelector(`#from-the-lab a[href="/blog/${post.slug}"]`).textContent).toContain(post.title));
     });
 });

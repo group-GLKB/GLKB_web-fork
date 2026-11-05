@@ -1,117 +1,139 @@
 /**
- * The use-case tabs. The candidate-target example is from Figma 604:7446; the
- * other four are real GLKB chat answers (gpt-6.1-terra, 2026-11-04), condensed to
- * the claims their three kept references support, with quotes checked against
- * the abstracts.
+ * The use-case tabs, and the worked example the scroll story is built on.
+ *
+ * USE_CASES: each tab is an excerpt of GLKB's stored answer to one of the example questions
+ * (glkb-backend app/resources/example_answers.json: the best of three GPT-6.1 Sol answers,
+ * ranked blind by two judges, 2026-11-04). The excerpt is the answer's opening paragraphs and
+ * bullets, verbatim; its citations are renumbered [n] by first appearance and its references
+ * are exactly the papers it cites. Every quote is the passage the answer drew on, checked
+ * against the paper's PubMed abstract or PMC full text. "Open the full answer" asks the same
+ * question in the chat, where the backend replays the whole stored answer, free.
+ *
+ * DYRK1A_EXAMPLE: the candidate-target example the workflow and review scenes draw (a condensed
+ * GPT-6.1 Terra answer, quotes checked against the abstracts). Kept apart so the tabs can change
+ * without the scenes' claims and their citations drifting apart.
  */
+
+export const DYRK1A_EXAMPLE = {
+    question: 'What is known about DYRK1A as a therapeutic target in type 2 diabetes?',
+    references: [
+        {
+            title: 'A high-throughput chemical screen reveals that harmine-mediated inhibition of DYRK1A increases human pancreatic beta cell replication.',
+            meta: 'Peng Wang et al. · 2015 · Nat Med',
+            quote: '“Here, using a high-throughput small-molecule screen (HTS), we find that analogs of the small molecule harmine function as a new class of human beta cell mitogenic ...”',
+            pmid: '25751815',
+            citations: 188,
+        },
+        {
+            title: 'Inhibition of DYRK1A and GSK3B induces human β-cell proliferation.',
+            meta: 'Weijun Shen et al. · 2015 · Nat Commun',
+            quote: '“Here we report aminopyrazine compounds that stimulate robust β-cell proliferation in adult primary islets, most likely as a result of combined inhibition of ...”',
+            pmid: '26496802',
+            citations: 75,
+        },
+        {
+            title: 'Combined Inhibition of DYRK1A, SMAD, and Trithorax Pathways Synergizes to Induce Robust Replication in Adult Human Beta Cells.',
+            meta: 'Peng Wang et al. · 2019 · Cell Metab',
+            quote: '“Here, we demonstrate that combined pharmacologic inhibition of DYRK1A and transforming growth factor beta superfamily (TGFβSF)/SMAD signaling generates...”',
+            pmid: '30581122',
+            citations: 39,
+        },
+        {
+            title: 'GLP-1 receptor agonists synergize with DYRK1A inhibitors to potentiate functional human β cell regeneration.',
+            meta: 'Courtney Ackeifi et al. · 2020 · Sci Transl Med',
+            quote: '“Here, we provide evidence that combining any member of the GLP1R agonist class with any member of the DYRK1A inhibitor class induces a synergistic increase in human β cell replication ...”',
+            pmid: '32051230',
+            citations: 47,
+        },
+    ],
+};
+
 export const USE_CASES = [
     {
         id: 'candidate-target',
         label: 'Understanding a Candidate Target',
         lede: 'Connect mechanistic studies, human genetic evidence, pharmacological findings, and clinical development to understand the biological rationale for a candidate target.',
         question: 'What is known about DYRK1A as a therapeutic target in type 2 diabetes?',
+        // How many papers the whole answer cites; the excerpt shows the ones it reaches.
+        sourceCount: 5,
         answer: [
-            { type: 'paragraph', text: 'DYRK1A in type 2 diabetes (T2D): what’s known' },
-            { type: 'heading', text: '1) Rationale: β-cell failure in T2D makes β-cell regeneration attractive' },
-            { type: 'paragraph', text: 'A major therapeutic idea in T2D is to\u00A0increase functional pancreatic β-cell mass. Multiple groups have identified\u00A0DYRK1A inhibition\u00A0as a way to unlock adult human β-cell cell-cycle entry, a process that is normally very limited.' },
-            { type: 'heading', text: '2) Key experimental evidence supporting DYRK1A as a target' },
-            {
-                type: 'list',
-                items: [
-                    'Harmine and DYRK1A/NFAT axis (foundational evidence)\u00A0A high-throughput screen identified harmine analogs as\u00A0human β-cell mitogens, and the study proposes\u00A0DYRK1A as the likely target\u00A0with\u00A0NFAT transcription factors as mediators, with in vivo models showing increased β-cell proliferation, increased islet mass, and improved glycemic control\u00A01.',
-                    'More robust proliferation via combination strategies (DYRK1A + TGFβ/SMAD pathway inhibition)\u00A0DYRK1A inhibitors alone drive modest proliferation; combining DYRK1A inhibition with\u00A0TGFβ superfamily/SMAD pathway inhibition\u00A0yielded substantially higher adult human β-cell proliferation and increased β-cell numbers, while noting preservation of differentiated function, and including β cells from people with T2D\u00A03.',
-                    'Synergy with existing T2D drug class (GLP-1 receptor agonists + DYRK1A inhibitors)\u00A0GLP-1R agonists don’t typically increase human β-cell proliferation, while DYRK1A inhibitors do but modestly and with limited β-cell specificity. Combining the two classes\u00A0synergistically increased human β-cell replication, increased β-cell numbers, and extended to improved insulin secretion and glycemic control in mouse transplantation models; effects were also seen in β cells from individuals with T2D\u00A04.',
-                    'Small-molecule series consistent with DYRK1A being a key driver\u00A0Aminopyrazine compounds (described as acting via combined DYRK1A and GSK3B inhibition) stimulated robust proliferation in adult human islets and improved glycemic control in diabetic mice, with multiple lines of evidence pointing to Dyrk1a as the key target\u00A02.',
-                ],
-            },
-            { type: 'paragraph', text: '3) What the GLKB knowledge graph shows (structured vs. literature co-mention)' },
-            { type: 'paragraph', text: 'In GLKB,\u00A0there is no curated GeneToDiseaseAssociation edge\u00A0recorded between DYRK1A and T2D (i.e., not a genetics/causal association entry in the KG for this pair).' },
-            { type: 'paragraph', text: 'But DYRK1A and “Diabetes Mellitus, Type 2”\u00A0co-occur in the literature\u00A0with\u00A014 articles\u00A0captured as co-mentions (GLKB Cooccur edge; source PubMed).' },
-            { type: 'paragraph', text: '4) Therapeutic implications and main open challenges' },
-            { type: 'paragraph', text: 'Most mature concept:\u00A0DYRK1A inhibition as a\u00A0β-cell regenerative strategy\u00A0(alone or in combinations).' },
-            { type: 'paragraph', text: 'Key translational challenges repeatedly implied by the experimental literature:' },
-            { type: 'paragraph', text: 'Achieving\u00A0β-cell specificity\u00A0(DYRK1A is broadly expressed; systemic inhibition raises off-target risk).' },
-            { type: 'paragraph', text: 'Ensuring\u00A0durable function\u00A0and avoiding unwanted proliferation/dedifferentiation (some studies explicitly test for preserved β-cell differentiated function in combinations).' },
-            { type: 'paragraph', text: 'Moving from short-term in vivo models (often islet transplant systems) to\u00A0longer-term safety/efficacy\u00A0studies.' },
+            { type: 'paragraph', text: 'DYRK1A is a promising **β-cell regeneration** target for type 2 diabetes: inhibiting it can make adult human β cells re-enter the cell cycle, including cells from donors with type 2 diabetes. The evidence is compelling in human islets and mouse transplantation models, but does not yet establish clinical benefit in patients [1].' },
+            { type: 'paragraph', text: 'DYRK1A inhibition releases a brake on β-cell proliferation. Harmine and other inhibitors act through calcineurin–NFAT-associated signaling; blocking calcineurin suppresses their proliferative effect. Multiple chemical scaffolds reproduce the response, supporting DYRK1A as a target rather than harmine alone as an unusual mitogen [2]. Nevertheless, DYRK1A inhibitors alone generally produce modest proliferation-labeling indices of approximately 1.5–3% [3].' },
         ],
         references: [
             {
-                title: 'A high-throughput chemical screen reveals that harmine-mediated inhibition of DYRK1A increases human pancreatic beta cell replication.',
-                meta: 'Peng Wang et al. · 2015 · Nat Med',
-                quote: '“Here, using a high-throughput small-molecule screen (HTS), we find that analogs of the small molecule harmine function as a new class of human beta cell mitogenic ...”',
-                pmid: '25751815',
-                citations: 188,
-            },
-            {
-                title: 'Inhibition of DYRK1A and GSK3B induces human β-cell proliferation.',
-                meta: 'Weijun Shen et al. · 2015 · Nat Commun',
-                quote: '“Here we report aminopyrazine compounds that stimulate robust β-cell proliferation in adult primary islets, most likely as a result of combined inhibition of ...”',
-                pmid: '26496802',
-                citations: 75,
-            },
-            {
-                title: 'Combined Inhibition of DYRK1A, SMAD, and Trithorax Pathways Synergizes to Induce Robust Replication in Adult Human Beta Cells.',
-                meta: 'Peng Wang et al. · 2019\u00A0·\u00A0Cell Metab',
-                quote: '“Here, we demonstrate that combined pharmacologic inhibition of DYRK1A and transforming growth factor beta superfamily (TGFβSF)/SMAD signaling generates...”',
-                pmid: '30581122',
-                citations: 39,
-            },
-            {
                 title: 'GLP-1 receptor agonists synergize with DYRK1A inhibitors to potentiate functional human β cell regeneration.',
                 meta: 'Courtney Ackeifi et al. · 2020 · Sci Transl Med',
-                quote: '“Here, we provide evidence that combining any member of the GLP1R agonist class with any member of the DYRK1A inhibitor class induces a synergistic increase in human β cell replication ...”',
+                quote: '“These beneficial effects on proliferation were seen in both normal human β cells and β cells derived from individuals with type 2 diabetes. The ability of the GLP1R agonist-DYRK1A inhibitor combination to …”',
                 pmid: '32051230',
                 citations: 47,
             },
+            {
+                title: 'Inhibition of DYRK1A Stimulates Human β-Cell Proliferation.',
+                meta: 'Ercument Dirice et al. · 2016 · Diabetes',
+                quote: '“Induction of β-cell proliferation by either 5-IT or harmine, another natural product DYRK1A inhibitor, was suppressed by coincubation with the calcineurin inhibitor FK506, suggesting involvement of DYRK1A and …”',
+                pmid: '26953159',
+                citations: 110,
+            },
+            {
+                title: 'Combined Inhibition of DYRK1A, SMAD, and Trithorax Pathways Synergizes to Induce Robust Replication in Adult Human Beta Cells.',
+                meta: 'Peng Wang et al. · 2019 · Cell Metab',
+                quote: '“Small-molecule inhibitors of dual-specificity tyrosine-regulated kinase 1A (DYRK1A) induce human beta cells to proliferate, generating a labeling index of 1.5%-3%”',
+                pmid: '30581122',
+                citations: 39,
+            },
         ],
     },
-
     {
         id: 'variant-interpretation',
         label: 'Interpreting a Variant',
         lede: 'Bring together functional assays, cellular and animal models, penetrance estimates, and clinical cohorts to judge what a genetic variant does and how much it matters for patients.',
-        question: 'What is the functional and clinical evidence for LRRK2 G2019S in Parkinson’s disease?',
+        question: 'What is the evidence for LRRK2 G2019S in Parkinson’s disease?',
+        // How many papers the whole answer cites; the excerpt shows the ones it reaches.
+        sourceCount: 9,
         answer: [
-            { type: 'paragraph', text: 'LRRK2 G2019S in Parkinson’s disease (PD): what’s known' },
-            { type: 'paragraph', text: 'G2019S is a pathogenic, incompletely penetrant variant that can cause autosomal-dominant PD.' },
-            { type: 'heading', text: '1) Functional evidence: a hyperactive kinase' },
+            { type: 'paragraph', text: 'LRRK2 G2019S is an **established pathogenic variant** for Parkinson’s disease (PD), supported by human genetics and functional experiments—not merely a statistical risk association. It causes autosomal-dominant PD with incomplete, age-dependent penetrance: carrying it does not make disease inevitable [1][2].' },
             {
                 type: 'list',
                 items: [
-                    'Kinase activation and Rab substrates G2019S increases LRRK2 kinase activity approximately two- to threefold, and LRRK2 directly phosphorylates a subset of Rab GTPases, altering their interactions with trafficking regulators 1.',
-                    'Kinase-dependent neuronal defects G2019S impaired axonal autophagosome transport in mouse and gene-edited human iPSC-derived neurons; genetic or pharmacological LRRK2 inhibition reversed the transport defect 2.',
+                    'Human genetic evidence spans familial and apparently sporadic PD. G2019S was identified in 4 of 61 unrelated autosomal-dominant PD families from Italy, Portugal and Brazil, and independently in 8 of 482 patients with idiopathic PD. These findings established its relevance beyond a single pedigree or population [3][4].',
+                    'Disease risk is substantial, but penetrance estimates depend on the population and ascertainment. Risk by age 80 was estimated at 26% (95% CI 18–36%) in an Ashkenazi Jewish kin-cohort analysis, versus 49% in a large online longitudinal cohort containing 1,286 carriers. The latter estimated approximately tenfold higher PD risk than in noncarriers; these estimates should not be treated as a universal individual probability [2][5].',
                 ],
             },
-            { type: 'heading', text: '2) Clinical evidence: penetrance and phenotype' },
-            {
-                type: 'list',
-                items: [
-                    'Age-dependent, incomplete penetrance In one research cohort, cumulative PD incidence in carriers reached 49% by age 80, a 10-fold risk versus non-carriers; higher polygenic risk was associated with greater penetrance 3.',
-                    'A distinct non-motor profile The phenotype often resembles other PD, but carriers with PD in the same longitudinal cohort had a similar motor burden and reported less hyposmia, REM sleep behaviour disorder and cognitive difficulty 3.',
-                ],
-            },
-            { type: 'heading', text: '3) Implications for interpretation' },
-            { type: 'paragraph', text: 'Genetic evidence is strong, and kinase-dependent cellular defects provide a plausible route to neuronal injury; how that activity produces neurodegeneration in people remains less fully resolved. PD risk rises with age but is not deterministic.' },
         ],
         references: [
             {
-                title: 'Phosphoproteomics reveals that Parkinson’s disease kinase LRRK2 regulates a subset of Rab GTPases.',
-                meta: 'Martin Steger et al. · 2016 · Elife',
-                quote: '“G2019S, the most common amino acid substitution activates the kinase two- to threefold. ... LRRK2 directly phosphorylates these both in vivo and in vitro ...”',
-                pmid: '26824392',
-                citations: 310,
+                title: 'LRRK2 in Parkinson disease: challenges of clinical trials.',
+                meta: 'Eduardo Tolosa et al. · 2020 · Nat Rev Neurol',
+                quote: '“LRRK2 mutations, and particularly the most common mutation Gly2019Ser, are observed in patients with autosomal dominant PD and in those with apparent sporadic PD, who are clinically indistinguishable from …”',
+                pmid: '31980808',
+                citations: 197,
             },
             {
-                title: 'Increased LRRK2 kinase activity alters neuronal autophagy by disrupting the axonal transport of autophagosomes.',
-                meta: 'C Alexander Boecker et al. · 2021 · Curr Biol',
-                quote: '“We found that the most common LRRK2 mutation, LRRK2-G2019S, dramatically reduces the processivity of autophagosome transport in neurons in a kinase-dependent manner.”',
-                pmid: '33765413',
-                citations: 65,
+                title: 'Age-specific penetrance of LRRK2 G2019S in the Michael J. Fox Ashkenazi Jewish LRRK2 Consortium.',
+                meta: 'Karen Marder et al. · 2015 · Neurology',
+                quote: '“Estimates of the penetrance of LRRK2 G2019S vary widely (24%-100%), reflective of differences in ascertainment, age, sex, ethnic group, and genetic and environmental modifiers”',
+                pmid: '26062626',
+                citations: 55,
             },
             {
-                title: 'Genetic analysis and natural history of Parkinson’s disease due to the LRRK2 G2019S variant.',
-                meta: 'Matthew J Kmiecik et al. · 2024 · Brain',
-                quote: '“The cumulative incidence of PD in G2019S carriers by age 80 was 49%. G2019S carriers had a 10-fold risk of developing PD versus non-carriers.”',
+                title: 'A frequent LRRK2 gene mutation associated with autosomal dominant Parkinson\'s disease.',
+                meta: 'Alessio Di Fonzo et al. · 2005 · Lancet',
+                quote: '“We amplified and sequenced the coding region of LRRK2 from genomic DNA by PCR, and identified a heterozygous mutation (Gly2019 ser) present in four of 61 (6.6%) unrelated families with Parkinson\'s disease and …”',
+                pmid: '15680456',
+                citations: 131,
+            },
+            {
+                title: 'A common LRRK2 mutation in idiopathic Parkinson\'s disease.',
+                meta: 'William P Gilks et al. · 2005 · Lancet',
+                quote: '“We assessed 482 patients with the disorder, of whom 263 had pathologically confirmed disease, by direct sequencing for mutations in exon 41 of LRRK2. The mutation was present in eight (1.6%) patients”',
+                pmid: '15680457',
+                citations: 254,
+            },
+            {
+                title: 'Genetic analysis and natural history of Parkinson\'s disease due to the LRRK2 G2019S variant.',
+                meta: 'Matthew J Kmiecik et al. · 2024 · Brain : a journal of neurology',
+                quote: '“We performed a 3.5-year prospective longitudinal online study in a large number of 1286 genotyped LRRK2 G2019S carriers and 109 154 controls, with and without PD, recruited from the 23andMe Research Cohort”',
                 pmid: '38804604',
                 citations: 2,
             },
@@ -122,43 +144,41 @@ export const USE_CASES = [
         label: 'Repurposing a Drug',
         lede: 'Weigh laboratory mechanisms, observational associations, and randomized trial results side by side to see whether a new indication for an approved drug holds up, and where the evidence falls short.',
         question: 'What evidence supports repurposing metformin as an anticancer therapy?',
+        // How many papers the whole answer cites; the excerpt shows the ones it reaches.
+        sourceCount: 7,
         answer: [
-            { type: 'paragraph', text: 'Metformin as an anticancer therapy: what the evidence shows' },
-            { type: 'paragraph', text: 'Metformin has a plausible anticancer rationale, supported by laboratory experiments and observational associations. However, large randomized trials have not established an anticancer benefit in the populations tested.' },
-            { type: 'heading', text: '1) Mechanistic rationale: tumor-cell metabolism' },
-            { type: 'paragraph', text: 'Metformin can directly inhibit tumor-cell metabolism. In cancer cells and mouse models, it inhibited mitochondrial complex I and tumor growth; introducing a metformin-resistant alternative enzyme reversed those effects 1.' },
-            { type: 'heading', text: '2) Clinical evidence: an observational signal, a null randomized trial' },
-            {
-                type: 'list',
-                items: [
-                    'Observational studies A meta-analysis of early-stage cancers estimated an overall-survival hazard ratio of 0.69 for colorectal cancer in metformin users versus nonusers, but all 27 included studies were observational 2.',
-                    'Randomized evidence In the MA.32 trial, adding metformin to standard treatment did not improve invasive disease-free survival among 3,649 patients without diabetes who had high-risk early breast cancer; the HR was 1.01 in the hormone-receptor-positive primary analysis 3.',
-                ],
-            },
-            { type: 'heading', text: '3) Implications and open questions' },
-            { type: 'paragraph', text: 'Metformin remains a research candidate rather than an established anticancer therapy. The key gap is whether a defined tumor or patient subgroup can derive a clinically meaningful benefit that is reproducible in randomized trials.' },
+            { type: 'paragraph', text: 'Metformin has a credible biological rationale for repurposing, but **clinical efficacy remains unproven** as a general anticancer therapy. Preclinical activity and observational associations support the hypothesis; randomized treatment trials have largely failed to translate that promise into improved cancer outcomes.' },
+            { type: 'paragraph', text: 'Metformin can interfere with both tumor metabolism and systemic growth signals. Proposed effects include AMPK activation and downstream mTOR inhibition, together with reductions in insulin-related and inflammatory signaling [1]. However, a major translational limitation is drug exposure: many experimental studies used concentrations 10–100 times higher than those achievable with standard diabetes treatment, weakening their relevance to conventional dosing [2].' },
+            { type: 'paragraph', text: 'Observational survival associations are encouraging but do not establish an anticancer effect. Early reports suggested striking benefits, yet an analysis identified immortal-time, time-window and treatment-stage biases capable of producing apparent cancer-risk reductions of 20–94% [3]. More recent evidence is not uniformly negative: metformin use was associated with lower ovarian-cancer mortality among patients with diabetes after time-dependent analysis (adjusted HR 0.71, 95% CI 0.54–0.91), although the association was not significant across the full ovarian-cancer cohort [4]. This remains an association, not randomized evidence of treatment benefit.' },
         ],
         references: [
             {
-                title: 'Metformin inhibits mitochondrial complex I of cancer cells to reduce tumorigenesis.',
-                meta: 'William W Wheaton et al. · 2014 · Elife',
-                quote: '“In vivo, the administration of metformin to mice inhibited the growth of control human cancer cells but not those expressing NDI1.”',
-                pmid: '24843020',
-                citations: 565,
+                title: 'Metformin in cancer.',
+                meta: 'Ritwika Mallik et al. · 2018 · Diabetes Res Clin Pract',
+                quote: '“A potential anti-tumourigenic effect of metformin may be mediated by its role in activating AMP-kinase, which in turn inhibits mammalian target of rapamycin (mTOR). Non-AMPK dependent protective pathways may …”',
+                pmid: '29807101',
+                citations: 136,
             },
             {
-                title: 'Metformin as an adjuvant treatment for cancer: a systematic review and meta-analysis.',
-                meta: 'C Coyle et al. · 2016 · Ann Oncol',
-                quote: '“...all enrolled in observational studies. In those with early-stage colorectal cancer, metformin use was associated with a significant benefit in all outcomes ...”',
-                pmid: '27681864',
-                citations: 200,
+                title: 'Metformin action: concentrations matter.',
+                meta: 'Ling He et al. · 2015 · Cell Metab',
+                quote: '“One key reason may be that almost all previous studies were conducted with supra-pharmacological concentrations (doses) of metformin, 10-100 times higher than maximally achievable therapeutic concentrations …”',
+                pmid: '25651170',
+                citations: 213,
             },
             {
-                title: 'Effect of Metformin vs Placebo on Invasive Disease-Free Survival in Patients With Breast Cancer: The MA.32 Randomized Clinical Trial.',
-                meta: 'Pamela J Goodwin et al. · 2022 · JAMA',
-                quote: '“The incidence rates for invasive disease-free survival events were 2.78 per 100 patient-years in the metformin group vs 2.74 per 100 patient-years in the placebo group ...”',
-                pmid: '35608580',
-                citations: 80,
+                title: 'Metformin and the risk of cancer: time-related biases in observational studies.',
+                meta: 'Samy Suissa et al. · 2012 · Diabetes Care',
+                quote: '“These studies, subject to time-related biases that are avoidable with proper study design and data analysis, led to illusory extraordinarily significant effects, with reductions in cancer risk with metformin …”',
+                pmid: '23173135',
+                citations: 222,
+            },
+            {
+                title: 'Metformin use and survival in people with ovarian cancer: A population-based cohort study from British Columbia, Canada.',
+                meta: 'Paramdeep Kaur et al. · 2024 · Neoplasia (New York, N.Y.)',
+                quote: '“Metformin use was associated with a 17 % better ovarian cancer survival in the full cohort (adjusted hazard ratio (aHR) = 0.83 (95 %CI 0.67, 1.02)), and a 16 % better ovarian cancer survival for serous cancers …”',
+                pmid: '38972207',
+                citations: 1,
             },
         ],
     },
@@ -166,45 +186,42 @@ export const USE_CASES = [
         id: 'mechanism-mapping',
         label: 'Mapping a Mechanism',
         lede: 'Trace a pathway from receptor signaling to cell state to tissue-level outcome, linking knockout models, intervention studies, and human data to see where the causal evidence is strongest.',
-        question: 'How does TREM2 signaling shape the microglial response to amyloid in Alzheimer’s disease?',
+        question: 'How does TREM2 signaling shape the microglial response to amyloid?',
+        // How many papers the whole answer cites; the excerpt shows the ones it reaches.
+        sourceCount: 7,
         answer: [
-            { type: 'paragraph', text: 'TREM2 and the microglial response to amyloid in Alzheimer’s disease (AD)' },
-            { type: 'paragraph', text: 'TREM2 helps microglia recognize and respond to amyloid-β (Aβ), shifting them into a metabolically active, plaque-associated state. In mouse models, that response helps microglia contain plaques and limits damage to nearby neurites.' },
-            { type: 'heading', text: '1) Signaling: TREM2–DAP12, SYK and PI3K–AKT–mTOR' },
-            { type: 'paragraph', text: 'The TREM2–DAP12 complex signals through SYK and the PI3K–AKT–mTOR pathway, supporting the metabolism needed for a mature disease-associated microglial (DAM) state. A separate DAP10-dependent pathway supports an earlier, APOE-expressing state 1.' },
-            { type: 'heading', text: '2) At the plaque: containment, not simple clearance' },
-            {
-                type: 'list',
-                items: [
-                    'Plaque compaction In 5XFAD mice lacking TREM2, plaques were less completely enclosed by microglia and more diffuse, even when early total Aβ accumulation was similar 2.',
-                    'Neuritic protection Those poorly enclosed plaques were associated with more neuritic damage 2.',
-                    'Sustained activation cuts both ways Chronic activation with a TREM2 antibody increased peri-plaque microglial activation but also increased nearby tau pathology and neuritic dystrophy, without changing plaque burden, in one amyloid mouse model 3.',
-                ],
-            },
-            { type: 'heading', text: '3) Implications and caveats' },
-            { type: 'paragraph', text: 'TREM2 enables microglia to gather around and reshape plaques, not simply remove amyloid, but the response is not uniformly protective in every context. Plaque containment and the consequences of sustained activation need to be distinguished; the causal mechanism is best established in experimental models.' },
+            { type: 'paragraph', text: 'TREM2 couples amyloid-associated damage sensing to the metabolic and transcriptional changes that let microglia survive, cluster around plaques, and contain them. Its effect is therefore broader than Aβ clearance: it helps build a protective microglial barrier around amyloid deposits [1][2].' },
+            { type: 'paragraph', text: 'TREM2 detects the lipid environment surrounding amyloid and injured neurons. It recognizes anionic and zwitterionic lipids associated with fibrillar Aβ and exposed on damaged neuronal membranes. The AD-risk R47H variant impairs this lipid sensing; TREM2 deficiency compromises microglial survival and clustering around plaques in amyloid-model mice [1].' },
+            { type: 'paragraph', text: 'TREM2 signaling supplies the metabolic capacity needed for a sustained response. The TREM2–DAP12 complex activates SYK and downstream PI3K–AKT–GSK-3β–mTOR signaling, supporting the anabolic demands of disease-associated microglia (DAM). A parallel DAP10-dependent branch supports proliferation and an early Apoe-expressing state, but SYK is needed for the fuller DAM response and plaque encasement [3]. Consistent with this mechanism, supplying an alternative energy substrate restored plaque clustering and reduced adjacent neuronal dystrophy in TREM2-deficient mice [4].' },
         ],
         references: [
             {
+                title: 'TREM2 lipid sensing sustains the microglial response in an Alzheimer\'s disease model.',
+                meta: 'Yaming Wang et al. · 2015 · Cell',
+                quote: '“Thus, TREM2 detects damage-associated lipid patterns associated with neurodegeneration, sustaining the microglial response to Aβ accumulation”',
+                pmid: '25728668',
+                citations: 845,
+            },
+            {
+                title: 'TREM2 Haplodeficiency in Mice and Humans Impairs the Microglia Barrier Function Leading to Decreased Amyloid Compaction and Severe Axonal Dystrophy.',
+                meta: 'Peng Yuan et al. · 2016 · Neuron',
+                quote: '“Thus, TREM2 deficiency may disrupt the formation of a neuroprotective microglia barrier that regulates amyloid compaction and insulation”',
+                pmid: '27196974',
+                citations: 190,
+            },
+            {
                 title: 'TREM2 drives microglia response to amyloid-β via SYK-dependent and -independent pathways.',
                 meta: 'Shoutang Wang et al. · 2022 · Cell',
-                quote: '“...the TREM2-DAP12 receptor complex that transmits intracellular signals through the protein tyrosine kinase SYK. ... SYK deficiency impaired the PI3K-AKT-GSK-3β-mTOR pathway ...”',
+                quote: '“Microglia that adhere to Aβ plaques acquire a transcriptional signature, "disease-associated microglia" (DAM), which largely emanates from the TREM2-DAP12 receptor complex that transmits intracellular signals …”',
                 pmid: '36306735',
                 citations: 106,
             },
             {
-                title: 'TREM2-mediated early microglial response limits diffusion and toxicity of amyloid plaques.',
-                meta: 'Yaming Wang et al. · 2016 · J Exp Med',
-                quote: '“...in the absence of TREM2, Aβ plaques were not fully enclosed by microglia; they were more diffuse, less dense, and were associated with significantly greater neuritic damage.”',
-                pmid: '27091843',
-                citations: 231,
-            },
-            {
-                title: 'Chronic TREM2 activation exacerbates Aβ-associated tau seeding and spreading.',
-                meta: 'Nimansha Jain et al. · 2023 · J Exp Med',
-                quote: '“...chronic administration of an activating TREM2 antibody increases peri-plaque microglial activation but surprisingly increases peri-plaque NP-tau pathology and neuritic dystrophy ...”',
-                pmid: '36219197',
-                citations: 47,
+                title: 'TREM2 Maintains Microglial Metabolic Fitness in Alzheimer\'s Disease.',
+                meta: 'Tyler K Ulland et al. · 2017 · Cell',
+                quote: '“Dietary cyclocreatine tempered autophagy, restored microglial clustering around plaques, and decreased plaque-adjacent neuronal dystrophy in TREM2-deficient mice with amyloid-β pathology”',
+                pmid: '28802038',
+                citations: 260,
             },
         ],
     },
@@ -212,47 +229,49 @@ export const USE_CASES = [
         id: 'biomarkers',
         label: 'Finding Biomarkers',
         lede: 'Survey candidate biomarkers across protein, nucleic-acid, and other classes, comparing reported sensitivity, specificity, and study design to separate promising leads from markers ready for clinical use.',
-        question: 'What circulating biomarkers have been studied for early detection of pancreatic cancer?',
+        question: 'Which circulating biomarkers detect pancreatic cancer early?',
+        // How many papers the whole answer cites; the excerpt shows the ones it reaches.
+        sourceCount: 6,
         answer: [
-            { type: 'paragraph', text: 'Circulating biomarkers for early detection of pancreatic cancer' },
-            { type: 'paragraph', text: 'Studied markers include CA19-9 and other circulating proteins, cell-free DNA methylation and microRNAs. Most work concerns pancreatic ductal adenocarcinoma (PDAC), and the newer markers remain investigational for screening.' },
-            { type: 'heading', text: '1) The anchor marker: CA19-9' },
-            { type: 'paragraph', text: 'CA19-9 is the best-established blood marker, but it misses some early cancers. In prediagnostic samples collected within six months of diagnosis, it detected 50% of cases subsequently diagnosed at an early stage, at 99% specificity 1.' },
-            { type: 'heading', text: '2) Newer candidates, usually tested alongside CA19-9' },
+            { type: 'paragraph', text: 'CA19-9 is the main established circulating biomarker for pancreatic ductal adenocarcinoma (PDAC), but **it is not reliable for early screening**. The strongest investigational approaches combine CA19-9 with other proteins, cell-free DNA methylation, or circulating microRNAs; none should be confused with a validated population-screening test [1].' },
             {
                 type: 'list',
                 items: [
-                    'Cell-free DNA methylation plus proteins In a validation set of 40 early-stage cases and 40 matched healthy controls, CA19-9, TIMP1 and a nine-locus methylation panel achieved an AUC of 0.86, versus 0.82 for CA19-9 alone 2.',
-                    'Circulating microRNAs Plasma miRNAs including miR-16 and miR-196a have been studied; a miRNA–CA19-9 panel identified 85.2% of stage I tumors in one case-control study 3.',
+                    'CA19-9 alone misses cancers and produces false positives. Its utility for early diagnosis is limited, levels can rise with obstructive jaundice and other benign conditions, and Lewis-antigen-negative individuals may not produce it. CEA is less sensitive and is not a better stand-alone alternative [1].',
+                    'Protein panels can improve detection over CA19-9 alone. Thrombospondin-2 (THBS2) plus CA19-9 achieved 87% sensitivity at 98% specificity in a 537-person validation study; THBS2 also discriminated stage I disease. Importantly, that 87% sensitivity was for PDAC overall, not specifically stage I [2].',
+                    'Circulating DNA is more useful in combination than as a mutation-only assay. Plasma KRAS mutations were detectable in only 30% of 221 patients with resectable PDAC; adding four protein biomarkers increased sensitivity to 64%, with 99.5% specificity [3]. An alternative panel combining CA19-9, TIMP1 and pancreas-specific cfDNA methylation improved AUC from 0.82 to 0.86 in an independent validation set of 40 early-stage cases and 40 healthy controls—a modest improvement rather than near-perfect detection [4].',
                 ],
             },
-            { type: 'heading', text: '3) Caveats for screening' },
-            { type: 'paragraph', text: 'Performance estimates from case-control comparisons, particularly against healthy controls, should not be assumed to predict performance in an asymptomatic screening population.' },
         ],
         references: [
             {
-                title: 'Lead-Time Trajectory of CA19-9 as an Anchor Marker for Pancreatic Cancer Early Detection.',
-                meta: 'Johannes F Fahrmann et al. · 2021 · Gastroenterology',
-                quote: '“...sensitivities reaching 60% at 99% specificity within 0 to 6 months before diagnosis for all cases and 50% at 99% specificity for cases diagnosed with early-stage disease.”',
-                pmid: '33333055',
-                citations: 4,
+                title: 'A Quest for Survival: A Review of the Early Biomarkers of Pancreatic Cancer and the Most Effective Approaches at Present.',
+                meta: 'Muhammad Begawan Bestari et al. · 2024 · Biomolecules',
+                quote: '“Although CA19-9 can serve as a prognostic factor, its utility for early diagnosis and screening is limited. The ESMO clinical guidelines for PC explicitly state that CA19-9 is not effective as a screening tool”',
+                pmid: '38540782',
+                citations: 3,
+            },
+            {
+                title: 'Detection of early pancreatic ductal adenocarcinoma with thrombospondin-2 and CA19-9 blood markers.',
+                meta: 'Jungsun Kim et al. · 2017 · Sci Transl Med',
+                quote: '“A phase 1 discovery study (n = 20), a phase 2a validation study (n = 189), and a second phase 2b validation study (n = 537) revealed that concentrations of plasma thrombospondin-2 (THBS2) discriminated among …”',
+                pmid: '28701476',
+                citations: 74,
+            },
+            {
+                title: 'Combined circulating tumor DNA and protein biomarker-based liquid biopsy for the earlier detection of pancreatic cancers.',
+                meta: 'Joshua D Cohen et al. · 2017 · Proc Natl Acad Sci U S A',
+                quote: '“The cohort tested included 221 patients with resectable pancreatic ductal adenocarcinomas and 182 control patients without known cancer. KRAS mutations were detected in the plasma of 66 patients (30%), and …”',
+                pmid: '28874546',
+                citations: 263,
             },
             {
                 title: 'Protein biomarkers and alternatively methylated cell-free DNA detect early stage pancreatic cancer.',
                 meta: 'Roni Ben-Ami et al. · 2024 · Gut',
-                quote: '“...a combined panel including CA19-9, TIMP1 and a 9-loci cfDNA methylation panel had greater discrimination (AUC 0.86, 95% CI 0.77 to 0.95) than CA19-9 alone ...”',
+                quote: '“In the validation set of 40 early stage PDAC and 40 matched healthy controls, a combined panel including CA19-9, TIMP1 and a 9-loci cfDNA methylation panel had greater discrimination (AUC 0.86, 95% CI 0.77 to …”',
                 pmid: '38123998',
                 citations: 9,
-            },
-            {
-                title: 'Combination of plasma microRNAs with serum CA19-9 for early detection of pancreatic cancer.',
-                meta: 'Jianqiang Liu et al. · 2012 · Int J Cancer',
-                quote: '“Most significantly, the combination was effective at identification of tumors in Stage 1 (85.2%).”',
-                pmid: '21913185',
-                citations: 152,
             },
         ],
     },
 ];
-
-export default USE_CASES;

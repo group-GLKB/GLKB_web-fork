@@ -9,6 +9,7 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import { LITERATURE_REVIEW_ENABLED } from '../../config/features';
 import siteMark from '../../img/GLKB_logo_icon.png';
+import siteWordmark from '../../img/navbar/logo.png';
 
 /* In page order: a part is "current" from when its top passes 40% down the window. */
 export const PAGE_SECTIONS = [
@@ -17,9 +18,9 @@ export const PAGE_SECTIONS = [
     ['how-it-works', 'How It Works'],
     ['demo', 'Demo'],
     ...(LITERATURE_REVIEW_ENABLED ? [['literature-review', 'Literature Review']] : []),
+    ['from-the-lab', 'Blog'],
     ['why', 'Why GLKB'],
     ['use-cases', 'Use Cases'],
-    ['from-the-lab', 'Blog'],
     ['faq', 'FAQ'],
 ];
 
@@ -126,9 +127,10 @@ const LocalNav = ({ motion, onTry }) => {
     return (
         <nav ref={navRef} className={className} aria-label="On this page">
             <div className="about-localnav-bar">
-                <a className="about-localnav-brand" href="#top" onClick={(event) => go(event, 'top')}>
-                    <img src={siteMark} alt="" />
-                    <span>GLKB</span>
+                {/* The site's own mark and wordmark, as in the site nav, not the name set in type. */}
+                <a className="about-localnav-brand" href="#top" onClick={(event) => go(event, 'top')} aria-label="GLKB, back to the top">
+                    <img className="about-localnav-mark" src={siteMark} alt="" />
+                    <img className="about-localnav-wordmark" src={siteWordmark} alt="" />
                 </a>
                 <ol className="about-localnav-links">
                     {PAGE_SECTIONS.map(([id, label]) => (

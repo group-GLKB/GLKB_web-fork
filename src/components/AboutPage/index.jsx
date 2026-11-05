@@ -46,14 +46,12 @@ import browserSecure from '../../img/about/v2/browser/secure.svg';
 import browserTabShape from '../../img/about/v2/browser/tab.svg';
 import browserTabClose from '../../img/about/v2/browser/tab-close.svg';
 import browserActions from '../../img/about/v2/browser/toolbar-actions.svg';
-import useCaseBookmark from '../../img/about/v2/use-cases/bookmark.svg';
-import useCaseQuote from '../../img/about/v2/use-cases/quote.svg';
 import browserFavicon from '../../img/GLKB_logo_icon.png';
 import { CHAT_HOME_PATH, markAboutSeen } from '../../config/entryRoutes';
 import { LITERATURE_REVIEW_ENABLED } from '../../config/features';
 import { useAuth } from '../Auth/AuthContext';
 import { posts } from '../Blog/posts';
-import { PostCard, SiteFooter, SiteNav } from '../SiteChrome';
+import { SiteFooter, SiteNav } from '../SiteChrome';
 import { DemoModal, DemoPlayer } from './DemoVideo';
 import { EXAMPLE_QUESTIONS, exampleChatLink } from './exampleQuestions';
 import faqData from './faqData.json';
@@ -69,7 +67,7 @@ import {
 import LocalNav from './LocalNav';
 import ReviewScene from './ReviewScene';
 import ScaleScene from './ScaleScene';
-import { USE_CASES } from './useCases';
+import UseCasesSection from './UseCasesSection';
 import WorkflowScene from './WorkflowScene';
 
 /* Figma 604:7257 — the six, in the design's order and at its widths. These are
@@ -115,14 +113,15 @@ const DIFFERENTIATORS = [
 ];
 
 /* Questions of the kind researchers bring, in two rows that slide apart. */
-/* Figma 604:7600, with the corpus figures added. */
-const STATS = [
-    ['41.2M+', 'Papers indexed\nfrom the literature'],
-    ['3.71M+', 'Biomedical terms in\nthe knowledge graph'],
-    ['14.6M+', 'Relationships\nencoded'],
-    ['+24.8%', 'Accuracy improvement\non PubMedQA-HC'],
-    ['~30 min', 'To process 1,500 candidate\ngenes with full citations'],
+/* The figures as a bento grid (Figma 604:7600's five, regrouped): the corpus, then what it buys. */
+const NUMBERS = [
+    { key: 'papers', value: '41.2M+', label: 'Papers indexed from the literature' },
+    { key: 'terms', value: '3.71M+', label: 'Biomedical terms in the knowledge graph' },
+    { key: 'relations', value: '14.6M+', label: 'Relationships encoded between them' },
+    { key: 'accuracy', value: '+24.8%', label: 'Accuracy improvement on PubMedQA-HC' },
+    { key: 'speed', value: '~30 min', label: 'To process 1,500 candidate genes with full citations' },
 ];
+const TERM_TYPES = ['Genes', 'Diseases', 'Chemicals', 'Variants', 'Pathways'];
 
 const REVIEW_PATH = '/literature-review';
 
@@ -130,7 +129,6 @@ const AboutPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [openFaqId, setOpenFaqId] = useState(faqData[0]?.id ?? null);
-    const [useCase, setUseCase] = useState(USE_CASES[0].id);
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
     const previousAuth = useRef(null);
     // Where a sign-in started from this page goes next: the chat, unless the reader
@@ -212,16 +210,12 @@ const AboutPage = () => {
         return () => window.clearTimeout(timer);
     }, [location.hash]);
 
-    const activeUseCase = USE_CASES.find((item) => item.id === useCase) || USE_CASES[0];
-
-    const scrollRail = () => {
+    // One card plus its gap per press, so the row steps rather than glides.
+    const scrollRail = (direction) => {
         const rail = railRef.current;
         if (!rail) return;
-        // One card plus its gap, so the row steps rather than glides an arbitrary
-        // distance; wrap to the start once the end is in view.
-        const step = (rail.firstElementChild?.getBoundingClientRect().width || 240) + 24;
-        const atEnd = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 8;
-        rail.scrollTo({ left: atEnd ? 0 : rail.scrollLeft + step, behavior: 'smooth' });
+        const step = (rail.firstElementChild?.getBoundingClientRect().width || 320) + 24;
+        rail.scrollBy({ left: direction * step, behavior: motion ? 'smooth' : 'auto' });
     };
 
     return (
@@ -253,6 +247,12 @@ const AboutPage = () => {
                             ))}
                         </div>
                         <div className="about-hero-copy">
+                            {/* The newest post, where a first-time reader will see it. */}
+                            <Link className="about-hero-news" to={`/blog/${posts[0].slug}`}>
+                                <span className="about-hero-news-tag">New</span>
+                                <span className="about-hero-news-text">{posts[0].cardTitle || posts[0].title}</span>
+                                <ChevronRightIcon className="about-hero-news-chevron" />
+                            </Link>
                             <p className="about-eyebrow">AI-Powered Biomedical Research Engine</p>
                             <h1 className="about-hero-title">
                                 Weeks of research,
@@ -356,6 +356,52 @@ const AboutPage = () => {
 
                 {LITERATURE_REVIEW_ENABLED && <ReviewScene motion={motion} onStart={startReview} />}
 
+                {/* The blog lives here: /blog sends readers to this section. Placed after the
+                    product scenes rather than at the foot of the page, so it is seen. */}
+                <section className="about-section about-lab" id="from-the-lab" aria-labelledby="about-lab-heading">
+                    <div className="about-inner">
+                        <div className="about-lab-head">
+                            <div>
+                                <p className="about-eyebrow" data-reveal>From the Lab</p>
+                                <h2 className="about-display" id="about-lab-heading" data-reveal style={{ '--d': 1 }}>
+                                    How GLKB works, from the people who build it.
+                                </h2>
+                            </div>
+                            {railOverflows && (
+                                <div className="about-lab-controls">
+                                    <button type="button" className="about-lab-arrow" onClick={() => scrollRail(-1)} aria-label="Previous posts">
+                                        <ChevronRightIcon className="is-back" />
+                                    </button>
+                                    <button type="button" className="about-lab-arrow" onClick={() => scrollRail(1)} aria-label="More posts">
+                                        <ChevronRightIcon />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        <div className="about-lab-rail" ref={railRef} data-reveal style={{ '--d': 2 }}>
+                            {posts.map((post, index) => (
+                                <Link className={`about-lab-card${index === 0 ? ' is-new' : ''}`} to={`/blog/${post.slug}`} key={post.slug}>
+                                    <span className="about-lab-media">
+                                        {post.thumb ? <img src={post.thumb} alt="" loading="lazy" /> : null}
+                                    </span>
+                                    <span className="about-lab-body">
+                                        <span className="about-lab-date">
+                                            {index === 0 ? <b>New</b> : null}
+                                            {post.date}
+                                        </span>
+                                        <span className="about-lab-card-title">{post.title}</span>
+                                        <span className="about-lab-excerpt">{post.lede}</span>
+                                        <span className="about-lab-more">
+                                            Read the article
+                                            <ChevronRightIcon />
+                                        </span>
+                                    </span>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
                 <section className="about-section about-different" id="why">
                     <div className="about-inner">
                         <p className="about-eyebrow" data-reveal>By researcher, for researcher</p>
@@ -436,124 +482,31 @@ const AboutPage = () => {
                     ))}
                 </Track>
 
-                <section className="about-section about-use" id="use-cases">
+                <UseCasesSection />
+
+                <section className="about-section about-numbers" aria-labelledby="about-numbers-heading">
                     <div className="about-inner">
-                        <p className="about-eyebrow" data-reveal>Use cases</p>
-                        <h2 className="about-heading" data-reveal style={{ '--d': 1 }}>Built for Your Research</h2>
-                        <div className="about-tabs" role="tablist" data-reveal style={{ '--d': 2 }}>
-                            {USE_CASES.map((item) => (
-                                <button
-                                    key={item.id}
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={item.id === activeUseCase.id}
-                                    className={`about-tab${item.id === activeUseCase.id ? ' is-active' : ''}`}
-                                    onClick={() => setUseCase(item.id)}
-                                >
-                                    {item.label}
-                                </button>
+                        <div className="about-numbers-head">
+                            <p className="about-eyebrow" data-reveal>By the numbers</p>
+                            <h2 className="about-display" id="about-numbers-heading" data-reveal style={{ '--d': 1 }}>
+                                The literature, connected.
+                            </h2>
+                        </div>
+                        <div className="about-bento">
+                            {NUMBERS.map((item, index) => (
+                                <div className={`about-tile about-tile--${item.key}`} key={item.key} data-reveal style={{ '--d': index }}>
+                                    <CountUp className="about-tile-value" value={item.value} motion={motion} />
+                                    <p className="about-tile-label">{item.label}</p>
+                                    {item.key === 'terms' ? (
+                                        <ul className="about-tile-types" aria-label="Term types">
+                                            {TERM_TYPES.map((type) => <li key={type}>{type}</li>)}
+                                        </ul>
+                                    ) : null}
+                                </div>
                             ))}
                         </div>
-                        <div className="about-use-panel" key={activeUseCase.id}>
-                            {activeUseCase.lede ? (
-                                <p className="about-use-lede">{activeUseCase.lede}</p>
-                            ) : null}
-                            {activeUseCase.answer ? (
-                            <div className="about-sample">
-                                <div className="about-sample-question-bar">
-                                    <div className="about-sample-question">Q: {activeUseCase.question}</div>
-                                </div>
-                                <div className="about-sample-body">
-                                    <div className="about-sample-answer">
-                                        <div className="about-sample-answer-content">
-                                            {activeUseCase.answer.map((block, index) => {
-                                                const key = `${block.type}-${block.text?.slice(0, 40) || index}`;
-                                                if (block.type === 'heading') {
-                                                    return <p className="about-sample-answer-heading" key={key}>{block.text}</p>;
-                                                }
-                                                if (block.type === 'list') {
-                                                    return (
-                                                        <ul className="about-sample-answer-list" key={key}>
-                                                            {block.items.map((item) => <li key={item.slice(0, 48)}>{item}</li>)}
-                                                        </ul>
-                                                    );
-                                                }
-                                                return <p key={key}>{block.text}</p>;
-                                            })}
-                                        </div>
-                                    </div>
-                                    <aside className="about-sample-references">
-                                        <h3 className="about-sample-references-title">References</h3>
-                                        {activeUseCase.references.map((reference, index) => (
-                                            <div className="about-reference" key={reference.pmid}>
-                                                <span className="about-reference-index">{index + 1}</span>
-                                                <div className="about-reference-body">
-                                                    <p className="about-reference-title">{reference.title}</p>
-                                                    <p className="about-reference-meta">{reference.meta}</p>
-                                                    <div className="about-reference-quote">{reference.quote}</div>
-                                                    <div className="about-reference-footer">
-                                                        <p className="about-reference-pmid">
-                                                            {reference.citations == null
-                                                                ? `PubMed ID: ${reference.pmid}`
-                                                                : `PubMed ID: ${reference.pmid} · ${reference.citations} Citations`}
-                                                        </p>
-                                                        <span className="about-reference-actions" aria-hidden="true">
-                                                            <img src={useCaseQuote} alt="" />
-                                                            <img src={useCaseBookmark} alt="" />
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </aside>
-                                </div>
-                            </div>
-                            ) : null}
-                            <p className="about-sample-note">
-                                An excerpt of a GLKB answer, shortened for this page. The references are the papers it cites.
-                            </p>
-                        </div>
                     </div>
                 </section>
-
-                <section className="about-stats" aria-label="GLKB in numbers">
-                    {STATS.map(([value, label], index) => (
-                        <div className="about-stat" key={value} data-reveal style={{ '--d': index }}>
-                            <CountUp className="about-stat-value" value={value} motion={motion} />
-                            <div className="about-stat-label">{label}</div>
-                        </div>
-                    ))}
-                </section>
-
-                {/* The blog lives here: /blog sends readers to this section. */}
-                <section className="about-section about-lab" id="from-the-lab">
-                    <div className="about-inner">
-                        <h2 className="about-lab-title" data-reveal>
-                            From the Lab
-                            <ChevronRightIcon className="about-lab-chevron" />
-                        </h2>
-                        <div className="about-lab-rail-wrap" data-reveal style={{ '--d': 1 }}>
-                            <div className="about-lab-rail" ref={railRef}>
-                                {posts.map((post) => (
-                                    <div className="about-lab-slot" key={post.slug}>
-                                        <PostCard post={post} onOpen={(slug) => navigate(`/blog/${slug}`)} />
-                                    </div>
-                                ))}
-                            </div>
-                            {railOverflows && (
-                                <button
-                                    type="button"
-                                    className="about-lab-next"
-                                    onClick={scrollRail}
-                                    aria-label="Show more posts"
-                                >
-                                    <ChevronRightIcon />
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </section>
-
                 <section className="about-section about-team" id="team">
                     <div className="about-inner about-team-inner">
                         <img className="about-team-logo" src={teamLogo} alt="Michigan Medicine, University of Michigan" data-reveal />
