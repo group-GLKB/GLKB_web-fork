@@ -88,6 +88,7 @@ import {
 } from './searchLimit';
 import ReferenceHoverCard from './ReferenceHoverCard';
 import AnswerGraphForMessage from '../AnswerGraph/AnswerGraphForMessage';
+import { wantsAnswerGraphV2 } from '../AnswerGraph/answerGraphV2Data';
 import IconButton from '../Units/HintIconButton';
 import { splitAnswerForGraph } from '../AnswerGraph/answerGraph';
 import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
@@ -153,8 +154,16 @@ import {
 import { createQuerySubmitSuccessTracker, trackGtagEvent } from '../../utils/gtag';
 import { CREDITS_PURCHASE_URL, INVESTIGATE_ENABLED } from '../../config/features';
 import {
+    effortForRequest,
+    effortForTurn,
+    effortLabel,
+    effortOf,
+    effortsExpanded,
     getEffortPref,
+    isDefaultEffort,
     isDeepEffort,
+    isGuestLockedEffort,
+    messageEffort,
     setEffortPref,
     subscribeToEffortPref,
 } from '../../service/effortLevels';
@@ -179,7 +188,12 @@ import {
     setTierPref,
     subscribeToTierPref,
 } from '../../service/serviceTiers';
-import { GUEST_INVESTIGATE_REASON, refusalNeedsSignIn, refusalText } from '../../utils/refusals';
+import {
+    GUEST_INVESTIGATE_REASON,
+    guestEffortReason,
+    refusalNeedsSignIn,
+    refusalText,
+} from '../../utils/refusals';
 import {
     attachmentIdsOf,
     defaultQuestionFor,
@@ -463,7 +477,9 @@ const areMessagesEqual = (left, right) => {
             thoughtDurationMs: leftMsg?.thoughtDurationMs,
             trajectory: leftMsg?.trajectory,
             invocationId: leftMsg?.invocationId,
+            messageId: leftMsg?.messageId,
             investigateMode: leftMsg?.investigateMode,
+            effort: leftMsg?.effort,
             modeSource: leftMsg?.modeSource,
             followupRoute: leftMsg?.followupRoute,
         });
@@ -476,7 +492,9 @@ const areMessagesEqual = (left, right) => {
             thoughtDurationMs: rightMsg?.thoughtDurationMs,
             trajectory: rightMsg?.trajectory,
             invocationId: rightMsg?.invocationId,
+            messageId: rightMsg?.messageId,
             investigateMode: rightMsg?.investigateMode,
+            effort: rightMsg?.effort,
             modeSource: rightMsg?.modeSource,
             followupRoute: rightMsg?.followupRoute,
         });
@@ -1090,6 +1108,8 @@ const MessageCard = React.memo(function MessageCard({
        earlier investigation (FollowupRouteNotice): the same question again, forced past the
        agent's router. Priced at `investigateTier`, like the notice above. */
     onRunFullInvestigation,
+    // More than Medium and Extra are on offer: the answer shows the level it ran at.
+    effortsLive = false,
 }) {
     const isAssistant = message.role === "assistant";
     const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
@@ -1467,12 +1487,22 @@ const MessageCard = React.memo(function MessageCard({
     // With no list, an answer that cites papers still gets a graph, built from its text.
     // An Investigate follow-up answered from the earlier investigation is a chat answer, and
     // gets its graph when the agent sent one with it (it never asks the backend to build one).
-    const showAnswerGraph = isAssistant && !isLoading
+    const showBasicGraph = isAssistant && !isLoading
         && (
             ((isInvestigateReport || Boolean(message.answerOptions?.graph))
                 && (message.kgQueryList?.length > 0 || message.references?.length > 0))
             || (answeredFromPrior && message.kgQueryList?.length > 0)
         );
+    /* At High, Extra and Max, in a saved conversation, the answer graph — what the answer says —
+       takes the basic graph's place (components/AnswerGraph/AnswerGraphForMessage). Never where
+       the reader turned the graph off for the turn, and never for a follow-up answered from the
+       earlier investigation (it never asks for a graph to be built); when it cannot be had the
+       basic graph is drawn exactly as before, and an answer that had none gets none. */
+    const answerEffort = messageEffort(message);
+    const showAnswerGraphV2 = isAssistant && !isLoading && !answeredFromPrior
+        && wantsAnswerGraphV2({ effort: answerEffort, isGuest, historyId: conversationId })
+        && (isInvestigateReport || message.answerOptions?.graph !== false);
+    const showAnswerGraph = showBasicGraph || showAnswerGraphV2;
     const answerParts = showAnswerGraph ? splitAnswerForGraph(answerMarkdown) : [answerMarkdown];
     if (showAnswerGraph && answerParts.length === 1) answerParts.push('');
     const markdownComponents = {
@@ -1822,7 +1852,17 @@ const MessageCard = React.memo(function MessageCard({
                                             {answerParts.map((part, partIndex) => (
                                                 <React.Fragment key={partIndex}>
                                                     {partIndex === 1 && (
-                                                        <AnswerGraphForMessage kgQueryList={message.kgQueryList} answer={message.content} />
+                                                        <AnswerGraphForMessage
+                                                            kgQueryList={message.kgQueryList}
+                                                            answer={message.content}
+                                                            effort={showAnswerGraphV2 ? answerEffort : ''}
+                                                            historyId={conversationId}
+                                                            invocationId={message.invocationId}
+                                                            messageId={message.messageId ?? message.id}
+                                                            isGuest={isGuest}
+                                                            references={message.references}
+                                                            basic={showBasicGraph}
+                                                        />
                                                     )}
                                                     {part && (
                                                         <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={markdownComponents}>
@@ -1878,6 +1918,7 @@ const MessageCard = React.memo(function MessageCard({
                         {showFullInvestigationOffer && (
                             <FullInvestigationOffer
                                 serviceTier={investigateTier}
+                                effort={effortForTurn(answerEffort, true)}
                                 showPrice={!isGuest}
                                 disabled={interactionLocked}
                                 onRun={() => onRunFullInvestigation(index)}
@@ -1919,6 +1960,17 @@ const MessageCard = React.memo(function MessageCard({
                                     >
                                         <ThumbsUpDownIcon style={{ width: '16px', height: '16px', display: 'block', color: 'var(--color-grey-400)' }} />
                                     </IconButton>
+                                )}
+                                {/* The level this answer ran at, once more than Medium and Extra
+                                    are on offer (or the answer ran at another one). */}
+                                {!isLoading && message.content && (effortsLive || !isDefaultEffort(answerEffort)) && (
+                                    <span
+                                        className="answer-effort-chip"
+                                        title={`Answered at ${effortLabel(answerEffort)} effort`}
+                                        data-effort={answerEffort}
+                                    >
+                                        {effortLabel(answerEffort)}
+                                    </span>
                                 )}
                             </Stack>
                         )}
@@ -2067,6 +2119,10 @@ function LLMAgent({ isRouteActive = true }) {
                 references: [],
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 investigateMode: Boolean(location.state?.initialSearchOptions?.investigateEnabled),
+                effort: effortForTurn(
+                    location.state?.initialSearchOptions?.effort,
+                    Boolean(location.state?.initialSearchOptions?.investigateEnabled),
+                ),
                 ...(initialAttachments.length ? { attachments: initialAttachments } : {}),
             }];
         }
@@ -2198,6 +2254,10 @@ function LLMAgent({ isRouteActive = true }) {
        preference with the home composer. */
     const [composerEffort, setComposerEffort] = useState(() => getEffortPref());
     useEffect(() => subscribeToEffortPref(setComposerEffort), []);
+    /* Whether more than Medium and Extra are on offer (the backend's levels arrive with the
+       pricing): each answer then shows the level it ran at. */
+    const [effortsLive, setEffortsLive] = useState(() => effortsExpanded());
+    useEffect(() => subscribeToEffortPref(() => setEffortsLive(effortsExpanded())), []);
     const handleEffortChange = useCallback((next) => {
         setComposerEffort(next);
         setEffortPref(next);
@@ -2591,10 +2651,10 @@ function LLMAgent({ isRouteActive = true }) {
     const requestPremiumSignIn = useCallback((tier) => {
         requireSignIn(`${tier?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`);
     }, [requireSignIn]);
-    // The composer's guest gate: GPT-6.1 Sol, or Extra effort.
+    // The composer's guest gate: GPT-6.1 Sol, or High, Extra or Max effort.
     const requestComposerSignIn = useCallback((kind, entry) => {
         if (kind === 'effort') {
-            requireSignIn(GUEST_INVESTIGATE_REASON);
+            requireSignIn(guestEffortReason(entry));
             return;
         }
         requestPremiumSignIn(entry);
@@ -2724,8 +2784,10 @@ function LLMAgent({ isRouteActive = true }) {
         if (refusalNeedsSignIn(refusal)) {
             requireSignIn(refusalText(refusal));
             // A members-only tier puts the picker back on the guest's; a refusal for attached
-            // files (`reason: "attachments"`) has nothing to do with the tier.
-            if (refusal.code === 'GUEST_LOGIN_REQUIRED' && refusal.reason !== 'attachments') {
+            // files (`reason: "attachments"`) or for a members-only effort level
+            // (`reason: "effort"`, High) has nothing to do with the tier.
+            if (refusal.code === 'GUEST_LOGIN_REQUIRED' && refusal.reason !== 'attachments'
+                && refusal.reason !== 'effort') {
                 setServiceTier(GUEST_TIER);
             }
         }
@@ -4525,6 +4587,20 @@ function LLMAgent({ isRouteActive = true }) {
                 ?? (shouldStartNewConversation ? false
                     : getConversationInvestigateMode(targetConversationId, baseHistory)),
         );
+        /* The level this turn runs at (service/effortLevels.js): the composer's, carried on the
+           options bag (so a queued follow-up keeps its own), or the one a regenerated or edited
+           question was first asked at; a level of the other pipeline, or none, is that
+           pipeline's default. Recorded on both messages of the exchange; sent only when it is
+           not the default. */
+        const turnEffort = effortForTurn(requestSearchOptions?.effort ?? options.effort, investigateEnabled);
+        /* High is for signed-in readers (the backend answers a guest's with a 403). Asked here,
+           before anything is drawn, as the composer's menu does. Extra keeps its own route: the
+           backend's refusal, as before. */
+        if (isGuest && !investigateEnabled && isGuestLockedEffort(turnEffort)) {
+            requireSignIn(guestEffortReason(turnEffort));
+            if (!userInput.trim()) setUserInput(inputText);
+            return false;
+        }
         /* Credits that cannot pay for this turn (mode x the turn's own tier, as sent below): the
            pop-up, and nothing started — no conversation row, no optimistic bubble, the question
            left in (or put back into) the box. Before 2026-11-02 the turn went ahead, the
@@ -4538,6 +4614,7 @@ function LLMAgent({ isRouteActive = true }) {
                 tierPricing,
                 investigateEnabled ? 'deep_research' : 'chat',
                 effectiveTier(requestSearchOptions?.serviceTier, { isGuest }),
+                turnEffort,
             );
             if (shortfall?.level === 'short') {
                 setCreditDialog(shortfall);
@@ -4567,6 +4644,8 @@ function LLMAgent({ isRouteActive = true }) {
             serviceTier: typeof requestSearchOptions?.serviceTier === 'string' && requestSearchOptions.serviceTier
                 ? requestSearchOptions.serviceTier
                 : undefined,
+            // A retry runs at the same level (Extra or Max).
+            effort: turnEffort,
             // A forced full investigation stays forced through its clarify retry: the reader
             // asked for the whole run, and the retry must not be routed to a quick answer.
             forceFullResearch: forceFullResearch || undefined,
@@ -4592,6 +4671,7 @@ function LLMAgent({ isRouteActive = true }) {
             references: [],
             timestamp: t || timestamp,
             investigateMode: investigateEnabled,
+            effort: turnEffort,
             modeSource: 'submitted',
             ...(turnAttachments.length ? { attachments: turnAttachments } : {}),
         };
@@ -4863,6 +4943,7 @@ function LLMAgent({ isRouteActive = true }) {
                 thoughtDurationMs: Date.now() - requestStartedAt,
                 trajectory: update.trajectory || null,
                 investigateMode: investigateEnabled,
+                effort: turnEffort,
                 ...(investigateEnabled ? {
                     investigateFunnel: settleFunnel(
                         existing.investigateFunnel || emptyFunnel(),
@@ -4897,6 +4978,7 @@ function LLMAgent({ isRouteActive = true }) {
                 thinkingSteps: [],
                 thoughtDurationMs: Date.now() - requestStartedAt,
                 investigateMode: investigateEnabled,
+                effort: turnEffort,
             };
             if (next[next.length - 1]?.role === 'assistant') {
                 next[next.length - 1] = assistantMessage;
@@ -4921,6 +5003,7 @@ function LLMAgent({ isRouteActive = true }) {
                 thoughtDurationMs: null,
                 trajectory: null,
                 investigateMode: investigateEnabled,
+                effort: turnEffort,
             };
             if (activeStreamIdRef.current === streamId) {
                 // Append a blank message
@@ -5111,6 +5194,7 @@ function LLMAgent({ isRouteActive = true }) {
                                         thinkingSteps: thinkingStepsRef.current,
                                         thoughtDurationMs: Date.now() - requestStartedAt,
                                         investigateMode: investigateEnabled,
+                                        effort: turnEffort,
                                     };
                                     newHistory[newHistory.length - 1] = assistantMessage;
 
@@ -5412,6 +5496,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 trajectory: update.trajectory || null,
                                 investigateMode: investigateEnabled,
+                                effort: effortOf(update.effort) || turnEffort,
                                 investigateFunnel: settledFunnel(),
                                 investigatePhase: investigatePhaseRef.current || 'verifying',
                                 investigatePercent: mergePercentMonotonic(
@@ -5487,7 +5572,13 @@ function LLMAgent({ isRouteActive = true }) {
                                     sessionIdRef.current = update.sessionId;
                                 }
                             }
-                            if (update.invocationId) {
+                            /* What the exchange is saved as: its invocation id (chat), the answer's
+                               row (`messageId`, chat and Investigate — the answer graph is asked
+                               for by it), and the level the server resolved. */
+                            const savedEffort = effortOf(update.effort)
+                                && isDeepEffort(update.effort) === investigateEnabled
+                                ? update.effort : '';
+                            if (update.invocationId || update.messageId || savedEffort) {
                                 updateRunningChatHistory((prev) => {
                                     const next = [...prev];
                                     let assistantIndex = -1;
@@ -5500,8 +5591,16 @@ function LLMAgent({ isRouteActive = true }) {
                                     if (assistantIndex < 0) return prev;
                                     const userIndex = assistantIndex - 1;
                                     if (userIndex < 0) return prev;
-                                    next[userIndex] = { ...next[userIndex], invocationId: update.invocationId };
-                                    next[assistantIndex] = { ...next[assistantIndex], invocationId: update.invocationId };
+                                    const both = {
+                                        ...(update.invocationId ? { invocationId: update.invocationId } : {}),
+                                        ...(savedEffort ? { effort: savedEffort } : {}),
+                                    };
+                                    next[userIndex] = { ...next[userIndex], ...both };
+                                    next[assistantIndex] = {
+                                        ...next[assistantIndex],
+                                        ...both,
+                                        ...(update.messageId ? { messageId: update.messageId } : {}),
+                                    };
                                     return next;
                                 });
                             }
@@ -5538,6 +5637,7 @@ function LLMAgent({ isRouteActive = true }) {
                                     timestamp,
                                     thinkingSteps: [],
                                     investigateMode: investigateEnabled,
+                                    effort: turnEffort,
                                 };
                                 return newHistory;
                             });
@@ -5581,6 +5681,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 investigateMode: investigateEnabled,
+                                effort: turnEffort,
                             };
                             newHistory[newHistory.length - 1] = errorMessage;
                             return newHistory;
@@ -5603,6 +5704,8 @@ function LLMAgent({ isRouteActive = true }) {
                 attachments: turnAttachments.length ? attachmentIdsOf(turnAttachments) : undefined,
                 figures: turnAnswerOptions.figures,
                 graph: turnAnswerOptions.graph,
+                // Off the wire at Medium and Extra (service/LLMAgent.jsx).
+                effort: effortForRequest(turnEffort, investigateEnabled),
                 forceFullResearch: forceFullResearch || undefined,
                 notifyEmail: (investigateEnabled && notifyEmailEnabled)
                     ? (getUserNotifyEmail() || undefined)
@@ -5640,6 +5743,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 trajectory: run.trajectory || null,
                                 investigateMode: true,
+                                effort: turnEffort,
                                 investigateFunnel: settledFunnel(),
                                 investigatePhase: 'verifying',
                                 investigatePercent: investigatePercentRef.current ?? 100,
@@ -5759,6 +5863,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 trajectory: run.trajectory || null,
                                 investigateMode: investigateEnabled,
+                                effort: turnEffort,
                             };
                             if (run.response) llmService.updateMessages(run.response);
                             return newHistory;
@@ -5803,6 +5908,7 @@ function LLMAgent({ isRouteActive = true }) {
                         thinkingSteps: thinkingStepsRef.current,
                         thoughtDurationMs: Date.now() - requestStartedAt,
                         investigateMode: investigateEnabled,
+                        effort: turnEffort,
                     };
                     newHistory[newHistory.length - 1] = errorMessage;
                     return newHistory;
@@ -5988,6 +6094,8 @@ function LLMAgent({ isRouteActive = true }) {
                             serviceTier: prior.serviceTier,
                             // Nor may a forced full investigation be routed on its retry.
                             forceFullResearch: prior.forceFullResearch,
+                            // Nor run at another level.
+                            effort: prior.effort,
                             // The same question, so the same documents.
                             attachments: prior.attachments,
                         },
@@ -6117,6 +6225,8 @@ function LLMAgent({ isRouteActive = true }) {
         handleSubmit(e, content, null, {
             baseHistory: editedHistory,
             attachments: chatHistory[index]?.attachments,
+            // At the level it was first asked at, when that is this conversation's pipeline.
+            effort: chatHistory[index]?.effort,
         });
     };
 
@@ -6364,8 +6474,9 @@ function LLMAgent({ isRouteActive = true }) {
         setShowReloadPrompt(false);
         handleSubmit(e, userMessage.content, null, {
             baseHistory: trimmedHistory,
-            // The same question, so the same files.
+            // The same question, so the same files, at the same level.
             attachments: userMessage.attachments,
+            effort: assistantMessage.effort || userMessage.effort,
         });
     };
 
@@ -6428,6 +6539,8 @@ function LLMAgent({ isRouteActive = true }) {
             searchOptions: {
                 investigateEnabled: true,
                 serviceTier: typeof serviceTier === 'string' ? serviceTier : '',
+                // The level the follow-up was asked at (Extra or Max).
+                effort: effortForTurn(chatHistory[index]?.effort, true),
                 forceFullResearch: true,
             },
             // The same question, so the same documents (regenerate does the same for chat).
@@ -6596,6 +6709,7 @@ function LLMAgent({ isRouteActive = true }) {
                 investigateTier={serviceTier}
                 isGuest={isGuest}
                 onRunFullInvestigation={stableRunFullInvestigation}
+                effortsLive={effortsLive}
             />
             </ErrorBoundary>
             );
@@ -7134,6 +7248,8 @@ function LLMAgent({ isRouteActive = true }) {
         const investigateEnabled = Boolean(
             requestSearchOptions?.investigateEnabled ?? getConversationInvestigateMode(conversationId),
         );
+        // The level the follow-up was queued at (see handleSubmit).
+        const turnEffort = effortForTurn(requestSearchOptions?.effort, investigateEnabled);
         recordSubmittedMode(conversationId, investigateEnabled);
         /* Settled before the run is registered, because the registry records it: it is the
            address this answer can be collected at after the page goes away. */
@@ -7184,6 +7300,7 @@ function LLMAgent({ isRouteActive = true }) {
                 references: [],
                 timestamp,
                 investigateMode: investigateEnabled,
+                effort: turnEffort,
                 modeSource: 'submitted',
                 ...(turnAttachments.length ? { attachments: turnAttachments } : {}),
             };
@@ -7196,6 +7313,7 @@ function LLMAgent({ isRouteActive = true }) {
                 thoughtDurationMs: null,
                 trajectory: null,
                 investigateMode: investigateEnabled,
+                effort: turnEffort,
             }];
             let savedConversationRefresh = null;
             writeConversationMessages(conversationId, history);
@@ -7224,6 +7342,7 @@ function LLMAgent({ isRouteActive = true }) {
                                     thinkingSteps: [...localThinkingSteps],
                                     thoughtDurationMs: Date.now() - requestStartedAt,
                                     investigateMode: investigateEnabled,
+                                    effort: turnEffort,
                                 });
                             } else if (update.step && String(update.content ?? '').trim()) {
                                 localThinkingSteps.push({ step: update.step, content: update.content });
@@ -7252,6 +7371,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 trajectory: update.trajectory || null,
                                 investigateMode: investigateEnabled,
+                                effort: turnEffort,
                             });
                             break;
                         case 'saved': {
@@ -7279,6 +7399,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 thinkingSteps: [...localThinkingSteps],
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 investigateMode: investigateEnabled,
+                                effort: turnEffort,
                             });
                             break;
                         default:
@@ -7301,6 +7422,7 @@ function LLMAgent({ isRouteActive = true }) {
                     attachments: turnAttachments.length ? attachmentIdsOf(turnAttachments) : undefined,
                     figures: turnAnswerOptions.figures,
                     graph: turnAnswerOptions.graph,
+                    effort: effortForRequest(turnEffort, investigateEnabled),
                     forceFullResearch: (investigateEnabled
                         && requestSearchOptions?.forceFullResearch === true) || undefined,
                     messagesOverride: [...base, userMessage].map((msg) => ({
@@ -7340,6 +7462,7 @@ function LLMAgent({ isRouteActive = true }) {
                             thoughtDurationMs: Date.now() - requestStartedAt,
                             trajectory: run.trajectory || null,
                             investigateMode: investigateEnabled,
+                            effort: turnEffort,
                         });
                         outcome = 'recovered';
                         break;
@@ -7359,6 +7482,7 @@ function LLMAgent({ isRouteActive = true }) {
                         thinkingSteps: [...localThinkingSteps],
                         thoughtDurationMs: Date.now() - requestStartedAt,
                         investigateMode: investigateEnabled,
+                        effort: turnEffort,
                     });
                 }
             } finally {
@@ -8222,6 +8346,10 @@ function LLMAgent({ isRouteActive = true }) {
                                                             const flags = answerFlags(composerOptions, composerEffort);
                                                             submitOrQueue(event, {
                                                                 investigateEnabled: deep,
+                                                                // The turn's own level, queued with it;
+                                                                // Medium and Extra go without, as before.
+                                                                ...(isDefaultEffort(effortForTurn(composerEffort, deep))
+                                                                    ? {} : { effort: effortForTurn(composerEffort, deep) }),
                                                                 serviceTier,
                                                                 ...(deep ? {} : {
                                                                     ...searchFilters(composerOptions),

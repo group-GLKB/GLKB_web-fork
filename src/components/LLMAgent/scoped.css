@@ -1971,6 +1971,19 @@
     .user-message-actions { opacity: 1; }
 }
 
+/* The effort level an answer ran at (service/effortLevels.js), quiet, at the end of its actions. */
+.message-action-row .answer-effort-chip {
+    margin-left: 4px;
+    padding: 0 6px;
+    border: 1px solid var(--color-border-default, #E5E9F0);
+    border-radius: 4px;
+    font-size: 11px;
+    line-height: 18px;
+    color: var(--color-text-tertiary, #5E6E87);
+    white-space: nowrap;
+    user-select: none;
+}
+
 /* Figma 45:2243 — the citation is a 16px square holding the number alone, in
    brand/primary on brand/muted. It used to be a pill with a 16px abstract glyph
    in front of a text-secondary number. */

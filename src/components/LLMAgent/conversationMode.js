@@ -1,3 +1,5 @@
+import { effortForTurn } from '../../service/effortLevels';
+
 // Separate the last submitted pipeline from the server's sticky "ever investigated" label.
 const MODE_KEY = 'glkb_submitted_conversation_modes';
 const readModes = () => {
@@ -48,11 +50,13 @@ export const resolveConversationMode = ({
 };
 
 // Snapshot presentation must agree with the resolved pipeline, without changing prior turns.
+// A recorded effort level of the other pipeline gives way to this one's default with it.
 export const normalizePendingMode = (messages, investigate) => {
     if (!Array.isArray(messages) || !messages.length) return messages;
     const last = messages[messages.length - 1];
     if (last?.role !== 'assistant' || last.investigateMode === investigate) return messages;
-    return [...messages.slice(0, -1), { ...last, investigateMode: investigate }];
+    const effort = last.effort ? { effort: effortForTurn(last.effort, investigate) } : {};
+    return [...messages.slice(0, -1), { ...last, investigateMode: investigate, ...effort }];
 };
 
 export const resolveQueuedSearchOptions = (entry, fallbackMode) => ({

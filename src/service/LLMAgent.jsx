@@ -1,5 +1,6 @@
 import axios from '../utils/axiosConfig';
 import { followupRouteOf, followupRouteText } from './followupRoute';
+import { effortForRequest, effortOf } from './effortLevels';
 import { PHASE_PERCENT_FLOOR } from './investigatePhases';
 import { humanizeTrace } from './traceLabel';
 
@@ -501,6 +502,9 @@ export const frameToUpdate = (data) => {
             // One of GLKB's example questions, answered from its stored answer (backend
             // services/example_answers.py): free, so a guest's question is not counted.
             example: data.example === true,
+            // The level the agent resolved the turn to (service/effortLevels.js); '' from an
+            // agent that predates efforts.
+            effort: effortOf(data.effort),
             messages: data.messages || [],
             sessionId: data.session_id || null,
             trajectory: data.trajectory || null,
@@ -516,6 +520,11 @@ export const frameToUpdate = (data) => {
             historyId: data.history_id,
             sessionId: data.session_id || null,
             invocationId: data.invocation_id || null,
+            // The answer's row (chat and Investigate; an Investigate answer has no invocation
+            // id) — what the answer graph is asked for by — and the level it was saved at.
+            messageId: Number.isFinite(Number(data.message_id)) && data.message_id !== null
+                ? Number(data.message_id) : null,
+            effort: effortOf(data.effort),
             credits: data.credits || null,
         };
     } else if (data.step === 'Error') {
@@ -655,13 +664,22 @@ export class LLMAgentService {
             }
             // The service tier (service/serviceTiers.js), on BOTH paths: the backend prices the
             // query by it and the agent picks the model. Omitted when blank, which the backend
-            // reads as its default (Standard). `model` and `effort` are never sent — since the
-            // credit system the backend answers either with a 422.
+            // reads as its default (Standard). `model` is never sent — since the credit system
+            // the backend answers it with a 422.
             const serviceTier = typeof options.serviceTier === 'string'
                 ? options.serviceTier.trim().toLowerCase()
                 : '';
             if (serviceTier) {
                 payload.service_tier = serviceTier;
+            }
+            // The effort level (service/effortLevels.js), ONLY when it is not the pipeline's
+            // default: Low or High on chat, Max on deep research. Medium and Extra — and anything
+            // else, such as the `quick` a queue entry from before the credit system may still
+            // carry — leave the field off, so those requests are exactly what they were before
+            // efforts existed and a backend that predates them never sees one.
+            const effort = effortForRequest(options.effort, investigateEnabled);
+            if (effort) {
+                payload.effort = effort;
             }
             // "Run a full investigation" under an answer the agent gave from the earlier
             // investigation: the same question again, and the agent skips its follow-up router

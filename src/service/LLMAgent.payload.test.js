@@ -9,6 +9,7 @@
 import axios from '../utils/axiosConfig';
 import {
     extractFunnelMetrics,
+    frameToUpdate,
     INVESTIGATE_MAX_REFERENCES,
     LLMAgentService,
     PHASE_PERCENT_FLOOR,
@@ -72,14 +73,68 @@ describe('service tier', () => {
         expect(sentPayload().service_tier).toBe('premium');
     });
 
-    it('never sends `model` or `effort`, which the backend answers with a 422', async () => {
-        // Queue entries persisted before the credit system can still carry both.
+    it('never sends `model`, nor an `effort` from before the effort levels', async () => {
+        // Queue entries persisted before the credit system can still carry both; the backend
+        // answers either with a 422.
         await run({ filters: [], model: 'gpt-6.1-sol', effort: 'quick', serviceTier: 'standard' });
         expect(sentPayload()).not.toHaveProperty('model');
         expect(sentPayload()).not.toHaveProperty('effort');
         axios.post.mockReset();
         await run({ model: 'gpt-6.1-sol', effort: 'quick', investigateEnabled: true });
         expect(sentPayload()).not.toHaveProperty('model');
+        expect(sentPayload()).not.toHaveProperty('effort');
+    });
+});
+
+/* The contract's compatibility rule: a pipeline's DEFAULT level is never on the wire, so a Medium
+   or Extra question is byte for byte the request it was, and a backend that predates efforts
+   keeps answering it. */
+describe('effort', () => {
+    it('sends Low and High on chat', async () => {
+        await run({ filters: [], effort: 'low' });
+        expect(sentUrl()).not.toMatch(/deep-research/);
+        expect(sentPayload().effort).toBe('low');
+        axios.post.mockReset();
+        await run({ filters: [], effort: 'high' });
+        expect(sentPayload().effort).toBe('high');
+    });
+
+    it('sends Max on deep research', async () => {
+        await run({ investigateEnabled: true, effort: 'max' });
+        expect(sentUrl()).toMatch(/\/deep-research\/stream$/);
+        expect(sentPayload().effort).toBe('max');
+    });
+
+    it('leaves the field off at Medium and Extra, and when none was chosen', async () => {
+        const plain = async (options) => {
+            axios.post.mockReset();
+            await run(options);
+            return sentPayload();
+        };
+        expect(await plain({ filters: [], effort: 'medium' })).toEqual(await plain({ filters: [] }));
+        expect(await plain({ filters: [], effort: 'medium' })).not.toHaveProperty('effort');
+        expect(await plain({ investigateEnabled: true, effort: 'extra' })).toEqual(await plain({ investigateEnabled: true }));
+        expect(await plain({ investigateEnabled: true, effort: 'extra' })).not.toHaveProperty('effort');
+    });
+
+    it('reads the answer\'s row and level off the Saved frame', () => {
+        expect(frameToUpdate({ step: 'Saved', history_id: 42, message_id: 88, effort: 'max' }))
+            .toMatchObject({ type: 'saved', historyId: 42, messageId: 88, effort: 'max', invocationId: null });
+        expect(frameToUpdate({ step: 'Saved', history_id: 42, invocation_id: 'inv-1' }))
+            .toMatchObject({ messageId: null, effort: '', invocationId: 'inv-1' });
+    });
+
+    it('reads the level the agent resolved off the Complete frame', () => {
+        expect(frameToUpdate({ step: 'Complete', response: 'x', effort: 'high' }).effort).toBe('high');
+        // An agent from before efforts says nothing.
+        expect(frameToUpdate({ step: 'Complete', response: 'x' }).effort).toBe('');
+    });
+
+    it('never sends a level of the other pipeline', async () => {
+        await run({ investigateEnabled: true, effort: 'high' });
+        expect(sentPayload()).not.toHaveProperty('effort');
+        axios.post.mockReset();
+        await run({ filters: [], effort: 'max' });
         expect(sentPayload()).not.toHaveProperty('effort');
     });
 });
