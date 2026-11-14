@@ -3190,15 +3190,28 @@ button.ip-notify.active { background: var(--color-brand-muted); color: var(--col
 
 /* The passage the next question replies to, above the composer's field. One quiet line, cut
    with an ellipsis; the whole passage is in its tooltip and goes with the question. */
+.composer-quotes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 10px 12px 0;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
 .composer-quote {
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    margin: 10px 12px 0;
     padding: 6px 6px 6px 10px;
     border-left: 2px solid var(--color-brand-primary);
     border-radius: 0 6px 6px 0;
     background: #fff;
+}
+
+/* Several passages: one line each, so the stack stays short. */
+.composer-quotes .composer-quote:not(:only-child) .composer-quote-text {
+    -webkit-line-clamp: 1;
 }
 
 .composer-quote .composer-quote-icon {

@@ -68,9 +68,10 @@ const ChatSearchBar = ({
     attachments = null,
     // A guest reaching for the "+" (or dropping a file) is asked to sign in.
     onAttachRequireSignIn,
-    /* A passage of an answer the next question replies to (SelectionReply → quoteReply.js),
-       shown above the field with an × to drop it. The parent owns it: the send reads it. */
-    quote = '',
+    /* The passages of answers the next question replies to (SelectionReply → quoteReply.js), in
+       the order they were added, each shown above the field with an × to drop it (by index). The
+       parent owns them: the send reads them. */
+    quotes = [],
     onRemoveQuote,
     // The field itself, so Reply can put the cursor in it.
     inputRef,
@@ -133,7 +134,7 @@ const ChatSearchBar = ({
         ? (isMobileViewport ? 'Ask something new…' : 'Ask a new question — the other answer keeps writing')
         : (isLoading
             ? (isMobileViewport ? 'Ask next…' : 'Ask a follow-up — it will send when this answer finishes')
-            : (quote
+            : (quotes.length
                 ? 'Ask about the quoted text…'
                 : (isMobileViewport ? 'Ask more...' : 'Ask a follow-up…')));
     const submit = (event, queryMethod) => {
@@ -187,22 +188,26 @@ const ChatSearchBar = ({
             }}
         >
             <CreditNotice notice={creditNotice} source="chat_searchbar" />
-            {quote ? (
-                <div className="composer-quote" role="group" aria-label="Replying to">
-                    <FormatQuoteIcon className="composer-quote-icon" aria-hidden="true" />
-                    <span className="composer-quote-text" title={quote}>{quotePreview(quote)}</span>
-                    <button
-                        type="button"
-                        className="composer-quote-remove"
-                        aria-label="Remove quote"
-                        title="Remove quote"
-                        onClick={() => {
-                            onRemoveQuote?.();
-                            inputRef?.current?.focus?.();
-                        }}
-                    >
-                        <CloseIcon fontSize="inherit" />
-                    </button>
+            {quotes.length ? (
+                <div className="composer-quotes" role="group" aria-label={quotes.length > 1 ? `Replying to ${quotes.length} passages` : 'Replying to'}>
+                    {quotes.map((quote, index) => (
+                        <div className="composer-quote" key={quote}>
+                            <FormatQuoteIcon className="composer-quote-icon" aria-hidden="true" />
+                            <span className="composer-quote-text" title={quote}>{quotePreview(quote)}</span>
+                            <button
+                                type="button"
+                                className="composer-quote-remove"
+                                aria-label={quotes.length > 1 ? `Remove quote ${index + 1}` : 'Remove quote'}
+                                title="Remove quote"
+                                onClick={() => {
+                                    onRemoveQuote?.(index);
+                                    inputRef?.current?.focus?.();
+                                }}
+                            >
+                                <CloseIcon fontSize="inherit" />
+                            </button>
+                        </div>
+                    ))}
                 </div>
             ) : null}
             {attachments && (

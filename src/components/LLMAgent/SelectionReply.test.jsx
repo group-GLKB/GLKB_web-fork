@@ -26,6 +26,9 @@ import {
     quotePreview,
     readAnswerSelection,
     withQuote,
+    withQuotes,
+    addQuote,
+    QUOTE_MAX_COUNT,
 } from './quoteReply';
 
 jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
@@ -209,6 +212,21 @@ describe('the quote a question carries', () => {
         expect(withQuote('Plain question', '   ')).toBe('Plain question');
     });
 
+    it('stacks: every passage its own blockquote, in the order added, the same one once', () => {
+        let quotes = addQuote([], 'NR4A1 drives exhaustion.');
+        quotes = addQuote(quotes, '  It binds   chromatin. ');
+        quotes = addQuote(quotes, 'NR4A1 drives exhaustion.');
+        expect(quotes).toEqual(['NR4A1 drives exhaustion.', 'It binds chromatin.']);
+        const sent = withQuotes('Is this true in mice?', quotes);
+        expect(sent).toBe('> NR4A1 drives exhaustion.\n\n> It binds chromatin.\n\nIs this true in mice?');
+        const html = renderToStaticMarkup(<ReactMarkdown remarkPlugins={[remarkGfm]}>{sent}</ReactMarkdown>);
+        expect(html.match(/<blockquote>/g)).toHaveLength(2);
+        expect(withQuotes('Plain question', [])).toBe('Plain question');
+        let many = [];
+        for (let i = 0; i < QUOTE_MAX_COUNT + 3; i += 1) many = addQuote(many, `Passage ${i}.`);
+        expect(many).toHaveLength(QUOTE_MAX_COUNT);
+    });
+
     it('is capped at about 1,500 characters, with an ellipsis', () => {
         const long = 'word '.repeat(600);
         const clipped = clipQuote(long);
@@ -263,7 +281,7 @@ describe('the composer with a quote', () => {
                     isLoading={false}
                     onSubmit={jest.fn()}
                     onStop={jest.fn()}
-                    quote={'NR4A1 drives T-cell exhaustion. '.repeat(10)}
+                    quotes={['NR4A1 drives T-cell exhaustion. '.repeat(10).trim()]}
                     onRemoveQuote={onRemoveQuote}
                     inputRef={inputRef}
                 />
@@ -276,8 +294,24 @@ describe('the composer with a quote', () => {
         expect(chip.textContent.length).toBeLessThan(200);
         expect(screen.getByRole('textbox')).toHaveAttribute('placeholder', 'Ask about the quoted text…');
         fireEvent.click(screen.getByRole('button', { name: 'Remove quote' }));
-        expect(onRemoveQuote).toHaveBeenCalledTimes(1);
+        expect(onRemoveQuote).toHaveBeenCalledWith(0);
         expect(screen.getByRole('textbox')).toHaveFocus();
+    });
+
+    it('stacks several, each with its own ×', async () => {
+        const onRemoveQuote = jest.fn();
+        render(
+            <ChatSearchBar
+                userInput="" setUserInput={jest.fn()} isLoading={false} onSubmit={jest.fn()} onStop={jest.fn()}
+                quotes={['First passage.', 'Second passage.', 'Third passage.']}
+                onRemoveQuote={onRemoveQuote}
+            />,
+        );
+        await act(async () => {});
+        const group = screen.getByRole('group', { name: 'Replying to 3 passages' });
+        expect(group.querySelectorAll('.composer-quote')).toHaveLength(3);
+        fireEvent.click(screen.getByRole('button', { name: 'Remove quote 2' }));
+        expect(onRemoveQuote).toHaveBeenCalledWith(1);
     });
 
     it('shows nothing without one', async () => {

@@ -27,25 +27,25 @@ describe('Reply on the chat page', () => {
 
     it('puts the passage on the composer and the cursor in its field', () => {
         const handler = between('const handleSelectionReply = useCallback(', '}, []);');
-        expect(handler).toContain('setReplyQuote(quote);');
+        expect(handler).toContain('setReplyQuotes((current) => addQuote(current, quote));');
         expect(handler).toContain('composerInputRef.current');
         expect(handler).toContain('field.focus();');
         const composer = between('<ChatSearchBar', 'onStop={handleStopStreaming}');
-        expect(composer).toContain('quote={replyQuote}');
+        expect(composer).toContain('quotes={replyQuotes}');
         expect(composer).toContain('onRemoveQuote={removeReplyQuote}');
         expect(composer).toContain('inputRef={composerInputRef}');
     });
 
     it('sends the quote in front of the question, sent now or queued, files or not', () => {
         const send = between('const submitOrQueue = useCallback(', 'const handleSelectionReply');
-        expect(send).toContain('const text = withQuote(asked, replyQuote);');
+        expect(send).toContain('const text = withQuotes(asked, replyQuotes);');
         // Sent now: the words are no longer only the box's own, so they go as `input`...
         expect(send).toContain('stableSubmit(event, text === typed ? null : text, null, {');
         // ...queued: the entry keeps the quoted text.
         expect(send).toMatch(/setQueuedPrompts\(\(prev\) => \[\.\.\.prev, \{[\s\S]*?\btext,/);
         // Either way the chip goes with the question.
-        expect(send.match(/setReplyQuote\(''\);/g)).toHaveLength(2);
-        expect(send).toContain('replyQuote, isLoading');
+        expect(send.match(/setReplyQuotes\(\[\]\);/g)).toHaveLength(2);
+        expect(send).toContain('replyQuotes, isLoading');
     });
 
     it("still clears the reader's box when the composer's question arrives as `input`", () => {
@@ -54,7 +54,7 @@ describe('Reply on the chat page', () => {
 
     it('drops a quote when the reader leaves its conversation', () => {
         const reset = between('const startNewConversation = useCallback(', '}, [cancelStreaming, llmService]);');
-        expect(reset).toContain("setReplyQuote('');");
-        expect(source).toMatch(/if \(previous != null && String\(previous\) !== String\(activeConversationId \?\? ''\)\) \{\s*setReplyQuote\(''\);/);
+        expect(reset).toContain('setReplyQuotes([]);');
+        expect(source).toMatch(/if \(previous != null && String\(previous\) !== String\(activeConversationId \?\? ''\)\) \{\s*setReplyQuotes\(\[\]\);/);
     });
 });

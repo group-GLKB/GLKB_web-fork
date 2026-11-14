@@ -1,6 +1,7 @@
 /**
- * Reply to a passage of an answer: select text in an assistant answer, press Reply, and the next
- * question carries that passage as a quote.
+ * Reply to passages of an answer: select text in an assistant answer, press Reply, and the next
+ * question carries that passage as a quote. Replies stack, as in Claude: each Reply adds another
+ * passage (up to QUOTE_MAX_COUNT, the same passage once), and the question carries them all.
  *
  * The quote travels as Markdown inside the question itself — `> ` on every line, a blank line,
  * then what the reader typed — so both pipelines read it with no new request field, the history
@@ -53,6 +54,27 @@ export const withQuote = (question, quote) => {
         .map((line) => (line.trim() ? `> ${line}` : '>'))
         .join('\n');
     return `${block}\n\n${question}`;
+};
+
+/** How many passages one question can reply to. */
+export const QUOTE_MAX_COUNT = 10;
+
+/**
+ * The question with every passage in front, in the order they were added: one blockquote each,
+ * separated by a blank line (so Markdown draws them as separate quotes), then the question.
+ */
+export const withQuotes = (question, quotes = []) => {
+    const blocks = (quotes || [])
+        .map((quote) => withQuote('', quote).trimEnd())
+        .filter(Boolean);
+    return blocks.length ? `${blocks.join('\n\n')}\n\n${question}` : question;
+};
+
+/** The passages with one more: tidied, the same passage not twice, at most QUOTE_MAX_COUNT. */
+export const addQuote = (quotes, text) => {
+    const quote = clipQuote(text);
+    if (!quote || quotes.includes(quote) || quotes.length >= QUOTE_MAX_COUNT) return quotes;
+    return [...quotes, quote];
 };
 
 /** The quote on one line, cut for the composer's chip. */

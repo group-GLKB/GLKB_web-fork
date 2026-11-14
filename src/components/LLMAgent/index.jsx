@@ -79,7 +79,7 @@ import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
 import SearchLimitNotice from './SearchLimitNotice';
 import { BuiltOnEarlierNote, FullInvestigationOffer } from './FollowupRouteNotice';
 import SelectionReply from './SelectionReply';
-import { clipQuote, withQuote } from './quoteReply';
+import { addQuote, clipQuote, withQuotes } from './quoteReply';
 import {
     investigateAttachmentsFor,
     investigateHandoffState,
@@ -2050,10 +2050,10 @@ function LLMAgent({ isRouteActive = true }) {
     }
     const initialRunSnapshot = initialRunSnapshotRef.current;
     const [userInput, setUserInput] = useState('');
-    /* A passage of an answer the next question replies to: chosen with the Reply button over a
-       selection (SelectionReply), shown on the composer, and sent in front of the question as a
-       Markdown blockquote (quoteReply.js). */
-    const [replyQuote, setReplyQuote] = useState('');
+    /* The passages of answers the next question replies to: each Reply over a selection
+       (SelectionReply) adds one, as in Claude; they are shown on the composer and sent in front of
+       the question as Markdown blockquotes, in the order added (quoteReply.js). */
+    const [replyQuotes, setReplyQuotes] = useState([]);
     const composerInputRef = useRef(null);
     /**
      * Follow-ups typed while an answer is still being written.
@@ -3942,7 +3942,7 @@ function LLMAgent({ isRouteActive = true }) {
         setQueuedPrompts((prev) => promptsSurvivingReset(prev, departingRunKey));
         queueOwnerKeyRef.current = null;
         // A passage quoted from the conversation being left does not follow the reader out.
-        setReplyQuote('');
+        setReplyQuotes([]);
         llmService.clearHistory();
     }, [cancelStreaming, llmService]);
 
@@ -7051,8 +7051,8 @@ function LLMAgent({ isRouteActive = true }) {
         const typed = userInput.trim();
         const asked = typed || (readyAttachments.length ? defaultQuestionFor(readyAttachments) : '');
         if (!asked) return;
-        // The passage being replied to goes in front of the question, as a blockquote.
-        const text = withQuote(asked, replyQuote);
+        // The passages being replied to go in front of the question, one blockquote each.
+        const text = withQuotes(asked, replyQuotes);
         const searchOptions = readyAttachments.length
             ? { ...composerOptions, attachments: readyAttachments }
             : composerOptions;
@@ -7087,7 +7087,7 @@ function LLMAgent({ isRouteActive = true }) {
                 queryMethod,
                 fromComposer: true,
             });
-            setReplyQuote('');
+            setReplyQuotes([]);
             return;
         }
         const ownerConversationId = isViewingRunningConversation
@@ -7118,18 +7118,18 @@ function LLMAgent({ isRouteActive = true }) {
         }]);
         setUserInput('');
         clearComposerAttachments();
-        setReplyQuote('');
-    }, [userInput, replyQuote, isLoading, isViewingRunningConversation, isLimitReachedEffective,
+        setReplyQuotes([]);
+    }, [userInput, replyQuotes, isLoading, isViewingRunningConversation, isLimitReachedEffective,
         isGuest, requireSignIn, limitWarningText, stableSubmit, composerAttachments,
         clearComposerAttachments]);
 
-    /* Reply, over a selection in an answer: the passage goes on the composer as a quote and the
-       cursor into the field. The selection itself is let go — the chip now holds the passage. */
+    /* Reply, over a selection in an answer: the passage is added to the composer's quotes and the
+       cursor goes into the field. The selection itself is let go — the chip now holds the passage. */
     const handleSelectionReply = useCallback((text) => {
         const quote = clipQuote(text);
         if (!quote) return;
         trackGtagEvent('chat_selection_reply_click', { length: quote.length });
-        setReplyQuote(quote);
+        setReplyQuotes((current) => addQuote(current, quote));
         const field = composerInputRef.current;
         if (field) {
             field.focus();
@@ -7137,7 +7137,7 @@ function LLMAgent({ isRouteActive = true }) {
             field.setSelectionRange?.(end, end);
         }
     }, []);
-    const removeReplyQuote = useCallback(() => setReplyQuote(''), []);
+    const removeReplyQuote = useCallback(() => setReplyQuotes([]), []);
     /* A quote belongs to the conversation it was taken from: opening another drops it (New Chat
        drops it in `startNewConversation`). A thread that has only just been given its id
        (null → id) is still the same conversation. */
@@ -7146,7 +7146,7 @@ function LLMAgent({ isRouteActive = true }) {
         const previous = quoteConversationRef.current;
         quoteConversationRef.current = activeConversationId;
         if (previous != null && String(previous) !== String(activeConversationId ?? '')) {
-            setReplyQuote('');
+            setReplyQuotes([]);
         }
     }, [activeConversationId]);
 
@@ -8333,7 +8333,7 @@ function LLMAgent({ isRouteActive = true }) {
                                                         onRequireSignIn={requestComposerSignIn}
                                                         attachments={composerAttachments}
                                                         onAttachRequireSignIn={requestAttachSignIn}
-                                                        quote={replyQuote}
+                                                        quotes={replyQuotes}
                                                         onRemoveQuote={removeReplyQuote}
                                                         inputRef={composerInputRef}
                                                         onSubmit={(event, submissionMeta) => {
