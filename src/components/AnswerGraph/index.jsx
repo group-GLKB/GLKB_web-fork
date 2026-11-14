@@ -1,12 +1,13 @@
 import './AnswerGraph.css';
 
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Cytoscape from 'cytoscape';
 import fcose from 'cytoscape-fcose';
 
 import { nodeStyle } from '../Graph/nodeStyle';
 import { GRAPH_FONT, loadGraphFont } from '../Graph/labels';
 import { cardLayout, curatedLabel, presentTypes, typeName } from './answerGraph';
+import LegendToggle from './LegendToggle';
 import ZoomControls, { MAX_ZOOM, ZOOM_GUTTER } from './ZoomControls';
 
 Cytoscape.use(fcose);
@@ -73,13 +74,6 @@ const STYLE = [
     { selector: '.hidden', style: { display: 'none' } },
 ];
 
-const InfoIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
-        <circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M10 9v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <circle cx="10" cy="6.75" r="0.9" fill="currentColor" />
-    </svg>
-);
 const Check = ({ color }) => (
     <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
         <path d="M10 3 4.5 8.5 2 6" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -177,7 +171,8 @@ function Detail({ item, nodesById, onClose }) {
 export default function AnswerGraph({ graph, caption }) {
     const wrapRef = useRef(null);
     const cyHostRef = useRef(null);
-    const legendRef = useRef(null);
+    const bottomRef = useRef(null);
+    const legendId = useId();
     const cyRef = useRef(null);
     const [width, setWidth] = useState(0);
     const [legendOpen, setLegendOpen] = useState(true);
@@ -191,6 +186,8 @@ export default function AnswerGraph({ graph, caption }) {
     const nodesById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
     const types = useMemo(() => presentTypes(nodes), [nodes]);
     const layout = cardLayout(width);
+    // The legend over the canvas may take at most half of it; past that it scrolls.
+    const legendMaxHeight = Math.round((layout.height || 336) * 0.5);
 
     useEffect(() => {
         let live = true;
@@ -218,13 +215,14 @@ export default function AnswerGraph({ graph, caption }) {
         const visible = cy.elements(':visible');
         if (!visible.length) return;
         const pad = layout.size === 'sm' ? 12 : 24;
-        const legendH = legendOpen && layout.legend !== 'below' ? (legendRef.current?.offsetHeight || 0) + 12 : 0;
+        // The legend (and its toggle) cover the bottom of the canvas: fit above them.
+        const legendH = (bottomRef.current?.offsetHeight || 0) + 12;
         // The zoom buttons sit on the left edge: the fit keeps the graph clear of them.
         const w = host.clientWidth - pad * 2 - ZOOM_GUTTER;
         const h = host.clientHeight - legendH - pad * 2;
         if (w <= 0 || h <= 0) return;
         const bb = visible.boundingBox();
-        const zoom = Math.max(0.35, Math.min(1, w / bb.w, h / bb.h));
+        const zoom = Math.max(0.25, Math.min(1, w / bb.w, h / bb.h));
         cy.zoom(zoom);
         cy.pan({ x: pad + ZOOM_GUTTER + w / 2 - (bb.x1 + bb.w / 2) * zoom, y: pad + h / 2 - (bb.y1 + bb.h / 2) * zoom });
     }, [layout.size, layout.legend, legendOpen]);
@@ -243,7 +241,7 @@ export default function AnswerGraph({ graph, caption }) {
         const cy = Cytoscape({
             container: cyHostRef.current, elements, style: STYLE,
             userZoomingEnabled: false, boxSelectionEnabled: false, autoungrabify: false,
-            minZoom: 0.35, maxZoom: MAX_ZOOM,
+            minZoom: 0.25, maxZoom: MAX_ZOOM,
         });
         cyRef.current = cy;
         withSeededRandom(hash(nodes.map((n) => n.id).join('|')), () => cy.layout({
@@ -305,20 +303,14 @@ export default function AnswerGraph({ graph, caption }) {
                 <div className="ag-cy" ref={cyHostRef} data-testid="answer-graph-canvas" />
                 <ZoomControls cyRef={cyRef} onFit={fit} />
                 <Detail item={item} nodesById={nodesById} onClose={() => setSelected(null)} />
-                <div className="ag-bottom">
-                    <button
-                        type="button" className={`ag-info${legendOpen ? ' is-on' : ''}`}
-                        aria-label={legendOpen ? 'Hide legend' : 'Show legend'} aria-expanded={legendOpen}
-                        onClick={() => setLegendOpen((v) => !v)}
-                    >
-                        <InfoIcon />
-                    </button>
+                <div className="ag-bottom" ref={bottomRef}>
+                    <LegendToggle open={legendOpen} onToggle={() => setLegendOpen((v) => !v)} controls={legendId} />
                     {legendOpen && layout.legend !== 'below' && (
-                        <div ref={legendRef} className="ag-legend-wrap"><Legend variant={layout.legend} {...legendProps} /></div>
+                        <div className="ag-legend-wrap" id={legendId} style={{ maxHeight: legendMaxHeight }}><Legend variant={layout.legend} {...legendProps} /></div>
                     )}
                 </div>
             </div>
-            {legendOpen && layout.legend === 'below' && <Legend variant="below" {...legendProps} />}
+            {legendOpen && layout.legend === 'below' && <div id={legendId}><Legend variant="below" {...legendProps} /></div>}
             {caption && <figcaption className="ag-caption">{caption}</figcaption>}
         </figure>
     );

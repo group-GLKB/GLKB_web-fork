@@ -105,6 +105,20 @@ describe('the card', () => {
             expect(screen.getByRole('button', { name })).toBeInTheDocument());
     });
 
+    it('hides and shows the legend with a labelled toggle', async () => {
+        render(<AnswerGraphV2 graph={graph} />);
+        await waitFor(() => expect(cy()).toBeTruthy());
+        const toggle = screen.getByRole('button', { name: 'Hide legend' });
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        expect(document.getElementById(toggle.getAttribute('aria-controls'))).toHaveTextContent('Entities');
+        fireEvent.click(toggle);
+        expect(screen.queryByText('Entities')).not.toBeInTheDocument();
+        const shown = screen.getByRole('button', { name: 'Show legend' });
+        expect(shown).toHaveAttribute('aria-expanded', 'false');
+        fireEvent.click(shown);
+        expect(screen.getByText('Entities')).toBeInTheDocument();
+    });
+
     it('shows GLKB\'s indirect links when asked', async () => {
         render(<AnswerGraphV2 graph={graph} />);
         await waitFor(() => expect(cy()).toBeTruthy());

@@ -27,22 +27,39 @@
   right: 12px;
   bottom: 12px;
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 8px;
   pointer-events: none;
 }
 .ag-bottom > * { pointer-events: auto; }
-.ag-info {
+/* Show / hide legend (LegendToggle.jsx): a labelled pill, so it reads as a control. */
+.ag-legend-toggle {
   flex: none;
-  display: flex;
-  padding: 4px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--color-background-muted, #E5E9F0);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-strong, #CBD2E0);
+  border-radius: 999px;
+  background: var(--color-background-surface, #fff);
+  box-shadow: 0 1px 2px rgba(12, 16, 24, 0.08);
   color: var(--color-text-secondary, #222A38);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
   cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
-.ag-info:hover { background: var(--color-background-normal, #CBD2E0); }
+.ag-legend-toggle:hover { background: var(--color-background-muted, #E5E9F0); border-color: var(--color-text-tertiary, #5E6E87); }
+.ag-legend-toggle:focus-visible { outline: 2px solid var(--color-brand, #155DFC); outline-offset: 2px; }
+.ag-legend-toggle-chevron { transition: transform 0.2s ease; transform: rotate(180deg); }
+.ag-legend-toggle-chevron.is-open { transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ag-legend-toggle, .ag-legend-toggle-chevron { transition: none; }
+}
 
 /* Zoom in / out / fit (ZoomControls.jsx): top left, clear of the detail panel (top right) and the
    legend (bottom). Wheel zoom stays off so the chat scrolls over the graph. */
@@ -70,7 +87,12 @@
 }
 .ag-zoom button:hover { background: var(--color-background-normal, #CBD2E0); }
 .ag-zoom button:focus-visible { outline: 2px solid var(--color-brand, #2F5BEA); outline-offset: 1px; }
-.ag-legend-wrap { flex: 1 1 0; min-width: 0; }
+.ag-legend-wrap {
+  align-self: stretch;
+  min-width: 0;
+  overflow-y: auto;
+  border-radius: 8px;
+}
 
 /* Legend: one row (full), two rows of smaller type (compact), or chips under the canvas (below). */
 .ag-legend {
@@ -171,6 +193,31 @@
 .ag-legend-below .ag-legend-rels .ag-legend-title { width: 100%; }
 .ag-legend-below .ag-kind { width: auto; }
 .ag-legend-below .ag-rule { flex: none; width: 24px; }
+
+/* Over the canvas (full / compact) the legend is two stacked rows that wrap inside the card:
+   side by side, the relationship column was pushed out past the card's right edge and stood
+   taller than half the canvas. */
+.ag-legend-full,
+.ag-legend-compact { flex-direction: column; gap: 12px; }
+.ag-legend-full .ag-legend-divider,
+.ag-legend-compact .ag-legend-divider { width: auto; height: 1px; }
+.ag-legend-full .ag-entity-grid,
+.ag-legend-compact .ag-entity-grid { display: flex; flex-wrap: wrap; }
+.ag-legend-full .ag-legend-rels,
+.ag-legend-compact .ag-legend-rels {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 16px;
+  row-gap: 4px;
+  min-width: 0;
+}
+.ag-legend-full .ag-legend-rels .ag-legend-title,
+.ag-legend-compact .ag-legend-rels .ag-legend-title { width: 100%; }
+.ag-legend-full .ag-kind,
+.ag-legend-compact .ag-kind { width: auto; }
+.ag-legend-full .ag-rule,
+.ag-legend-compact .ag-rule { flex: none; width: 24px; }
 
 /* Clicked node or edge. */
 .ag-detail {

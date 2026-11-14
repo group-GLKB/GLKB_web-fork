@@ -1,6 +1,6 @@
 import './AnswerGraph.css';
 
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Cytoscape from 'cytoscape';
 
 import { nodeStyle } from '../Graph/nodeStyle';
@@ -19,6 +19,7 @@ import {
     visibleGraph,
 } from './answerGraphV2Data';
 import { showSentence } from './sentenceHighlight';
+import LegendToggle from './LegendToggle';
 import ZoomControls, { MAX_ZOOM, ZOOM_GUTTER } from './ZoomControls';
 
 /* The card, canvas, legend and detail panel are the basic graph's (index.jsx, Figma "KG 4-3"),
@@ -98,13 +99,6 @@ export const layoutOptions = ({ nodes, chain }) => ({
     ...chainConstraints(chain, nodes.map((n) => n.key)),
 });
 
-const InfoIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
-        <circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M10 9v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <circle cx="10" cy="6.75" r="0.9" fill="currentColor" />
-    </svg>
-);
 
 function Legend({ variant, graph, types, focus, onFocus, showBridge, onBridge }) {
     const polarities = ['positive', 'negative', 'neutral'].filter((p) => graph.edges.some((e) => e.polarity === p && e.layer === 'answer'));
@@ -235,7 +229,8 @@ function Detail({ item, nodesByKey, references, onShowSentence, onClose }) {
 export default function AnswerGraphV2({ graph, caption, references, onShowSentence }) {
     const wrapRef = useRef(null);
     const cyHostRef = useRef(null);
-    const legendRef = useRef(null);
+    const bottomRef = useRef(null);
+    const legendId = useId();
     const cyRef = useRef(null);
     const [width, setWidth] = useState(0);
     const [legendOpen, setLegendOpen] = useState(true);
@@ -249,6 +244,8 @@ export default function AnswerGraphV2({ graph, caption, references, onShowSenten
     const nodesByKey = useMemo(() => new Map((graph?.nodes || []).map((n) => [n.key, n])), [graph]);
     const types = useMemo(() => presentTypes(drawn.nodes), [drawn]);
     const layout = cardLayout(width);
+    // The legend over the canvas may take at most half of it; past that it scrolls.
+    const legendMaxHeight = Math.round((layout.height || 336) * 0.5);
 
     useEffect(() => {
         let live = true;
@@ -274,13 +271,14 @@ export default function AnswerGraphV2({ graph, caption, references, onShowSenten
         const all = cy.elements();
         if (!all.length) return;
         const pad = layout.size === 'sm' ? 12 : 24;
-        const legendH = legendOpen && layout.legend !== 'below' ? (legendRef.current?.offsetHeight || 0) + 12 : 0;
+        // The legend (and its toggle) cover the bottom of the canvas: fit above them.
+        const legendH = (bottomRef.current?.offsetHeight || 0) + 12;
         // The zoom buttons sit on the left edge: the fit keeps the graph clear of them.
         const w = host.clientWidth - pad * 2 - ZOOM_GUTTER;
         const h = host.clientHeight - legendH - pad * 2;
         if (w <= 0 || h <= 0) return;
         const bb = all.boundingBox();
-        const zoom = Math.max(0.35, Math.min(1, w / bb.w, h / bb.h));
+        const zoom = Math.max(0.25, Math.min(1, w / bb.w, h / bb.h));
         cy.zoom(zoom);
         cy.pan({ x: pad + ZOOM_GUTTER + w / 2 - (bb.x1 + bb.w / 2) * zoom, y: pad + h / 2 - (bb.y1 + bb.h / 2) * zoom });
     }, [layout.size, layout.legend, legendOpen]);
@@ -290,7 +288,7 @@ export default function AnswerGraphV2({ graph, caption, references, onShowSenten
         const cy = Cytoscape({
             container: cyHostRef.current, elements: buildElements(drawn), style: STYLE,
             userZoomingEnabled: false, boxSelectionEnabled: false, autoungrabify: false,
-            minZoom: 0.35, maxZoom: MAX_ZOOM,
+            minZoom: 0.25, maxZoom: MAX_ZOOM,
         });
         cyRef.current = cy;
         withSeededRandom(hash(drawn.nodes.map((n) => n.key).join('|')), () => cy.layout(layoutOptions(drawn)).run());
@@ -354,20 +352,14 @@ export default function AnswerGraphV2({ graph, caption, references, onShowSenten
                     item={item} nodesByKey={nodesByKey} references={references}
                     onShowSentence={show} onClose={() => setSelected(null)}
                 />
-                <div className="ag-bottom">
-                    <button
-                        type="button" className={`ag-info${legendOpen ? ' is-on' : ''}`}
-                        aria-label={legendOpen ? 'Hide legend' : 'Show legend'} aria-expanded={legendOpen}
-                        onClick={() => setLegendOpen((v) => !v)}
-                    >
-                        <InfoIcon />
-                    </button>
+                <div className="ag-bottom" ref={bottomRef}>
+                    <LegendToggle open={legendOpen} onToggle={() => setLegendOpen((v) => !v)} controls={legendId} />
                     {legendOpen && layout.legend !== 'below' && (
-                        <div ref={legendRef} className="ag-legend-wrap"><Legend variant={layout.legend} {...legendProps} /></div>
+                        <div className="ag-legend-wrap" id={legendId} style={{ maxHeight: legendMaxHeight }}><Legend variant={layout.legend} {...legendProps} /></div>
                     )}
                 </div>
             </div>
-            {legendOpen && layout.legend === 'below' && <Legend variant="below" {...legendProps} />}
+            {legendOpen && layout.legend === 'below' && <div id={legendId}><Legend variant="below" {...legendProps} /></div>}
             {caption && <figcaption className="ag-caption">{caption}</figcaption>}
         </figure>
     );
