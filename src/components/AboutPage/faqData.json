@@ -37,17 +37,17 @@
     {
         "id": "free-version",
         "question": "Is GLKB free to use?",
-        "answer": "Yes. Individual users receive 500 free queries each month. If you need more, you can purchase additional queries. No subscription is required."
+        "answer": "Yes. Every account receives 200 free credits each month; a question costs credits by the model and depth you choose. If you need more, you can buy additional credits. No subscription is required."
     },
     {
         "id": "more-queries",
-        "question": "How can I get more queries?",
-        "answer": "You can top up your query balance by purchasing additional queries as needed. Purchased queries are valid for 30 days from the date of purchase. No subscription is required."
+        "question": "How can I get more credits?",
+        "answer": "Add funds on your Account page, then use Buy more to turn them into credits whenever you need them. Purchased credits never expire. No subscription is required."
     },
     {
         "id": "queries-expire",
-        "question": "Do free or purchased queries expire?",
-        "answer": "Unused free queries do not roll over to the next month. Purchased queries are valid for 30 days from the date of purchase. Each purchase has its own 30-day validity period."
+        "question": "Do free or purchased credits expire?",
+        "answer": "Unused free credits do not roll over: the monthly allowance resets on the 1st. Purchased credits never expire, and they are spent only after the month's free credits."
     },
     {
         "id": "commercial-use",
