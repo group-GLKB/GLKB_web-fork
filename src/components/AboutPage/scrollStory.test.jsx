@@ -255,12 +255,13 @@ describe('the FAQ', () => {
 });
 
 describe('the idle auto-scroll', () => {
-    function Scene({ until }) {
+    function Scene({ stops }) {
         const ref = React.useRef(null);
-        useIdleAutoScroll(ref, { until, idleMs: 1000 });
+        useIdleAutoScroll(ref, { stops, idleMs: 500, dwellMs: 2000 });
         return <section ref={ref} />;
     }
 
+    // A 2400px scene in an 800px window: progress runs over 1600px of scrolling.
     const setup = (top) => {
         jest.useFakeTimers();
         window.innerHeight = 800;
@@ -269,38 +270,66 @@ describe('the idle auto-scroll', () => {
         let frames = [];
         jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => { frames.push(cb); return frames.length; });
         jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => { frames = []; });
-        jest.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ top, bottom: top + 2400, height: 2400 });
-        const flush = (now) => { const run = frames; frames = []; run.forEach((cb) => cb(now)); };
-        return { scroller, flush };
+        let currentTop = top;
+        jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({ top: currentTop, bottom: currentTop + 2400, height: 2400 }));
+        // The scene moves up as the page scrolls down.
+        const finishGlide = () => {
+            const before = scroller.scrollTop;
+            const t = performance.now();
+            for (let i = 0; i < 3 && frames.length; i += 1) {
+                const run = frames; frames = []; run.forEach((cb) => cb(t + 100000));
+            }
+            currentTop -= scroller.scrollTop - before;
+        };
+        return { scroller, finishGlide };
     };
 
     afterEach(() => { jest.useRealTimers(); jest.restoreAllMocks(); });
 
-    it('carries a reader who stopped inside the scene to `until`, and no further', () => {
-        const { scroller, flush } = setup(-400);   // progress 0.25 of a 1600px span
-        render(<Scene until={0.75} />);
-        jest.advanceTimersByTime(1000);
-        const start = performance.now();
-        flush(start);
-        flush(start + 100000);
-        // to progress 0.75: 1600 * 0.75 = 1200 below the scene's top, which is 400 above the viewport's
-        expect(scroller.scrollTop).toBe(1000 + 800);
+    it('waits for the reader to stop, then carries them one stop at a time, and no further', () => {
+        const { scroller, finishGlide } = setup(-400);   // progress 0.25
+        render(<Scene stops={[0.5, 0.75]} />);
+        fireEvent.wheel(window);                         // the reader scrolled here
+        jest.advanceTimersByTime(499);
+        finishGlide();
+        expect(scroller.scrollTop).toBe(1000);           // not yet: 0.5 s of stillness first
+        jest.advanceTimersByTime(1);
+        finishGlide();
+        expect(scroller.scrollTop).toBe(1000 + 400);     // to progress 0.5
+        jest.advanceTimersByTime(1999);
+        finishGlide();
+        expect(scroller.scrollTop).toBe(1400);           // holding the step
+        jest.advanceTimersByTime(1);
+        finishGlide();
+        expect(scroller.scrollTop).toBe(1400 + 400);     // to progress 0.75, the last stop
+        jest.advanceTimersByTime(10000);
+        finishGlide();
+        expect(scroller.scrollTop).toBe(1800);
     });
 
-    it('stops the moment the reader scrolls', () => {
-        const { scroller, flush } = setup(-400);
-        render(<Scene until={0.75} />);
-        jest.advanceTimersByTime(1000);
+    it('stops the moment the reader scrolls again', () => {
+        const { scroller, finishGlide } = setup(-400);
+        render(<Scene stops={[0.75]} />);
         fireEvent.wheel(window);
-        flush(performance.now() + 100000);
+        jest.advanceTimersByTime(500);
+        fireEvent.wheel(window);
+        finishGlide();
         expect(scroller.scrollTop).toBe(1000);
     });
 
-    it('leaves a scene the reader has not reached, or has already finished', () => {
-        const { scroller, flush } = setup(600);    // still mostly below the fold
-        render(<Scene until={0.75} />);
-        jest.advanceTimersByTime(1000);
-        flush(performance.now() + 100000);
-        expect(scroller.scrollTop).toBe(1000);
+    it('does nothing on a page the reader has not scrolled yet, or in a scene not reached', () => {
+        const opened = setup(-400);
+        const { unmount } = render(<Scene stops={[0.75]} />);
+        jest.advanceTimersByTime(5000);
+        opened.finishGlide();
+        expect(opened.scroller.scrollTop).toBe(1000);
+        unmount();
+        jest.restoreAllMocks();
+        const below = setup(600);                        // still mostly below the fold
+        render(<Scene stops={[0.75]} />);
+        fireEvent.wheel(window);
+        jest.advanceTimersByTime(5000);
+        below.finishGlide();
+        expect(below.scroller.scrollTop).toBe(1000);
     });
 });

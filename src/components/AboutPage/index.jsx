@@ -162,7 +162,9 @@ const AboutPage = () => {
     useScrollProgress(statementRef, { mode: 'pin' });
     // Every word is lit once progress reaches 1 / 1.35 (the CSS's --lit); a reader who stops
     // part-way is carried there, and no further, so the next scene is theirs to scroll to.
-    useIdleAutoScroll(statementRef, { enabled: motion, until: STATEMENT_LIT_AT });
+    useIdleAutoScroll(statementRef, { enabled: motion, stops: [STATEMENT_LIT_AT] });
+    // The hero's screen has finished rising and flattening at 0.8 (--e above).
+    useIdleAutoScroll(heroRef, { enabled: motion, stops: [0.8] });
 
     // The screen starts just under the copy, however tall the copy is at this width (it
     // wraps differently per window, and a news line can sit above the title).
@@ -365,7 +367,7 @@ const AboutPage = () => {
 
                 <ScaleScene motion={motion} />
 
-                <WorkflowScene />
+                <WorkflowScene motion={motion} />
 
                 <section className="about-section about-demo" id="demo">
                     <div className="about-inner">

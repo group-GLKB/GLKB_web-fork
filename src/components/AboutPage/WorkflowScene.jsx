@@ -6,7 +6,7 @@
  */
 import React, { useRef, useState } from 'react';
 
-import { easeOut, segment, useScrollProgress } from './motion';
+import { easeOut, segment, useIdleAutoScroll, useScrollProgress } from './motion';
 import { DYRK1A_EXAMPLE } from './useCases';
 
 export const WORKFLOW_STEPS = [
@@ -43,13 +43,18 @@ const GRAPH_EDGES = [
 ];
 const nodeById = Object.fromEntries(GRAPH_NODES.map((node) => [node.id, node]));
 
+// Each step plays over its quarter of the scene; a reader who stops is carried to the end of
+// one step at a time (just short of the next, which would start it), the last one included.
+const AUTO_STOPS = WORKFLOW_STEPS.map((_, index) => (index + 1) / WORKFLOW_STEPS.length - 0.005);
+
 const stepAt = (progress) => Math.min(WORKFLOW_STEPS.length - 1, Math.floor(progress * WORKFLOW_STEPS.length));
 
-const WorkflowScene = () => {
+const WorkflowScene = ({ motion = false }) => {
     const sectionRef = useRef(null);
     const typedRef = useRef(null);
     const [step, setStep] = useState(0);
 
+    useIdleAutoScroll(sectionRef, { enabled: motion, stops: AUTO_STOPS });
     useScrollProgress(sectionRef, {
         mode: 'pin',
         onProgress: (progress) => {

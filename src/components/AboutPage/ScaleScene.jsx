@@ -6,7 +6,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 import { FIELD_TYPES, createKnowledgeField } from './knowledgeField';
-import { clamp01, easeOut, segment, useScrollProgress } from './motion';
+import { clamp01, easeOut, segment, useIdleAutoScroll, useScrollProgress } from './motion';
 
 export const SCALE_STAGES = [
     {
@@ -31,6 +31,9 @@ const STAGE_STARTS = [0, 0.33, 0.64];
 const stageAt = (progress) => (progress < STAGE_STARTS[1] ? 0 : progress < STAGE_STARTS[2] ? 1 : 2);
 
 const COUNT_MS = 1400;
+// Where a reader who stops is carried, one figure at a time: just into the second and third
+// figures, then the end of the third, short of the dark lifting at 0.93.
+const AUTO_STOPS = [STAGE_STARTS[1] + 0.01, STAGE_STARTS[2] + 0.01, 0.9];
 
 const countTo = (value, t) => {
     const [, digits, suffix] = /^([\d.]+)(.*)$/.exec(value);
@@ -49,6 +52,7 @@ const ScaleScene = ({ motion }) => {
     const countFrameRef = useRef(0);
     const [stage, setStage] = useState(0);
 
+    useIdleAutoScroll(sectionRef, { enabled: motion, stops: AUTO_STOPS });
     useScrollProgress(sectionRef, {
         mode: 'pin',
         onProgress: (progress, rect, viewport) => {
