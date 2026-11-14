@@ -75,6 +75,84 @@ export const useScrollProgress = (ref, { mode = 'pass', property = '--p', onProg
     }, [ref, mode, property]);
 };
 
+/** The element that actually scrolls the page: the nearest scrolling ancestor, else the document. */
+const scrollParentOf = (element) => {
+    for (let node = element?.parentElement; node; node = node.parentElement) {
+        const { overflowY } = window.getComputedStyle(node);
+        if (/(auto|scroll)/.test(overflowY) && node.scrollHeight > node.clientHeight) return node;
+    }
+    return document.scrollingElement || document.documentElement;
+};
+
+const USER_INPUT = ['wheel', 'touchstart', 'touchmove', 'keydown', 'pointerdown'];
+
+/**
+ * Finishes a pinned scene for a reader who stopped inside it: after `idleMs` without any
+ * input, while the scene is on screen and its progress is short of `until`, the page glides
+ * on to `until` as if the reader had kept scrolling, and stops there, still inside the
+ * scene. Any wheel, touch, key or click takes the page straight back.
+ */
+export const useIdleAutoScroll = (ref, { enabled = true, until = 1, idleMs = 1200, pxPerMs = 0.45 } = {}) => {
+    useEffect(() => {
+        const element = ref.current;
+        if (!element || !enabled) return undefined;
+        let idleTimer = 0;
+        let frame = 0;
+        let gliding = false;
+
+        const stop = () => {
+            if (frame) window.cancelAnimationFrame(frame);
+            frame = 0;
+            gliding = false;
+        };
+
+        const glide = () => {
+            const rect = element.getBoundingClientRect();
+            const viewport = window.innerHeight || 1;
+            const span = rect.height - viewport;
+            // Only once the reader has arrived: the scene mostly on screen, not yet done.
+            if (span <= 0 || rect.top > viewport * 0.25 || rect.bottom < viewport) return;
+            const progress = measureProgress(rect, viewport, 'pin');
+            if (progress >= until - 0.01) return;
+            const scroller = scrollParentOf(element);
+            const from = scroller.scrollTop;
+            const distance = rect.top + until * span;   // to where progress == until
+            if (distance <= 1) return;
+            const duration = Math.min(2600, Math.max(700, distance / pxPerMs));
+            const start = performance.now();
+            gliding = true;
+            const step = (now) => {
+                const t = clamp01((now - start) / duration);
+                scroller.scrollTop = from + distance * easeInOut(t);
+                if (t < 1 && gliding) frame = window.requestAnimationFrame(step);
+                else stop();
+            };
+            frame = window.requestAnimationFrame(step);
+        };
+
+        const rearm = () => {
+            window.clearTimeout(idleTimer);
+            idleTimer = window.setTimeout(glide, idleMs);
+        };
+        const onInput = () => {
+            stop();
+            rearm();
+        };
+        // The glide's own frames scroll the page too; only the reader's scrolling rearms.
+        const onScroll = () => { if (!gliding) rearm(); };
+
+        USER_INPUT.forEach((type) => window.addEventListener(type, onInput, { passive: true, capture: true }));
+        window.addEventListener('scroll', onScroll, { passive: true, capture: true });
+        rearm();
+        return () => {
+            window.clearTimeout(idleTimer);
+            stop();
+            USER_INPUT.forEach((type) => window.removeEventListener(type, onInput, { capture: true }));
+            window.removeEventListener('scroll', onScroll, { capture: true });
+        };
+    }, [ref, enabled, until, idleMs, pxPerMs]);
+};
+
 /** True unless the reader asked for reduced motion. False during the prerender. */
 export const useMotionAllowed = () => {
     const [allowed, setAllowed] = useState(false);

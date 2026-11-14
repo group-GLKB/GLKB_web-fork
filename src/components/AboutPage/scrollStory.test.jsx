@@ -8,14 +8,13 @@ import { EXAMPLE_QUESTIONS } from './exampleQuestions';
 import { PAGE_SECTIONS } from './LocalNav';
 import { BENCHMARK, REVIEW_STEPS } from './ReviewScene';
 import { posts } from '../Blog/posts';
-import { measureProgress, segment } from './motion';
+import { measureProgress, segment, useIdleAutoScroll } from './motion';
+import faqData from './faqData.json';
 import { USE_CASES } from './useCases';
 import { useAuth } from '../Auth/AuthContext';
 
 jest.mock('../Auth/AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('react-helmet-async', () => ({ Helmet: () => null }));
-jest.mock('@mui/icons-material/Add', () => () => null);
-jest.mock('@mui/icons-material/Remove', () => () => null);
 jest.mock('@mui/icons-material/ChevronRight', () => () => null);
 
 beforeEach(() => { useAuth.mockReturnValue({ isAuthenticated: false, loading: false, openLoginModal: jest.fn() }); });
@@ -232,5 +231,76 @@ describe('the blog', () => {
         const news = container.querySelector('.about-hero-news');
         expect(news.getAttribute('href')).toBe(`/blog/${posts[0].slug}`);
         posts.forEach((post) => expect(container.querySelector(`#from-the-lab a[href="/blog/${post.slug}"]`).textContent).toContain(post.title));
+    });
+});
+
+describe('the FAQ', () => {
+    it('opens one answer at a time, the first one to start with, without reflowing the columns', () => {
+        const { container } = render(<MemoryRouter><AboutPage /></MemoryRouter>);
+        const columns = container.querySelectorAll('.about-faq-column');
+        expect(columns).toHaveLength(2);
+        const before = [...columns].map((column) => column.textContent);
+        const first = screen.getByRole('button', { name: faqData[0].question });
+        expect(first.getAttribute('aria-expanded')).toBe('true');
+        const last = screen.getByRole('button', { name: faqData[faqData.length - 1].question });
+        fireEvent.click(last);
+        expect(last.getAttribute('aria-expanded')).toBe('true');
+        expect(first.getAttribute('aria-expanded')).toBe('false');
+        // Every answer stays in the page (for search engines); only the open one is shown.
+        expect(screen.getByRole('region', { name: faqData[faqData.length - 1].question }).textContent).toBe(faqData[faqData.length - 1].answer);
+        expect([...container.querySelectorAll('.about-faq-column')].map((column) => column.textContent)).toEqual(before);
+        fireEvent.click(last);
+        expect(last.getAttribute('aria-expanded')).toBe('false');
+    });
+});
+
+describe('the idle auto-scroll', () => {
+    function Scene({ until }) {
+        const ref = React.useRef(null);
+        useIdleAutoScroll(ref, { until, idleMs: 1000 });
+        return <section ref={ref} />;
+    }
+
+    const setup = (top) => {
+        jest.useFakeTimers();
+        window.innerHeight = 800;
+        const scroller = document.scrollingElement || document.documentElement;
+        scroller.scrollTop = 1000;
+        let frames = [];
+        jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => { frames.push(cb); return frames.length; });
+        jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => { frames = []; });
+        jest.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ top, bottom: top + 2400, height: 2400 });
+        const flush = (now) => { const run = frames; frames = []; run.forEach((cb) => cb(now)); };
+        return { scroller, flush };
+    };
+
+    afterEach(() => { jest.useRealTimers(); jest.restoreAllMocks(); });
+
+    it('carries a reader who stopped inside the scene to `until`, and no further', () => {
+        const { scroller, flush } = setup(-400);   // progress 0.25 of a 1600px span
+        render(<Scene until={0.75} />);
+        jest.advanceTimersByTime(1000);
+        const start = performance.now();
+        flush(start);
+        flush(start + 100000);
+        // to progress 0.75: 1600 * 0.75 = 1200 below the scene's top, which is 400 above the viewport's
+        expect(scroller.scrollTop).toBe(1000 + 800);
+    });
+
+    it('stops the moment the reader scrolls', () => {
+        const { scroller, flush } = setup(-400);
+        render(<Scene until={0.75} />);
+        jest.advanceTimersByTime(1000);
+        fireEvent.wheel(window);
+        flush(performance.now() + 100000);
+        expect(scroller.scrollTop).toBe(1000);
+    });
+
+    it('leaves a scene the reader has not reached, or has already finished', () => {
+        const { scroller, flush } = setup(600);    // still mostly below the fold
+        render(<Scene until={0.75} />);
+        jest.advanceTimersByTime(1000);
+        flush(performance.now() + 100000);
+        expect(scroller.scrollTop).toBe(1000);
     });
 });

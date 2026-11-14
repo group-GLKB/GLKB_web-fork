@@ -26,9 +26,7 @@ import {
     useNavigate,
 } from 'react-router-dom';
 
-import AddIcon from '@mui/icons-material/Add';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import RemoveIcon from '@mui/icons-material/Remove';
 
 import teamLogo from '../../img/about/frame11/logo 1.png';
 import logoHarvard from '../../img/about/v2/trusted/harvard.png';
@@ -60,6 +58,7 @@ import {
     Track,
     easeInOut,
     segment,
+    useIdleAutoScroll,
     useMotionAllowed,
     useReveal,
     useScrollProgress,
@@ -104,6 +103,12 @@ const STATEMENT = [
     ['exactly where every answer comes from.', true],
 ];
 const STATEMENT_WORDS = STATEMENT.flatMap(([text, accent]) => text.split(' ').map((word) => [word, accent]));
+// The pin progress at which the last word is fully lit (scoped.css: --p * 1.35 reaches 1), and a little after.
+const STATEMENT_LIT_AT = 0.78;
+
+// The FAQ's two columns: the first half of the questions, then the rest.
+const FAQ_SPLIT = Math.ceil(faqData.length / 2);
+const FAQ_COLUMNS = [faqData.slice(0, FAQ_SPLIT), faqData.slice(FAQ_SPLIT)];
 
 /* Figma 604:7399 — the three cards under the wide one. */
 const DIFFERENTIATORS = [
@@ -155,6 +160,9 @@ const AboutPage = () => {
         },
     });
     useScrollProgress(statementRef, { mode: 'pin' });
+    // Every word is lit once progress reaches 1 / 1.35 (the CSS's --lit); a reader who stops
+    // part-way is carried there, and no further, so the next scene is theirs to scroll to.
+    useIdleAutoScroll(statementRef, { enabled: motion, until: STATEMENT_LIT_AT });
 
     // The screen starts just under the copy, however tall the copy is at this width (it
     // wraps differently per window, and a news line can sit above the title).
@@ -542,26 +550,39 @@ const AboutPage = () => {
                 <section className="about-section about-faq" id="faq">
                     <div className="about-inner">
                         <h2 className="about-heading about-faq-heading" data-reveal>Frequently Asked Questions</h2>
+                        {/* Two fixed columns rather than CSS columns: an answer opening in one
+                            column must not reflow questions into the other. */}
                         <div className="about-faq-columns">
-                            {faqData.map((item) => {
-                                const isOpen = openFaqId === item.id;
-                                return (
-                                    <details open={isOpen} className={`about-faq-item${isOpen ? ' is-open' : ''}`} key={item.id}>
-                                        <summary
-                                            className="about-faq-question"
-                                            aria-expanded={isOpen}
-                                            aria-controls={`faq-${item.id}`}
-                                            onClick={(event) => { event.preventDefault(); setOpenFaqId(isOpen ? null : item.id); }}
-                                        >
-                                            <span>{item.question}</span>
-                                            <span className="about-faq-toggle" aria-hidden="true">
-                                                {isOpen ? <RemoveIcon /> : <AddIcon />}
-                                            </span>
-                                        </summary>
-                                        <p className="about-faq-answer" id={`faq-${item.id}`}>{item.answer}</p>
-                                    </details>
-                                );
-                            })}
+                            {FAQ_COLUMNS.map((column, columnIndex) => (
+                                // eslint-disable-next-line react/no-array-index-key
+                                <div className="about-faq-column" key={columnIndex}>
+                                    {column.map((item) => {
+                                        const isOpen = openFaqId === item.id;
+                                        return (
+                                            <div className={`about-faq-item${isOpen ? ' is-open' : ''}`} key={item.id}>
+                                                <h3 className="about-faq-heading-row">
+                                                    <button
+                                                        type="button"
+                                                        className="about-faq-question"
+                                                        id={`faq-q-${item.id}`}
+                                                        aria-expanded={isOpen}
+                                                        aria-controls={`faq-${item.id}`}
+                                                        onClick={() => setOpenFaqId(isOpen ? null : item.id)}
+                                                    >
+                                                        <span>{item.question}</span>
+                                                        <span className="about-faq-toggle" aria-hidden="true" />
+                                                    </button>
+                                                </h3>
+                                                <div className="about-faq-panel" id={`faq-${item.id}`} role="region" aria-labelledby={`faq-q-${item.id}`}>
+                                                    <div className="about-faq-panel-inner">
+                                                        <p className="about-faq-answer">{item.answer}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </section>

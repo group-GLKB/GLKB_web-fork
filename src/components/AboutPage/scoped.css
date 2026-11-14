@@ -101,7 +101,7 @@
     border-radius: 999px;
     font-size: 12px;
     font-weight: 500;
-    line-height: 18px;
+    line-height: 16px;
     white-space: nowrap;
     box-shadow: 0 6px 18px rgba(12, 16, 24, 0.06);
 }
@@ -111,7 +111,7 @@
 .about-hero-term.is-chemical { color: var(--color-node-chemical-text); border-color: var(--color-node-chemical-border); background-color: var(--color-node-chemical-fill); }
 .about-hero-term.is-variant { color: var(--color-node-variant-text); border-color: var(--color-node-variant-border); background-color: var(--color-node-variant-fill); }
 .about-hero-layer--1 .about-hero-term { opacity: 0.5; transform: translate(-50%, -50%) scale(0.86); }
-.about-hero-layer--3 .about-hero-term { padding: 6px 13px; font-size: 13px; }
+.about-hero-layer--3 .about-hero-term { padding: 6px 13px; font-size: 14px; }
 
 .about-hero-copy {
     position: relative;
@@ -127,19 +127,18 @@
 
 .about-hero-title {
     margin: 8px 0 0;
-    font-size: 56px;
+    font-size: 48px;
     font-weight: 800;
-    line-height: 64px;
-    letter-spacing: -0.02em;
+    line-height: 56px;
     color: var(--color-text-secondary);
 }
 
 .about-hero-lede {
     margin: 20px 0 0;
     max-width: 560px;
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 400;
-    line-height: 28px;
+    line-height: 26px;
     color: var(--color-text-tertiary);
 }
 
@@ -231,7 +230,6 @@
         0 20px 30px 0 rgba(0, 0, 0, 0.1),
         0 10px 50px 0 rgba(0, 0, 0, 0.05);
     overflow: hidden;
-    font-family: -apple-system, 'SF Pro Text', 'Segoe UI', sans-serif;
 }
 
 .about-browser-tabs {
@@ -595,17 +593,22 @@
 }
 
 .about-faq-columns {
-    column-count: 2;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
     column-gap: 48px;
 }
 
 .about-faq-item {
-    break-inside: avoid;
     border-bottom: 1px solid var(--color-border-default);
 }
 
+.about-faq-heading-row {
+    margin: 0;
+    font: inherit;
+}
+
 .about-faq-question {
-    list-style: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -617,27 +620,87 @@
     font-family: 'Geist', sans-serif;
     font-size: 16px;
     font-weight: 600;
-    line-height: 24px;
+    line-height: 26px;
     color: var(--color-text-primary);
     text-align: left;
     cursor: pointer;
+    transition: color 0.2s ease;
 }
 
+.about-faq-question:hover {
+    color: var(--color-brand-primary);
+}
+
+.about-faq-question:focus-visible {
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-1);
+}
+
+/* A plus drawn in CSS: its upright folds away to a minus as the answer opens. */
 .about-faq-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: relative;
     flex: 0 0 auto;
     width: 24px;
     height: 24px;
     border: 1px solid var(--color-border-strong);
     border-radius: 50%;
     color: var(--color-text-tertiary);
+    transition: border-color 0.25s ease, color 0.25s ease, background-color 0.25s ease, transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-.about-faq-toggle svg {
-    width: 14px;
-    height: 14px;
+.about-faq-toggle::before,
+.about-faq-toggle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 1.5px;
+    border-radius: 1px;
+    background-color: currentColor;
+    transform: translate(-50%, -50%);
+    transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), opacity 0.25s ease;
+}
+
+.about-faq-toggle::after {
+    transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.about-faq-question:hover .about-faq-toggle,
+.about-faq-item.is-open .about-faq-toggle {
+    border-color: var(--color-brand-primary);
+    color: var(--color-brand-primary);
+}
+
+.about-faq-item.is-open .about-faq-toggle {
+    background-color: var(--color-brand-subtle);
+    transform: rotate(180deg);
+}
+
+.about-faq-item.is-open .about-faq-toggle::after {
+    transform: translate(-50%, -50%) rotate(90deg) scaleX(0);
+    opacity: 0;
+}
+
+/* The answer's height animates through the grid row (0fr to 1fr), so it eases open to
+   whatever height the text takes instead of jumping there. */
+.about-faq-panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    visibility: hidden;
+    transition: grid-template-rows 0.38s cubic-bezier(0.2, 0.7, 0.2, 1), visibility 0s linear 0.38s;
+}
+
+.about-faq-item.is-open .about-faq-panel {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    transition: grid-template-rows 0.38s cubic-bezier(0.2, 0.7, 0.2, 1), visibility 0s linear 0s;
+}
+
+.about-faq-panel-inner {
+    min-height: 0;
+    overflow: hidden;
 }
 
 .about-faq-answer {
@@ -646,6 +709,27 @@
     font-size: 14px;
     line-height: 22px;
     color: var(--color-text-tertiary);
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.2s ease, transform 0.38s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.about-faq-item.is-open .about-faq-answer {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.3s ease 0.08s, transform 0.38s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .about-faq-panel,
+    .about-faq-item.is-open .about-faq-panel,
+    .about-faq-answer,
+    .about-faq-item.is-open .about-faq-answer,
+    .about-faq-toggle,
+    .about-faq-toggle::before,
+    .about-faq-toggle::after {
+        transition: none;
+    }
 }
 
 /* ---------------------------------------------------------------- responsive */
@@ -701,8 +785,8 @@
     }
 
     .about-hero-title {
-        font-size: 34px;
-        line-height: 42px;
+        font-size: 32px;
+        line-height: 40px;
     }
 
     .about-hero-lede {
@@ -766,7 +850,7 @@
     
 
     .about-faq-columns {
-        column-count: 1;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     
@@ -838,10 +922,9 @@
 .about-statement-text {
     max-width: 1040px;
     margin: 0;
-    font-size: 52px;
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 56px;
     color: var(--color-text-primary);
 }
 
@@ -963,7 +1046,7 @@
 
 .about-scale-label {
     margin-top: 14px;
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 600;
     line-height: 28px;
     color: var(--color-neutral-white);
@@ -1027,8 +1110,8 @@
     margin: 0;
     padding: 0;
     list-style: none;
-    font-size: 13px;
-    line-height: 18px;
+    font-size: 14px;
+    line-height: 22px;
     color: var(--color-grey-300);
     opacity: 0;
     transform: translate(-50%, 12px);
@@ -1109,7 +1192,7 @@
     height: 36px;
     border: 2px solid var(--color-border-strong);
     border-radius: 50%;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--color-text-tertiary);
     transition:
@@ -1131,9 +1214,9 @@
 
 .about-flow-step-name {
     margin: 7px 0 0;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
-    line-height: 22px;
+    line-height: 20px;
     color: var(--color-text-tertiary);
     transition: color 0.3s ease;
 }
@@ -1146,8 +1229,8 @@
     max-height: 0;
     margin: 0;
     overflow: hidden;
-    font-size: 15px;
-    line-height: 24px;
+    font-size: 16px;
+    line-height: 26px;
     color: var(--color-text-tertiary);
     opacity: 0;
     transition:
@@ -1258,7 +1341,7 @@
 .about-flow-greeting {
     margin: 0 0 20px;
     font-size: 24px;
-    font-weight: 700;
+    font-weight: 600;
     line-height: 32px;
     color: var(--color-text-primary);
 }
@@ -1279,8 +1362,8 @@
 .about-flow-typed {
     flex: 1 0 0;
     align-self: flex-start;
-    font-size: 15px;
-    line-height: 24px;
+    font-size: 14px;
+    line-height: 22px;
     color: var(--color-text-primary);
 }
 
@@ -1324,8 +1407,8 @@
     padding: 4px 12px;
     border: 1px solid var(--color-border-default);
     border-radius: 999px;
-    font-size: 13px;
-    line-height: 20px;
+    font-size: 14px;
+    line-height: 22px;
     color: var(--color-text-tertiary);
 }
 
@@ -1338,7 +1421,7 @@
     border-radius: 14px 14px 4px 14px;
     background-color: var(--color-brand-soft);
     font-size: 14px;
-    line-height: 21px;
+    line-height: 22px;
     color: var(--color-text-primary);
 }
 
@@ -1347,8 +1430,8 @@
     align-items: center;
     gap: 8px;
     margin: 16px 0 0;
-    font-size: 13px;
-    line-height: 20px;
+    font-size: 14px;
+    line-height: 22px;
     color: var(--color-text-tertiary);
 }
 
@@ -1382,7 +1465,7 @@
 }
 
 .about-flow-edge text {
-    font-size: 11px;
+    font-size: 12px;
     fill: var(--color-text-tertiary);
     opacity: clamp(0, var(--s1, 1) * 3.2 - var(--k) * 0.45 - 0.6, 1);
 }
@@ -1426,7 +1509,7 @@
 
 .about-flow-paper-title {
     overflow: hidden;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     line-height: 18px;
     color: var(--color-text-secondary);
@@ -1451,8 +1534,8 @@
 
 .about-flow-answer-title {
     margin: 0 0 8px;
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     color: var(--color-text-primary);
     opacity: clamp(0, var(--s2, 1) * 8, 1);
 }
@@ -1477,7 +1560,7 @@
     background-color: var(--color-grey-100);
     font-size: 10px;
     font-weight: 600;
-    line-height: 16px;
+    line-height: 12px;
     color: var(--color-text-tertiary);
     vertical-align: 1px;
     transition:
@@ -1533,14 +1616,14 @@
     height: 18px;
     border-radius: 4px;
     background-color: var(--color-brand-primary);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--color-neutral-white);
 }
 
 .about-flow-source-title {
     margin: 0;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     line-height: 18px;
     color: var(--color-text-primary);
@@ -1557,7 +1640,7 @@
 .about-flow-source-quote {
     margin: 8px 0 4px;
     font-size: 12px;
-    line-height: 18px;
+    line-height: 20px;
     color: var(--color-text-secondary);
 }
 
@@ -1610,8 +1693,8 @@
 
 .about-ask-hint {
     margin: 12px 0 0;
-    font-size: 15px;
-    line-height: 22px;
+    font-size: 16px;
+    line-height: 26px;
     color: var(--color-text-secondary);
 }
 
@@ -1630,8 +1713,8 @@
     border: 1px solid var(--color-border-default);
     border-radius: 999px;
     background-color: var(--color-background-subtle);
-    font-size: 15px;
-    line-height: 22px;
+    font-size: 14px;
+    line-height: 18px;
     color: var(--color-text-secondary);
     white-space: nowrap;
     text-decoration: none;
@@ -1676,7 +1759,7 @@
     border-radius: 50%;
     background-color: var(--color-brand-soft);
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-brand-primary);
 }
 
@@ -1757,7 +1840,7 @@
 
     .about-scale-label {
         margin-top: 8px;
-        font-size: 18px;
+        font-size: 16px;
     }
 
     .about-scale-body {
@@ -1812,7 +1895,7 @@
     .about-flow-step-number {
         width: 28px;
         height: 28px;
-        font-size: 13px;
+        font-size: 14px;
     }
 
     .about-flow-step-name {
@@ -1843,7 +1926,7 @@
     }
 
     .about-flow-greeting {
-        font-size: 18px;
+        font-size: 16px;
     }
 
     .about-flow-graph {
@@ -1866,7 +1949,7 @@
 
     .about-ask-hint {
         font-size: 14px;
-        line-height: 20px;
+        line-height: 22px;
     }
 
     /* A whole question per chip, on two lines, rather than a slice of one. */
@@ -1874,7 +1957,7 @@
         align-items: center;
         max-width: 76vw;
         font-size: 14px;
-        line-height: 20px;
+        line-height: 18px;
         white-space: normal;
         border-radius: 18px;
     }
@@ -1895,7 +1978,7 @@
 
     .about-scale-heading {
         font-size: 20px;
-        line-height: 27px;
+        line-height: 28px;
     }
 
     .about-scale-stats {
@@ -1904,7 +1987,7 @@
     }
 
     .about-scale-value {
-        font-size: 52px;
+        font-size: 48px;
     }
 
     .about-scale-label {
@@ -1912,12 +1995,12 @@
     }
 
     .about-scale-body {
-        font-size: 13px;
-        line-height: 20px;
+        font-size: 14px;
+        line-height: 22px;
     }
 
     .about-flow .about-heading {
-        font-size: 22px;
+        font-size: 20px;
         line-height: 28px;
     }
 
@@ -1932,8 +2015,8 @@
     .about-flow-caption {
         min-height: 60px;
         margin-top: 8px;
-        font-size: 13px;
-        line-height: 20px;
+        font-size: 14px;
+        line-height: 22px;
     }
 
     .about-flow-window {
@@ -1958,8 +2041,8 @@
     .about-flow-typed,
     .about-flow-question,
     .about-flow-answer {
-        font-size: 13px;
-        line-height: 19px;
+        font-size: 14px;
+        line-height: 22px;
     }
 
     .about-flow-source {
@@ -2034,8 +2117,8 @@
     flex: none;
     align-items: center;
     gap: 8px;
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     color: var(--color-text-primary);
     text-decoration: none;
 }
@@ -2057,7 +2140,7 @@
 .about-localnav-links a {
     position: relative;
     display: block;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     line-height: 52px;
     color: var(--color-text-tertiary);
@@ -2131,7 +2214,7 @@
     border-radius: var(--radius-2);
     background-color: var(--color-brand-primary);
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--color-text-inverse);
     cursor: pointer;
@@ -2202,7 +2285,7 @@
     gap: 14px;
     padding: 12px 14px;
     border-radius: 10px;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--color-text-secondary);
     text-decoration: none;
@@ -2397,8 +2480,8 @@
 /* ---------------------------------------------------------------- the sample's note */
 .about-sample-note {
     margin: 12px 0 0;
-    font-size: 13px;
-    line-height: 20px;
+    font-size: 14px;
+    line-height: 22px;
     color: var(--color-text-tertiary);
 }
 
@@ -2423,11 +2506,11 @@
    From the Lab, the use cases and the numbers. Tokens or rgba only (paletteDiscipline). */
 .about-display {
     margin: 8px 0 0;
-    font-size: 48px;
+    font-size: 32px;
     font-weight: 700;
-    line-height: 1.08;
-    letter-spacing: -0.02em;
+    line-height: 40px;
     color: var(--color-text-primary);
+    text-wrap: balance;
 }
 
 /* ---------------------------------------------------------------- hero: the newest post */
@@ -2442,7 +2525,7 @@
     border-radius: 999px;
     background-color: var(--color-background-surface);
     font-size: 14px;
-    line-height: 20px;
+    line-height: 22px;
     color: var(--color-text-secondary);
     text-decoration: none;
     box-shadow: 0 1px 2px rgba(12, 16, 24, 0.05);
@@ -2461,7 +2544,7 @@
     border-radius: 999px;
     background-color: var(--color-brand-primary);
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-neutral-white);
 }
 
@@ -2561,8 +2644,8 @@
     border: 1px solid var(--color-border-default);
     border-radius: 50%;
     background-color: var(--color-background-surface);
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     color: var(--color-text-tertiary);
     transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
@@ -2570,13 +2653,13 @@
 .about-review-step-name {
     font-size: 16px;
     font-weight: 600;
-    line-height: 24px;
+    line-height: 26px;
     color: var(--color-text-primary);
 }
 
 .about-review-step-text {
     font-size: 14px;
-    line-height: 21px;
+    line-height: 22px;
     color: var(--color-text-secondary);
 }
 
@@ -2650,7 +2733,7 @@
     margin: 0 auto;
     padding-right: 46px;
     font-size: 12px;
-    line-height: 18px;
+    line-height: 20px;
 }
 
 .about-review-stepper span {
@@ -2700,7 +2783,7 @@
 
 .about-review-label {
     display: block;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     line-height: 16px;
     letter-spacing: 0.06em;
@@ -2711,9 +2794,9 @@
 .about-rv-heading {
     display: block;
     margin: 6px 0 16px;
-    font-size: 17px;
-    font-weight: 700;
-    line-height: 24px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 26px;
     color: var(--color-text-primary);
 }
 
@@ -2738,8 +2821,8 @@
     border: 1px solid var(--color-brand-primary);
     border-radius: 10px;
     box-shadow: 0 0 0 3px var(--color-brand-soft);
-    font-size: 13.5px;
-    line-height: 20px;
+    font-size: 14px;
+    line-height: 22px;
     color: var(--color-text-primary);
     white-space: nowrap;
     overflow: hidden;
@@ -2784,7 +2867,7 @@
     padding: 8px 14px;
     border-radius: 10px;
     background-color: var(--color-brand-primary);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--color-neutral-white);
 }
@@ -2807,8 +2890,8 @@
     padding: 8px 10px;
     border: 1px solid var(--color-border-default);
     border-radius: 10px;
-    font-size: 12.5px;
-    line-height: 17px;
+    font-size: 12px;
+    line-height: 16px;
     color: var(--color-text-primary);
     opacity: var(--planned);
     transform: translateY(calc((1 - var(--planned)) * 8px));
@@ -2848,7 +2931,7 @@
 
 .about-rv-meter {
     margin-top: auto;
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--color-text-secondary);
 }
@@ -2915,8 +2998,8 @@
     padding: 6px 10px;
     border-radius: 8px;
     background-color: var(--color-background-subtle);
-    font-size: 12.5px;
-    line-height: 17px;
+    font-size: 12px;
+    line-height: 16px;
     color: var(--color-text-primary);
 }
 
@@ -2931,7 +3014,7 @@
     justify-self: end;
     padding: 1px 8px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     line-height: 16px;
 }
@@ -2955,7 +3038,7 @@
 
 .about-rv-hint {
     margin-top: auto;
-    font-size: 12.5px;
+    font-size: 12px;
     color: var(--color-text-tertiary);
 }
 
@@ -2983,8 +3066,8 @@
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    font-size: 12.5px;
-    line-height: 17px;
+    font-size: 12px;
+    line-height: 16px;
     color: var(--color-text-secondary);
 }
 
@@ -3005,9 +3088,9 @@
 .about-review-title {
     display: block;
     margin: 6px 0 16px;
-    font-size: 17px;
-    font-weight: 700;
-    line-height: 24px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 26px;
     color: var(--color-text-primary);
 }
 
@@ -3044,8 +3127,8 @@
     padding: 0 4px;
     border-radius: 4px;
     background-color: var(--color-brand-soft);
-    font-size: 10.5px;
-    font-weight: 700;
+    font-size: 10px;
+    font-weight: 600;
     color: var(--color-brand-primary);
     opacity: clamp(0, calc(var(--fill) * 4 - 3), 1);
 }
@@ -3072,20 +3155,20 @@
 }
 
 .about-review-popover-meta {
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 600;
     line-height: 16px;
     color: var(--color-text-secondary);
 }
 
 .about-review-popover-quote {
-    font-size: 12.5px;
-    line-height: 18px;
+    font-size: 12px;
+    line-height: 20px;
     color: var(--color-text-primary);
 }
 
 .about-review-popover-tag {
-    font-size: 11px;
+    font-size: 12px;
     line-height: 16px;
     color: var(--color-brand-primary);
 }
@@ -3101,7 +3184,7 @@
     padding: 0;
     list-style: decimal inside;
     font-size: 12px;
-    line-height: 17px;
+    line-height: 16px;
     color: var(--color-text-secondary);
 }
 
@@ -3113,8 +3196,8 @@
 
 .about-review-caption {
     margin-top: 12px;
-    font-size: 13px;
-    line-height: 18px;
+    font-size: 14px;
+    line-height: 22px;
     text-align: center;
     color: var(--color-text-tertiary);
 }
@@ -3134,8 +3217,7 @@
     margin: 8px 0 0;
     font-size: 32px;
     font-weight: 700;
-    line-height: 1.15;
-    letter-spacing: -0.015em;
+    line-height: 40px;
     color: var(--color-text-primary);
 }
 
@@ -3159,17 +3241,16 @@
 }
 
 .about-bench-facts dt {
-    font-size: 34px;
+    font-size: 32px;
     font-weight: 700;
     line-height: 40px;
-    letter-spacing: -0.02em;
     color: var(--color-text-primary);
 }
 
 .about-bench-facts dd {
     margin: 4px 0 0;
-    font-size: 13.5px;
-    line-height: 19px;
+    font-size: 14px;
+    line-height: 22px;
     color: var(--color-text-secondary);
 }
 
@@ -3179,7 +3260,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--color-brand-primary);
     text-decoration: none;
@@ -3219,16 +3300,16 @@
     display: grid;
     gap: 2px;
     margin-bottom: 18px;
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     line-height: 22px;
     color: var(--color-text-primary);
 }
 
 .about-bench-caption span {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 400;
-    line-height: 18px;
+    line-height: 22px;
     color: var(--color-text-tertiary);
 }
 
@@ -3255,7 +3336,7 @@
     display: grid;
     font-size: 14px;
     font-weight: 600;
-    line-height: 19px;
+    line-height: 18px;
     color: var(--color-text-primary);
 }
 
@@ -3293,8 +3374,8 @@
 
 .about-bench-track b {
     margin-left: 8px;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     color: var(--color-text-primary);
     font-variant-numeric: tabular-nums;
 }
@@ -3312,9 +3393,9 @@
     padding: 8px 10px;
     border-radius: 8px;
     background-color: var(--color-background-inverse);
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 600;
-    line-height: 17px;
+    line-height: 16px;
     color: var(--color-text-inverse);
     white-space: nowrap;
     opacity: 0;
@@ -3344,8 +3425,8 @@
     height: 18px;
     margin: 6px 0 0 210px;
     border-top: 1px solid var(--color-border-default);
-    font-size: 11px;
-    line-height: 18px;
+    font-size: 12px;
+    line-height: 20px;
     color: var(--color-text-tertiary);
 }
 
@@ -3358,7 +3439,7 @@
 .about-bench-source {
     margin: 14px 0 0;
     font-size: 12px;
-    line-height: 17px;
+    line-height: 16px;
     color: var(--color-text-tertiary);
 }
 
@@ -3483,7 +3564,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-text-tertiary);
 }
 
@@ -3491,22 +3572,21 @@
     padding: 1px 8px;
     border-radius: 999px;
     background-color: var(--color-brand-soft);
-    font-size: 11.5px;
+    font-size: 12px;
     color: var(--color-brand-primary);
 }
 
 .about-lab-card-title {
-    font-size: 21px;
-    font-weight: 700;
-    line-height: 1.25;
-    letter-spacing: -0.01em;
-    color: var(--color-text-primary);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 26px;
+    color: var(--color-text-secondary);
 }
 
 .about-lab-excerpt {
     display: -webkit-box;
-    font-size: 15px;
-    line-height: 22px;
+    font-size: 16px;
+    line-height: 26px;
     color: var(--color-text-secondary);
     overflow: hidden;
     -webkit-box-orient: vertical;
@@ -3537,8 +3617,8 @@
 
 .about-use-sub {
     margin: 14px 0 0;
-    font-size: 18px;
-    line-height: 28px;
+    font-size: 16px;
+    line-height: 26px;
     color: var(--color-text-secondary);
 }
 
@@ -3585,7 +3665,7 @@
     font: inherit;
     font-size: 14px;
     font-weight: 600;
-    line-height: 20px;
+    line-height: 18px;
     color: var(--color-text-secondary);
     white-space: nowrap;
     cursor: pointer;
@@ -3639,17 +3719,16 @@
 
 .about-uc-title {
     margin: 0;
-    font-size: 26px;
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: -0.01em;
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 32px;
     color: var(--color-text-primary);
 }
 
 .about-uc-lede {
     margin: 10px 0 0;
-    font-size: 15px;
-    line-height: 23px;
+    font-size: 14px;
+    line-height: 22px;
     color: var(--color-text-secondary);
 }
 
@@ -3667,7 +3746,7 @@
     padding: 11px 16px;
     border-radius: 20px 20px 6px 20px;
     background-color: var(--color-brand-primary);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     line-height: 22px;
     color: var(--color-neutral-white);
@@ -3701,8 +3780,8 @@
 .about-uc-answer {
     position: relative;
     max-height: 380px;
-    font-size: 15px;
-    line-height: 24px;
+    font-size: 14px;
+    line-height: 22px;
     color: var(--color-text-primary);
     overflow: hidden;
     -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 72%, transparent);
@@ -3735,9 +3814,9 @@
     padding: 0 4px;
     border-radius: 5px;
     background-color: var(--color-brand-soft);
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
     color: var(--color-brand-primary);
     vertical-align: 1px;
 }
@@ -3764,7 +3843,7 @@
 }
 
 .about-uc-free {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--color-text-tertiary);
 }
 
@@ -3780,8 +3859,8 @@
     align-items: baseline;
     justify-content: space-between;
     margin: 0 0 14px;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--color-text-secondary);
@@ -3789,7 +3868,6 @@
 
 .about-uc-sources-count {
     font-weight: 500;
-    letter-spacing: 0;
     text-transform: none;
     color: var(--color-text-tertiary);
 }
@@ -3839,7 +3917,7 @@
     margin-top: 8px !important;
     font-size: 14px;
     font-weight: 600;
-    line-height: 19px;
+    line-height: 18px;
     color: var(--color-text-primary);
     overflow: hidden;
     -webkit-box-orient: vertical;
@@ -3851,8 +3929,8 @@
     margin-top: 8px !important;
     padding-left: 10px;
     border-left: 2px solid var(--color-brand-soft);
-    font-size: 13px;
-    line-height: 19px;
+    font-size: 14px;
+    line-height: 22px;
     color: var(--color-text-secondary);
     overflow: hidden;
     -webkit-box-orient: vertical;
@@ -3941,11 +4019,13 @@
 
 .about-tile-value {
     position: relative;
-    font-size: 56px;
+    font-size: 48px;
     font-weight: 800;
     line-height: 1;
+    /* The bento's figures run to 112px, past any style in the system; at that size they keep
+       the tight tracking they were drawn with. */
     letter-spacing: -0.03em;
-    background-image: linear-gradient(100deg, var(--color-brand-primary), rgba(124, 92, 255, 1));
+    background-image: linear-gradient(100deg, var(--color-brand-primary), var(--color-purple-500));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -3960,14 +4040,14 @@
     position: relative;
     max-width: 360px;
     margin: 0;
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 600;
-    line-height: 24px;
+    line-height: 26px;
     color: var(--color-text-primary);
 }
 
 .about-tile--papers .about-tile-label {
-    font-size: 21px;
+    font-size: 20px;
     line-height: 28px;
 }
 
@@ -3994,7 +4074,7 @@
 }
 
 .about-tile--accuracy .about-tile-value {
-    background-image: linear-gradient(100deg, rgba(110, 231, 183, 1), rgba(96, 165, 250, 1));
+    background-image: linear-gradient(100deg, var(--color-green-300), var(--color-blue-300));
 }
 
 .about-tile--accuracy .about-tile-label {
@@ -4042,11 +4122,12 @@
 
 @media (max-width: 767px) {
     .about-display {
-        font-size: 32px;
+        font-size: 24px;
+        line-height: 32px;
     }
 
     .about-hero-news {
-        font-size: 13px;
+        font-size: 14px;
     }
 
     .about-review-inner {
@@ -4072,7 +4153,7 @@
     .about-review-stepper {
         gap: 2px;
         padding-right: 0;
-        font-size: 11px;
+        font-size: 12px;
     }
 
     .about-review-stepper span {
@@ -4112,8 +4193,8 @@
     }
 
     .about-review-title {
-        font-size: 15px;
-        line-height: 21px;
+        font-size: 14px;
+        line-height: 22px;
     }
 
     .about-review-popover {
@@ -4127,7 +4208,7 @@
     }
 
     .about-bench-title {
-        font-size: 26px;
+        font-size: 24px;
     }
 
     .about-bench-chart {
@@ -4166,12 +4247,13 @@
     }
 
     .about-lab-card-title {
-        font-size: 18px;
+        font-size: 16px;
+        line-height: 26px;
     }
 
     .about-use-sub {
         font-size: 16px;
-        line-height: 24px;
+        line-height: 26px;
     }
 
     .about-seg-wrap {
@@ -4184,7 +4266,7 @@
 
     .about-seg-button {
         padding: 8px 14px;
-        font-size: 13px;
+        font-size: 14px;
     }
 
     .about-uc-card {
@@ -4196,13 +4278,13 @@
     }
 
     .about-uc-title {
-        font-size: 21px;
+        font-size: 20px;
     }
 
     .about-uc-ask {
         max-width: 92%;
         font-size: 14px;
-        line-height: 20px;
+        line-height: 22px;
     }
 
     .about-uc-reply {
@@ -4249,7 +4331,7 @@
     }
 
     .about-tile-value {
-        font-size: 44px;
+        font-size: 40px;
     }
 
     .about-tile--papers .about-tile-value {
