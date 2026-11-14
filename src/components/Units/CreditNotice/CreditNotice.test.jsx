@@ -81,8 +81,12 @@ describe('the composer credit notice', () => {
         const { container, rerender } = render(<CreditNotice notice={null} />);
         expect(container.innerHTML).toBe('');
         rerender(<CreditNotice notice={{ level: 'low', text: '10 credits left this month.' }} />);
-        expect(screen.getByRole('status').textContent).toBe('10 credits left this month.');
+        expect(screen.getByRole('status').querySelector('.credit-float-text').textContent).toBe('10 credits left this month.');
         expect(screen.getByRole('status').className).toContain('credit-float-low');
+        // Credits are bought on the Account page, with the balance: the link opens its Buy more.
+        const buy = screen.getByRole('link', { name: 'Buy credits' });
+        expect(buy.getAttribute('href')).toBe('/account?buy=credits');
+        expect(buy.getAttribute('target')).toBe('_blank');
         rerender(<CreditNotice notice={null} />);
     });
 });
@@ -94,7 +98,7 @@ describe('the few words it shows', () => {
             .toBe('Investigate needs 30 credits · 10 left');
         const notice = noticeFor(usage(10), pricing, 'deep_research', 'advanced');
         render(<CreditNotice notice={notice} />);
-        expect(screen.getByRole('status').textContent).toBe('Investigate needs 30 credits · 10 left');
+        expect(screen.getByRole('status').querySelector('.credit-float-text').textContent).toBe('Investigate needs 30 credits · 10 left');
         expect(screen.getByTitle(notice.text)).toBeTruthy();
     });
 
@@ -121,7 +125,7 @@ describe('closing the notice', () => {
         expect(screen.queryByRole('status')).toBeNull();
         // Another answer spent credits: a new number, so it is back.
         rerender(<><CreditNotice notice={{ level: 'low', text: '5 credits left this month.' }} /></>);
-        expect(screen.getByRole('status').textContent).toBe('5 credits left this month.');
+        expect(screen.getByRole('status').querySelector('.credit-float-text').textContent).toBe('5 credits left this month.');
     });
 
     it('stays closed for the session', () => {

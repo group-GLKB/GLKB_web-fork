@@ -60,26 +60,36 @@ export const INVESTIGATE_ENABLED = true;
  * Off hides the entry points only; the page, the client and the pipeline stay in the codebase.
  */
 
-/**
- * Where a signed-in reader BUYS CREDITS: the e-Lucid store page for GLKB credits.
- *
- * The backend already credits a purchase there (`POST /api/v1/payment/elucid/webhook`,
- * glkb-backend `app/services/elucid_service.py`): $10 = 100 purchased credits that never
- * expire, spent after the free monthly allowance. The buyer is matched to a GLKB account by
- * the EMAIL used at checkout, so every entry tells the reader to use the address they sign in
- * with.
- *
- * Empty hides every "Buy credits" entry (the Account page row, the out-of-credits notice in
- * the chat): an entry with nowhere to go is worse than none. Set it to the store's URL to open
- * purchasing — nothing else needs to change.
- */
-export const CREDITS_PURCHASE_URL = '';
-
 export const PRODUCTION_HOSTS = ['glkb.org', 'www.glkb.org'];
 
 export const isProductionSite = (hostname = (typeof window !== 'undefined' ? window.location.hostname : '')) => (
     PRODUCTION_HOSTS.includes(String(hostname || '').toLowerCase())
 );
+
+/**
+ * Where a signed-in reader ADDS FUNDS: the U-M Innovation Partnerships store page for GLKB web
+ * access (a separate U-M site, with its own account).
+ *
+ * A payment there adds DOLLARS to the account's balance (`POST /api/v1/payment/elucid/webhook`,
+ * glkb-backend `app/services/elucid_service.py`), matched to a GLKB account by the EMAIL used at
+ * checkout. Dollars become web credits only on the Account page's "Buy more" (POST
+ * /balance/exchange, $0.10 a credit). The Account page asks before sending the reader there
+ * ("Leaving GLKB", Figma 244:4476).
+ *
+ * Empty hides Add funds and every "Buy credits" entry. On for dev.glkb.org and localhost, off on
+ * glkb.org until the production backend has the exchange (POST /balance/exchange, 2026-11-10)
+ * and the owner opens purchasing there: then drop the isProductionSite() test.
+ */
+export const STORE_URL = 'https://available-inventions.umich.edu/product/genomic-literature-knowledge-base---web-access';
+export const ADD_FUNDS_URL = isProductionSite() ? '' : STORE_URL;
+
+/**
+ * Where the chat's "Buy credits" entries (the out-of-credits notice and dialog) go: the Account
+ * page, opened on its Buy more dialog — credits are bought there, with the balance. A new tab, so
+ * the conversation stays where it was. Empty (no store configured) hides those entries.
+ */
+export const ACCOUNT_BUY_CREDITS_PATH = '/account?buy=credits';
+export const CREDITS_PURCHASE_URL = ADD_FUNDS_URL ? ACCOUNT_BUY_CREDITS_PATH : '';
 
 export const LITERATURE_REVIEW_ENABLED = true;
 

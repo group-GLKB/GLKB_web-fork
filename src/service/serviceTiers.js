@@ -60,6 +60,8 @@ const TIER_COPY = {
 const TIER_ORDER = ['premium', 'advanced', 'standard'];
 
 /** Used only when the pricing endpoint cannot be reached. */
+export const DEFAULT_CREDITS_PER_USD = 10;
+
 export const FALLBACK_PRICING = {
     default_service_tier: DEFAULT_TIER,
     prices: [
@@ -149,7 +151,11 @@ export const parsePricing = (raw) => {
     const defaultTier = tiers.some((t) => t.id === preferred)
         ? preferred
         : (tiers.find((t) => t.id === DEFAULT_TIER) || tiers[tiers.length - 1])?.id || DEFAULT_TIER;
-    return { defaultTier, tiers, efforts };
+    // $1 of balance buys this many credits (POST /balance/exchange); the backend's rate, $0.10 a
+    // credit since 2026-11-10, when a backend from before it names none.
+    const perUsd = Number(raw?.credits_per_usd);
+    const creditsPerUsd = Number.isFinite(perUsd) && perUsd > 0 ? perUsd : DEFAULT_CREDITS_PER_USD;
+    return { defaultTier, tiers, efforts, creditsPerUsd };
 };
 
 let pricingPromise = null;
