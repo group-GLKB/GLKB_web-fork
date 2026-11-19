@@ -1,0 +1,319 @@
+/* The composer's Options button and drawer — values from the design (GLKB Effort A). */
+.composer-options-trigger {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #46566C;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.composer-options-trigger:hover:not(:disabled),
+.composer-options-trigger.is-open {
+    background: #E5E9F0;
+}
+
+.composer-options-trigger:disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+
+.composer-options-trigger.is-compact {
+    width: 32px;
+    padding: 0;
+    justify-content: center;
+}
+
+.composer-options-trigger-icon {
+    width: 16px;
+    height: 16px;
+    opacity: .75;
+}
+
+.composer-options-trigger-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #155DFC;
+}
+
+.composer-options-trigger.is-compact .composer-options-trigger-dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+
+.composer-options-drawer.MuiPaper-root {
+    width: 380px;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    box-shadow: -16px 0 40px -16px rgba(12, 16, 24, .25);
+    font-family: 'Geist', sans-serif;
+    color: #0C1018;
+}
+
+.composer-options-drawer button {
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.composer-options-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid #E5E9F0;
+}
+
+.composer-options-title {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.composer-options-close {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #46566C;
+    font-size: 20px;
+    line-height: 1;
+}
+
+.composer-options-close:hover {
+    background: #F2F4F8;
+}
+
+.composer-options-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 4px 20px 16px;
+}
+
+.composer-options-section-title {
+    padding-top: 14px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.composer-options-section-sub {
+    margin-top: 3px;
+    font-size: 12px;
+    color: #5E6E87;
+}
+
+.composer-options-tool {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px 0 12px;
+    border-bottom: 1px solid #F2F4F8;
+}
+
+.composer-options-tool-icon {
+    width: 24px;
+    height: 24px;
+    margin-top: 1px;
+    color: #155DFC;
+}
+
+.composer-options-tool-main {
+    min-width: 0;
+}
+
+.composer-options-tool-label {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.composer-options-tool-desc {
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 17px;
+    color: #5E6E87;
+    text-wrap: pretty;
+}
+
+.composer-options-tool-choices {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.composer-options-choice {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid #E5E9F0;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    color: #222A38;
+}
+
+.composer-options-choice.is-on {
+    border-color: #BBCFFE;
+    background: #F2F6FF;
+}
+
+.composer-options-choice:disabled {
+    cursor: default !important;
+    opacity: .5;
+}
+
+.composer-options-radio {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid #CBD2E0;
+    display: grid;
+    place-items: center;
+}
+
+.composer-options-radio > span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: transparent;
+}
+
+.composer-options-choice.is-on .composer-options-radio {
+    border-color: #155DFC;
+}
+
+.composer-options-choice.is-on .composer-options-radio > span {
+    background: #155DFC;
+}
+
+.composer-options-tool-hint {
+    margin-top: 6px;
+    font-size: 11.5px;
+    line-height: 16px;
+    color: #8090AB;
+}
+
+.composer-options-filters {
+    padding-top: 12px;
+}
+
+.composer-options-filters-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #46566C;
+}
+
+.composer-options-filter {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.composer-options-filter-label {
+    font-size: 12px;
+    color: #5E6E87;
+}
+
+.composer-options-segmented {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    max-width: 100%;
+    padding: 2px;
+    border-radius: 8px;
+    background: #F2F4F8;
+}
+
+.composer-options-segmented button {
+    height: 26px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #5E6E87;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.composer-options-segmented button.is-on {
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(12, 16, 24, .08);
+    color: #0C1018;
+}
+
+.composer-options-filters-off {
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 17px;
+    color: #5E6E87;
+    text-wrap: pretty;
+}
+
+.composer-options-foot {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid #E5E9F0;
+}
+
+.composer-options-reset {
+    height: 40px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #46566C;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.composer-options-reset:hover {
+    background: #F2F4F8;
+}
+
+.composer-options-done {
+    flex: 1;
+    height: 40px;
+    border: 0;
+    border-radius: 10px;
+    background: #155DFC;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* The phone's model and effort, above Research tools. */
+.composer-options-group-title {
+    padding-top: 14px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.composer-options-group {
+    margin: 6px -12px 4px;
+}

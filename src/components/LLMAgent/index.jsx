@@ -67,6 +67,7 @@ import { emptyFunnel, mergeFunnel, settleFunnel } from './funnel';
    already cancelled) and a reader can meet more than one of them in a single run. */
 import { keepsWhatItWrote, stoppedMessageFor, withStoppedMessage } from './stopped';
 import InvestigateProgress, { formatElapsed } from './InvestigateProgress';
+import ChatProgress from './ChatProgress';
 import {
     mergeInvestigateDetail,
     mergeLiveKeywords,
@@ -75,12 +76,23 @@ import {
     mergePhaseMonotonic,
 } from './traceReplay';
 import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
+import SearchLimitNotice from './SearchLimitNotice';
+import { BuiltOnEarlierNote, FullInvestigationOffer } from './FollowupRouteNotice';
+import SelectionReply from './SelectionReply';
+import { addQuote, clipQuote, withQuotes } from './quoteReply';
+import {
+    investigateAttachmentsFor,
+    investigateHandoffState,
+    investigateQuestionFor,
+    showsSearchLimit,
+} from './searchLimit';
 import ReferenceHoverCard from './ReferenceHoverCard';
 import AnswerGraphForMessage from '../AnswerGraph/AnswerGraphForMessage';
+import { wantsAnswerGraphV2 } from '../AnswerGraph/answerGraphV2Data';
 import IconButton from '../Units/HintIconButton';
 import { splitAnswerForGraph } from '../AnswerGraph/answerGraph';
 import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
-import { resolveClarifyRound } from './clarifyRound';
+import { clarifyRoundFromPoll, resolveClarifyRound, withoutPendingAnswer } from './clarifyRound';
 import { sortReferences } from './referenceSort';
 import { resolveReferenceSourceIndex } from './referenceSource';
 import { mintSessionId } from './sessionId';
@@ -107,7 +119,9 @@ import {
   answerOptionsOf,
   extractProgress,
   inferInvestigatePhase,
+  searchLimitOf,
 } from '../../service/LLMAgent';
+import { followupRouteFields, routedPresentation } from '../../service/followupRoute';
 import { getCurrentUser } from '../../service/Auth';
 import { answerOptionsForTurn } from './answerOptions';
 import {
@@ -125,6 +139,7 @@ import {
   fetchConversations,
   getActiveConversationId,
   getConversations,
+  removeConversation,
   setActiveConversationId,
   setConversations,
   updateConversationMessages,
@@ -137,7 +152,26 @@ import {
   toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import { createQuerySubmitSuccessTracker, trackGtagEvent } from '../../utils/gtag';
-import { CREDITS_PURCHASE_URL } from '../../config/features';
+import { CREDITS_PURCHASE_URL, INVESTIGATE_ENABLED } from '../../config/features';
+import {
+    effortForRequest,
+    effortForTurn,
+    effortLabel,
+    effortOf,
+    effortsExpanded,
+    getEffortPref,
+    isDefaultEffort,
+    isDeepEffort,
+    isGuestLockedEffort,
+    messageEffort,
+    setEffortPref,
+    subscribeToEffortPref,
+} from '../../service/effortLevels';
+import {
+    answerFlags,
+    DEFAULT_COMPOSER_OPTIONS,
+    searchFilters,
+} from '../Units/ComposerOptions';
 import { useAuth } from '../Auth/AuthContext';
 import {
     NOTIFY_EMAIL_KEY,
@@ -154,11 +188,17 @@ import {
     setTierPref,
     subscribeToTierPref,
 } from '../../service/serviceTiers';
-import { refusalNeedsSignIn, refusalText } from '../../utils/refusals';
+import {
+    GUEST_INVESTIGATE_REASON,
+    guestEffortReason,
+    refusalNeedsSignIn,
+    refusalText,
+} from '../../utils/refusals';
 import {
     attachmentIdsOf,
     defaultQuestionFor,
     GUEST_ATTACH_REASON,
+    INVESTIGATE_ATTACH_LIMITS,
     normalizeAttachmentList,
 } from '../../service/attachments';
 import {
@@ -203,8 +243,9 @@ import {
     pmidFromHref,
     stripCitationsBlock,
 } from '../../utils/directCitations';
-import { MessageAttachments, useAttachments } from '../Units/AttachmentChips';
+import { attachmentBlockedNote, MessageAttachments, useAttachments } from '../Units/AttachmentChips';
 import CiteDialog from '../Units/CiteDialog';
+import { CreditDialog, noticeFor, usePricing } from '../Units/CreditNotice';
 import { cslFromCard, toBibTeX } from '../Units/CiteDialog/format';
 import { fetchCitations } from '../../service/Citation';
 import ErrorBoundary from '../Units/ErrorBoundary';
@@ -436,8 +477,11 @@ const areMessagesEqual = (left, right) => {
             thoughtDurationMs: leftMsg?.thoughtDurationMs,
             trajectory: leftMsg?.trajectory,
             invocationId: leftMsg?.invocationId,
+            messageId: leftMsg?.messageId,
             investigateMode: leftMsg?.investigateMode,
+            effort: leftMsg?.effort,
             modeSource: leftMsg?.modeSource,
+            followupRoute: leftMsg?.followupRoute,
         });
         const rightSignature = JSON.stringify({
             role: rightMsg?.role,
@@ -448,8 +492,11 @@ const areMessagesEqual = (left, right) => {
             thoughtDurationMs: rightMsg?.thoughtDurationMs,
             trajectory: rightMsg?.trajectory,
             invocationId: rightMsg?.invocationId,
+            messageId: rightMsg?.messageId,
             investigateMode: rightMsg?.investigateMode,
+            effort: rightMsg?.effort,
             modeSource: rightMsg?.modeSource,
+            followupRoute: rightMsg?.followupRoute,
         });
         if (leftSignature !== rightSignature) return false;
     }
@@ -1052,6 +1099,17 @@ const MessageCard = React.memo(function MessageCard({
     interactionLocked = false,
     conversationId,
     answerReady = false,
+    /* "Ask in Investigate" under a chat answer whose search was cut short (SearchLimitNotice),
+       with the tier its price is shown at; a guest is asked to sign in instead, so no price. */
+    onAskInInvestigate,
+    investigateTier = '',
+    isGuest = false,
+    /* "Run a full investigation" under an Investigate follow-up the agent answered from the
+       earlier investigation (FollowupRouteNotice): the same question again, forced past the
+       agent's router. Priced at `investigateTier`, like the notice above. */
+    onRunFullInvestigation,
+    // More than Medium and Extra are on offer: the answer shows the level it ran at.
+    effortsLive = false,
 }) {
     const isAssistant = message.role === "assistant";
     const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
@@ -1170,6 +1228,21 @@ const MessageCard = React.memo(function MessageCard({
     const thoughtDurationLabel = formatDuration(message.thoughtDurationMs);
     const investigatedDurationLabel = formatInvestigatedDuration(message.thoughtDurationMs);
     const isInvestigateMessage = Boolean(message.investigateMode);
+    /* How the agent chose to answer an Investigate follow-up (service/followupRoute.js). Live,
+       from the `followup_route` frame; settled, from the message. An `answer_from_prior` turn
+       was answered by the chat agent and is drawn as a chat answer — `isInvestigateReport` is
+       false for it — while the conversation stays Investigate (`isInvestigateMessage`). Every
+       other turn, chat or Investigate, draws exactly as it did. */
+    const {
+        answeredFromPrior,
+        investigateReport: isInvestigateReport,
+        builtOnEarlier,
+    } = routedPresentation({
+        investigateMode: isInvestigateMessage,
+        followupRoute: message.followupRoute,
+        liveRoute: investigateDetail?.followupRoute,
+        isLoading,
+    });
     const groupedThoughts = useMemo(
         () => groupThinkingSteps(message.thinkingSteps),
         [message.thinkingSteps]
@@ -1181,14 +1254,14 @@ const MessageCard = React.memo(function MessageCard({
     const activeStreamingGroups = isLoading ? streamingGroups : [];
     const staticGroups = !isLoading
         ? (
-            (isInvestigateMessage && groupedThoughts.length)
+            (isInvestigateReport && groupedThoughts.length)
                 ? groupedThoughts
                 : (trajectoryGroups.length ? trajectoryGroups : groupedThoughts)
         )
         : groupedThoughts;
     const displayGroups = isLoading ? activeStreamingGroups : staticGroups;
     const hasDisplayGroups = displayGroups.length > 0;
-    const isTrajectoryDisplay = !isLoading && !isInvestigateMessage && trajectoryGroups.length > 0;
+    const isTrajectoryDisplay = !isLoading && !isInvestigateReport && trajectoryGroups.length > 0;
     const loadingCurrentIndex = isLoading ? displayGroups.length - 1 : -1;
     const currentStepLabel = useMemo(() => {
         if (!isLoading) return '';
@@ -1213,16 +1286,28 @@ const MessageCard = React.memo(function MessageCard({
     const thoughtHeaderText = !thinkingIsOver
         ? (animatedStepLabel || loadingStepLabel)
         : (thoughtDurationLabel ? `Thought for ${thoughtDurationLabel}` : 'Thought summary');
-    const showInvestigateProgress = isAssistant && isInvestigateMessage && isLoading;
+    const showInvestigateProgress = isAssistant && isInvestigateReport && isLoading;
     // Once an investigation finishes its thinking collapses into this eyebrow —
     // it should never vanish outright, so a missing duration still renders the row
     // as long as there are thoughts behind it.
-    const showInvestigateSummary = isAssistant && isInvestigateMessage && !isLoading
+    const showInvestigateSummary = isAssistant && isInvestigateReport && !isLoading
         && (Boolean(investigatedDurationLabel) || hasDisplayGroups);
-    const showThoughtHeader = isAssistant && (
-        !isInvestigateMessage && (isLoading || thoughtDurationLabel || hasDisplayGroups)
+    /* While a chat answer is being worked on, its stages show in the Investigate panel's style
+       (ChatProgress); once it is done, the "Thought for …" row takes over as before. */
+    const showChatProgress = isAssistant && !isInvestigateReport && isLoading;
+    const chatPhase = answerReady
+        ? 'finalizing'
+        : (investigatePhase || inferInvestigatePhase(streamingStepName, '') || 'planning');
+    const showThoughtHeader = isAssistant && !showChatProgress && (
+        !isInvestigateReport && (isLoading || thoughtDurationLabel || hasDisplayGroups)
     );
     const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
+    // A chat answer the agent cut short. Never an Investigate answer, never while it is written.
+    const showSearchLimit = !isLoading && !showReloadInMessage && Boolean(onAskInInvestigate)
+        && showsSearchLimit(message);
+    // An Investigate follow-up answered from the earlier investigation, once it is written.
+    const showFullInvestigationOffer = isAssistant && !isLoading && !showReloadInMessage
+        && answeredFromPrior && Boolean(onRunFullInvestigation);
     const canToggleThoughts = !isLoading && hasDisplayGroups;
     const investigateStageLabels = ['Retrieved', 'Screened', 'Extracted', 'Cited'];
     const resolvedPhase = useMemo(() => {
@@ -1400,9 +1485,24 @@ const MessageCard = React.memo(function MessageCard({
     // Investigate answers, and an AI Chat answer whose turn asked for its graph (Options →
     // Include in the answer); any other chat answer has none and never asks the backend for one.
     // With no list, an answer that cites papers still gets a graph, built from its text.
-    const showAnswerGraph = isAssistant && !isLoading
-        && (isInvestigateMessage || Boolean(message.answerOptions?.graph))
-        && (message.kgQueryList?.length > 0 || message.references?.length > 0);
+    // An Investigate follow-up answered from the earlier investigation is a chat answer, and
+    // gets its graph when the agent sent one with it (it never asks the backend to build one).
+    const showBasicGraph = isAssistant && !isLoading
+        && (
+            ((isInvestigateReport || Boolean(message.answerOptions?.graph))
+                && (message.kgQueryList?.length > 0 || message.references?.length > 0))
+            || (answeredFromPrior && message.kgQueryList?.length > 0)
+        );
+    /* At High, Extra and Max, in a saved conversation, the answer graph — what the answer says —
+       takes the basic graph's place (components/AnswerGraph/AnswerGraphForMessage). Never where
+       the reader turned the graph off for the turn, and never for a follow-up answered from the
+       earlier investigation (it never asks for a graph to be built); when it cannot be had the
+       basic graph is drawn exactly as before, and an answer that had none gets none. */
+    const answerEffort = messageEffort(message);
+    const showAnswerGraphV2 = isAssistant && !isLoading && !answeredFromPrior
+        && wantsAnswerGraphV2({ effort: answerEffort, isGuest, historyId: conversationId })
+        && (isInvestigateReport || message.answerOptions?.graph !== false);
+    const showAnswerGraph = showBasicGraph || showAnswerGraphV2;
     const answerParts = showAnswerGraph ? splitAnswerForGraph(answerMarkdown) : [answerMarkdown];
     if (showAnswerGraph && answerParts.length === 1) answerParts.push('');
     const markdownComponents = {
@@ -1515,6 +1615,8 @@ const MessageCard = React.memo(function MessageCard({
                                 })}
                             </Box>
                         )}
+                        {/* A report that reused the earlier investigation's evidence. */}
+                        {isAssistant && !isLoading && builtOnEarlier && <BuiltOnEarlierNote />}
 
                         {showInvestigateProgress && (
                             <InvestigateProgress
@@ -1544,6 +1646,20 @@ const MessageCard = React.memo(function MessageCard({
                                 getDisplayFunnel={getDisplayFunnel}
                                 expanded={investigateExpanded}
                                 onToggleExpanded={() => setInvestigateExpanded((prev) => !prev)}
+                            />
+                        )}
+
+                        {showChatProgress && (
+                            <ChatProgress
+                                phase={chatPhase}
+                                label={streamingStepName || ''}
+                                preamble={preamble || ''}
+                                percent={answerReady ? 97 : investigatePercent}
+                                startedAt={investigateStartedAt}
+                                paused={Boolean(pendingClarification)}
+                                /* An Investigate follow-up the chat agent is answering from the
+                                   earlier investigation keeps its standing lines. */
+                                followupDetail={answeredFromPrior ? investigateDetail : null}
                             />
                         )}
 
@@ -1615,7 +1731,7 @@ const MessageCard = React.memo(function MessageCard({
                             group is drawn only after the answer has landed, and during the run the
                             panel is one animated status line. This is the one thing that has to be
                             readable DURING the wait, so it gets its own slot. */}
-                        {isAssistant && isLoading && preamble && (
+                        {isAssistant && isLoading && preamble && !showChatProgress && (
                             <Box sx={{
                                 mt: '6px',
                                 ml: 1,
@@ -1736,7 +1852,17 @@ const MessageCard = React.memo(function MessageCard({
                                             {answerParts.map((part, partIndex) => (
                                                 <React.Fragment key={partIndex}>
                                                     {partIndex === 1 && (
-                                                        <AnswerGraphForMessage kgQueryList={message.kgQueryList} answer={message.content} />
+                                                        <AnswerGraphForMessage
+                                                            kgQueryList={message.kgQueryList}
+                                                            answer={message.content}
+                                                            effort={showAnswerGraphV2 ? answerEffort : ''}
+                                                            historyId={conversationId}
+                                                            invocationId={message.invocationId}
+                                                            messageId={message.messageId ?? message.id}
+                                                            isGuest={isGuest}
+                                                            references={message.references}
+                                                            basic={showBasicGraph}
+                                                        />
                                                     )}
                                                     {part && (
                                                         <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={markdownComponents}>
@@ -1779,6 +1905,26 @@ const MessageCard = React.memo(function MessageCard({
                                     )}
                         </Box>
 
+                        {/* Outside the answer's markdown on purpose: Copy and Download take
+                            `message.content`, and a selection of the answer stops at its body. */}
+                        {showSearchLimit && (
+                            <SearchLimitNotice
+                                reason={message.searchLimit}
+                                serviceTier={investigateTier}
+                                showPrice={!isGuest}
+                                onAsk={() => onAskInInvestigate(index)}
+                            />
+                        )}
+                        {showFullInvestigationOffer && (
+                            <FullInvestigationOffer
+                                serviceTier={investigateTier}
+                                effort={effortForTurn(answerEffort, true)}
+                                showPrice={!isGuest}
+                                disabled={interactionLocked}
+                                onRun={() => onRunFullInvestigation(index)}
+                            />
+                        )}
+
                         {isAssistant && (
                             <Stack className="message-action-row" direction="row" mt={2} sx={{ pb: "8px" }}>
                                 {!isLoading && (
@@ -1814,6 +1960,17 @@ const MessageCard = React.memo(function MessageCard({
                                     >
                                         <ThumbsUpDownIcon style={{ width: '16px', height: '16px', display: 'block', color: 'var(--color-grey-400)' }} />
                                     </IconButton>
+                                )}
+                                {/* The level this answer ran at, once more than Medium and Extra
+                                    are on offer (or the answer ran at another one). */}
+                                {!isLoading && message.content && (effortsLive || !isDefaultEffort(answerEffort)) && (
+                                    <span
+                                        className="answer-effort-chip"
+                                        title={`Answered at ${effortLabel(answerEffort)} effort`}
+                                        data-effort={answerEffort}
+                                    >
+                                        {effortLabel(answerEffort)}
+                                    </span>
                                 )}
                             </Stack>
                         )}
@@ -1893,6 +2050,11 @@ function LLMAgent({ isRouteActive = true }) {
     }
     const initialRunSnapshot = initialRunSnapshotRef.current;
     const [userInput, setUserInput] = useState('');
+    /* The passages of answers the next question replies to: each Reply over a selection
+       (SelectionReply) adds one, as in Claude; they are shown on the composer and sent in front of
+       the question as Markdown blockquotes, in the order added (quoteReply.js). */
+    const [replyQuotes, setReplyQuotes] = useState([]);
+    const composerInputRef = useRef(null);
     /**
      * Follow-ups typed while an answer is still being written.
      *
@@ -1957,6 +2119,10 @@ function LLMAgent({ isRouteActive = true }) {
                 references: [],
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 investigateMode: Boolean(location.state?.initialSearchOptions?.investigateEnabled),
+                effort: effortForTurn(
+                    location.state?.initialSearchOptions?.effort,
+                    Boolean(location.state?.initialSearchOptions?.investigateEnabled),
+                ),
                 ...(initialAttachments.length ? { attachments: initialAttachments } : {}),
             }];
         }
@@ -2026,6 +2192,10 @@ function LLMAgent({ isRouteActive = true }) {
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
     // What the reader has left — credits signed in, free questions as a guest (service/credits.js).
     const [usage, setUsage] = useState(() => getUsageSnapshot());
+    /* "Not enough credits" (Units/CreditNotice): handleSubmit's own check before anything starts,
+       or the backend's refusal when the balance moved under it. */
+    const [creditDialog, setCreditDialog] = useState(null);
+    const tierPricing = usePricing();
     const [pendingClarification, setPendingClarification] = useState(
         initialRunSnapshot?.pendingClarification || null,
     );
@@ -2065,7 +2235,6 @@ function LLMAgent({ isRouteActive = true }) {
     useEffect(() => subscribeToNotifyPrefs(
         (prefs) => setNotifyEmailEnabled(prefs.email),
     ), []);
-    const chatInvestigateEnabled = getConversationInvestigateMode(activeConversationId, chatHistory);
     /* Which model answers the next question.
 
        Seeded from localStorage, so a reader's choice survives a reload, and '' until the
@@ -2080,6 +2249,21 @@ function LLMAgent({ isRouteActive = true }) {
         setServiceTier(tierId);
         setTierPref(tierId);
     }, []);
+    /* The effort the next question is sent at (service/effortLevels.js): Medium asks the chat
+       agent, Extra runs deep research. Per question, so one conversation can hold both; one
+       preference with the home composer. */
+    const [composerEffort, setComposerEffort] = useState(() => getEffortPref());
+    useEffect(() => subscribeToEffortPref(setComposerEffort), []);
+    /* Whether more than Medium and Extra are on offer (the backend's levels arrive with the
+       pricing): each answer then shows the level it ran at. */
+    const [effortsLive, setEffortsLive] = useState(() => effortsExpanded());
+    useEffect(() => subscribeToEffortPref(() => setEffortsLive(effortsExpanded())), []);
+    const handleEffortChange = useCallback((next) => {
+        setComposerEffort(next);
+        setEffortPref(next);
+    }, []);
+    // The Options drawer's choices for the next question (Units/ComposerOptions).
+    const [composerOptions, setComposerOptions] = useState(DEFAULT_COMPOSER_OPTIONS);
     const investigateFunnelRef = useRef(initialRunSnapshot?.investigateFunnel || emptyFunnel());
     /* What the funnel counters actually SHOWED, as opposed to what the agent reported.
        Kept apart from `investigateFunnelRef` for two reasons, and they pull in opposite
@@ -2172,6 +2356,10 @@ function LLMAgent({ isRouteActive = true }) {
      */
     const stoppedResumeKeyRef = useRef(null);
     const stopRequestedStreamRef = useRef(null);
+    /* Each submitted run's settlement, by stream id: resolved when its `finally` has run — its
+       registry mark down, its view flags reset. A clarify retry waits on it before starting
+       over in the same conversation (see `submitClarification`). */
+    const runSettledRef = useRef(new Map());
     // The clarify round's identifiers, mirrored out of React state.
     //
     // The panel is answered by POSTing to /clarify with (session_id, invocation_id, stage). Issue
@@ -2463,13 +2651,25 @@ function LLMAgent({ isRouteActive = true }) {
     const requestPremiumSignIn = useCallback((tier) => {
         requireSignIn(`${tier?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`);
     }, [requireSignIn]);
-    /* Images and PDFs waiting on the composer (service/attachments.js). Held here, not in the
-       composer, because the send reads them: `submitOrQueue` puts them on the turn's options
-       and clears the chips once the question has left. Signed-in readers and AI Chat only. */
+    // The composer's guest gate: GPT-6.1 Sol, or High, Extra or Max effort.
+    const requestComposerSignIn = useCallback((kind, entry) => {
+        if (kind === 'effort') {
+            requireSignIn(guestEffortReason(entry));
+            return;
+        }
+        requestPremiumSignIn(entry);
+    }, [requireSignIn, requestPremiumSignIn]);
+    /* Files waiting on the composer (service/attachments.js). Held here, not in the composer,
+       because the send reads them: `submitOrQueue` puts them on the turn's options and clears
+       the chips once the question has left. Signed-in readers only. Extra effort (deep research)
+       takes documents and not images (since 2026-11-02), so its limits turn an image away. */
     const requestAttachSignIn = useCallback(() => {
         requireSignIn(GUEST_ATTACH_REASON);
     }, [requireSignIn]);
-    const composerAttachments = useAttachments({ onRequireSignIn: requestAttachSignIn });
+    const composerAttachments = useAttachments({
+        onRequireSignIn: requestAttachSignIn,
+        limits: INVESTIGATE_ENABLED && isDeepEffort(composerEffort) ? INVESTIGATE_ATTACH_LIMITS : undefined,
+    });
     const clearComposerAttachments = composerAttachments.clear;
     const useMobileReferencesDrawer = isPhoneDevice;
 
@@ -2584,13 +2784,19 @@ function LLMAgent({ isRouteActive = true }) {
         if (refusalNeedsSignIn(refusal)) {
             requireSignIn(refusalText(refusal));
             // A members-only tier puts the picker back on the guest's; a refusal for attached
-            // files (`reason: "attachments"`) has nothing to do with the tier.
-            if (refusal.code === 'GUEST_LOGIN_REQUIRED' && refusal.reason !== 'attachments') {
+            // files (`reason: "attachments"`) or for a members-only effort level
+            // (`reason: "effort"`, High) has nothing to do with the tier.
+            if (refusal.code === 'GUEST_LOGIN_REQUIRED' && refusal.reason !== 'attachments'
+                && refusal.reason !== 'effort') {
                 setServiceTier(GUEST_TIER);
             }
         }
         if (refusal.code === 'INSUFFICIENT_CREDITS' || refusal.code === 'GUEST_LIMIT_REACHED') {
             refreshTierStatus();
+        }
+        // In the backend's words, with the cheaper choice it found (utils/refusals.js).
+        if (refusal.code === 'INSUFFICIENT_CREDITS') {
+            setCreditDialog({ level: 'short', text: refusalText(refusal) });
         }
     }, [requireSignIn, refreshTierStatus]);
 
@@ -2836,7 +3042,7 @@ function LLMAgent({ isRouteActive = true }) {
         setInvestigateKeywords(investigateKeywordsRef.current);
         setInvestigatePapers(investigatePapersRef.current);
         setInvestigateDetail(investigateDetailRef.current);
-        setInvestigateStartedAt(investigate ? (progressSnapshot?.investigateStartedAt || Date.now()) : null);
+        setInvestigateStartedAt(progressSnapshot?.investigateStartedAt || (investigate ? Date.now() : null));
         /* Which product Stop must cancel. The two pipelines have separate routers, and this
            ref was only ever written by a submit — so Stop on a reattached investigate run
            called the CHAT cancel endpoint, which knows nothing about the deep-research relay
@@ -2933,6 +3139,10 @@ function LLMAgent({ isRouteActive = true }) {
                 thinkingSteps: thinkingStepsRef.current,
                 trajectory: run.trajectory || null,
                 investigateMode: investigate,
+                ...(investigate ? followupRouteFields(
+                    run.route,
+                    investigateDetailRef.current?.followupRoute,
+                ) : {}),
                 ...(investigate ? {
                     investigateFunnel: settledFunnel(),
                     investigatePercent: 100,
@@ -3099,6 +3309,31 @@ function LLMAgent({ isRouteActive = true }) {
                    the position it had when the page went away, and without the second Stop
                    cannot tell the server anything. */
                 applyRunProgress(run, investigate);
+                /* The question a paused run is waiting on. With no stream there is no
+                   `clarification` frame, and the panel used to come back only from this
+                   tab's sessionStorage — so a reader returning from the "GLKB has a question"
+                   email (closed tab, another device) saw "still answering" over a run that
+                   would wait for them forever. Answered through the same /clarify, it resumes
+                   the same run, and this loop collects the report as before. */
+                const pausedOnQuestion = Boolean(
+                    investigate && run?.status === 'running' && run?.pending_clarification,
+                );
+                if (investigate) {
+                    const decision = clarifyRoundFromPoll(
+                        run, pendingClarificationRef.current, sessionId,
+                    );
+                    if (decision.action === 'show') {
+                        applyPendingClarification(decision.round);
+                        setClarificationDrafts(buildClarificationDrafts(decision.round.questions));
+                        setClarificationError('');
+                        setClarificationSubmitting(false);
+                    } else if (decision.action === 'clear') {
+                        applyPendingClarification(null);
+                        setClarificationDrafts({});
+                        setClarificationError('');
+                        setClarificationSubmitting(false);
+                    }
+                }
 
                 if (run?.status === 'cancelled') {
                     /* Someone stopped this run — this reader a moment ago, or another tab.
@@ -3128,6 +3363,13 @@ function LLMAgent({ isRouteActive = true }) {
                 }
 
                 showWaiting();   // only now: the server has said it is still working
+                if (pausedOnQuestion) {
+                    setStreamingStepName('Asking user question...');
+                    /* Waiting on the reader, not lost: a clarify round has no timeout, so a
+                       poll spent on one does not count against the fifteen minutes after
+                       which this loop gives the run up as unrecoverable. */
+                    attempt -= 1;
+                }
                 await new Promise((resolve) => setTimeout(resolve, RESUME_POLL_MS));
             }
             turnSettled = true;
@@ -3162,8 +3404,8 @@ function LLMAgent({ isRouteActive = true }) {
                 else clearPendingRun();
             }
         }
-    }, [announceBackgroundCompletion, applyRunProgress, llmService, settledFunnel,
-        updateRunningChatHistory]);
+    }, [announceBackgroundCompletion, applyPendingClarification, applyRunProgress, llmService,
+        settledFunnel, updateRunningChatHistory]);
 
     useEffect(() => {
         if (authLoading) return undefined;
@@ -3699,6 +3941,8 @@ function LLMAgent({ isRouteActive = true }) {
            conversations are still being written and will still take their follow-ups. */
         setQueuedPrompts((prev) => promptsSurvivingReset(prev, departingRunKey));
         queueOwnerKeyRef.current = null;
+        // A passage quoted from the conversation being left does not follow the reader out.
+        setReplyQuotes([]);
         llmService.clearHistory();
     }, [cancelStreaming, llmService]);
 
@@ -4343,9 +4587,48 @@ function LLMAgent({ isRouteActive = true }) {
                 ?? (shouldStartNewConversation ? false
                     : getConversationInvestigateMode(targetConversationId, baseHistory)),
         );
-        // Discard expired investigate session on explicit retry (clarify session expiry)
-        const resetInvestigateSession = Boolean(options.resetInvestigateSession);
-        // Keep latest non-expired query options for clarify retry (no session_id reuse)
+        /* The level this turn runs at (service/effortLevels.js): the composer's, carried on the
+           options bag (so a queued follow-up keeps its own), or the one a regenerated or edited
+           question was first asked at; a level of the other pipeline, or none, is that
+           pipeline's default. Recorded on both messages of the exchange; sent only when it is
+           not the default. */
+        const turnEffort = effortForTurn(requestSearchOptions?.effort ?? options.effort, investigateEnabled);
+        /* High is for signed-in readers (the backend answers a guest's with a 403). Asked here,
+           before anything is drawn, as the composer's menu does. Extra keeps its own route: the
+           backend's refusal, as before. */
+        if (isGuest && !investigateEnabled && isGuestLockedEffort(turnEffort)) {
+            requireSignIn(guestEffortReason(turnEffort));
+            if (!userInput.trim()) setUserInput(inputText);
+            return false;
+        }
+        /* Credits that cannot pay for this turn (mode x the turn's own tier, as sent below): the
+           pop-up, and nothing started — no conversation row, no optimistic bubble, the question
+           left in (or put back into) the box. Before 2026-11-02 the turn went ahead, the
+           backend refused it with a 429, and a question handed over from the home page left
+           an empty conversation on screen. The backend still decides; this only spares the
+           reader a refusal the page could already see coming. An example question handed over
+           from About (AboutPage/exampleQuestions.js) is exempt: its stored answer is free. */
+        if (isAuthenticated && !isGuest && !requestSearchOptions?.example) {
+            const shortfall = noticeFor(
+                getUsageSnapshot(),
+                tierPricing,
+                investigateEnabled ? 'deep_research' : 'chat',
+                effectiveTier(requestSearchOptions?.serviceTier, { isGuest }),
+                turnEffort,
+            );
+            if (shortfall?.level === 'short') {
+                setCreditDialog(shortfall);
+                if (!userInput.trim()) setUserInput(inputText);
+                return false;
+            }
+        }
+        /* The retry of a clarify round whose run is gone (`submitClarification`): `{ sessionId }`,
+           the round's session. It runs on the conversation's own agent session — see below. */
+        const clarifyRetry = options.clarifyRetry || null;
+        /* "Run a full investigation" (`handleRunFullInvestigation`): this turn skips the agent's
+           follow-up router and runs the whole deep-research pass. Investigate only. */
+        const forceFullResearch = investigateEnabled && requestSearchOptions?.forceFullResearch === true;
+        // The latest query options, for a clarify retry to run the same way (tier included).
         lastSearchOptionsRef.current = {
             investigateEnabled,
             filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
@@ -4361,15 +4644,24 @@ function LLMAgent({ isRouteActive = true }) {
             serviceTier: typeof requestSearchOptions?.serviceTier === 'string' && requestSearchOptions.serviceTier
                 ? requestSearchOptions.serviceTier
                 : undefined,
+            // A retry runs at the same level (Extra or Max).
+            effort: turnEffort,
+            // A forced full investigation stays forced through its clarify retry: the reader
+            // asked for the whole run, and the retry must not be routed to a quick answer.
+            forceFullResearch: forceFullResearch || undefined,
         };
 
-        /* The images and PDFs this turn carries (service/attachments.js). AI Chat only: the
-           Investigate pipeline does not read them, and no composer sends them there. An explicit
-           list — a regenerate or an edited message re-sending the original's files — wins over
-           the options bag the composer filled. */
-        const turnAttachments = investigateEnabled
-            ? []
-            : normalizeAttachmentList(options.attachments ?? requestSearchOptions?.attachments);
+        /* The files this turn carries (service/attachments.js), on both pipelines: AI Chat reads
+           any type, Investigate documents (since 2026-11-02; the composers never send it an
+           image, and the backend refuses one). An explicit list — a regenerate or an edited
+           message re-sending the original's files — wins over the options bag the composer
+           filled. */
+        const turnAttachments = normalizeAttachmentList(
+            options.attachments ?? requestSearchOptions?.attachments,
+        );
+        /* Kept so a clarify retry re-asks the SAME turn: the documents go with it again, or the
+           restarted run would be researching the question without the file that shaped it. */
+        if (turnAttachments.length) lastSearchOptionsRef.current.attachments = turnAttachments;
         const turnAnswerOptions = answerOptionsForTurn(requestSearchOptions, baseHistory, investigateEnabled);
 
         // Create new user message
@@ -4379,6 +4671,7 @@ function LLMAgent({ isRouteActive = true }) {
             references: [],
             timestamp: t || timestamp,
             investigateMode: investigateEnabled,
+            effort: turnEffort,
             modeSource: 'submitted',
             ...(turnAttachments.length ? { attachments: turnAttachments } : {}),
         };
@@ -4424,11 +4717,25 @@ function LLMAgent({ isRouteActive = true }) {
         // hold a draft the reader is in the middle of writing. It could not before, because the
         // box was disabled for the length of a run; now that it is live, clearing it here would
         // delete their work.
-        if (!input) setUserInput('');
+        // A question from the composer that carries a quote arrives as `input` (the quote is put
+        // in front of the box's words), and the box is still the reader's to clear.
+        if (!input || options.fromComposer) setUserInput('');
         // The composer's chips went with this question; a resend never touches them.
         if (options.fromComposer) clearComposerAttachments();
         setIsLoading(true);
         setIsProcessing(true);
+        /* A clarify retry replaces the view's run in the same conversation, so `isLoading` may
+           never visibly drop between the two — and the registry effect only marks a run on that
+           transition. Marked here instead, after the expired run took its own mark down. */
+        if (clarifyRetry && !shouldStartNewConversation && targetConversationId != null) {
+            setActiveRun({
+                kind: 'investigate',
+                runId: null,
+                conversationId: String(targetConversationId),
+                sessionId: getStoredSessionId(targetConversationId) || clarifyRetry.sessionId || null,
+                key: streamId,
+            });
+        }
 
         let historyId = targetConversationId;
         if (shouldStartNewConversation && isAuthenticated) {
@@ -4479,9 +4786,20 @@ function LLMAgent({ isRouteActive = true }) {
             runSessionId = getStoredSessionId(historyId) || mintSessionId();
             if (historyId) setStoredSessionId(historyId, runSessionId);
         } else {
-        if (resetInvestigateSession) {
-            sessionIdRef.current = null;
-            setStoredSessionId(historyId, null);
+        /* A clarify retry KEEPS the conversation's agent session. It used to start on a new,
+           empty one (`resetInvestigateSession`, 2026-07), when an expired round meant the agent
+           had lost the session and the retry was not to carry the dead round into the new
+           stream. The agent now keeps the round on disk and asks for exactly this: re-ask
+           `retry_question` on the SAME session (glkb-agent docs/DEEP_RESEARCH_HANDOFF.md §6),
+           which it recreates if it has to. A fresh session cost every later follow-up its
+           history — the deep-research harness reads its prior turns from the session, and the
+           conversation's stored session id was moved to the new, empty one. What the reset
+           protected is still kept out: the expired round itself (cleared below with the rest of
+           the clarify state), and its run, whose id must not be what Stop or a recovery poll
+           addresses from here on. */
+        if (clarifyRetry) {
+            sessionIdRef.current = getStoredSessionId(historyId) || clarifyRetry.sessionId || sessionIdRef.current;
+            runIdRef.current = null;
         } else {
             sessionIdRef.current = getStoredSessionId(historyId) || sessionIdRef.current;
         }
@@ -4550,7 +4868,8 @@ function LLMAgent({ isRouteActive = true }) {
         // within milliseconds, but the network round-trip should not be a visible dead spot).
         setInvestigatePhase('planning');
         setInvestigateFunnel(emptyFunnel());
-        setInvestigateStartedAt(investigateEnabled ? requestStartedAt : null);
+        // Both pipelines: the chat's loading panel (ChatProgress) shows a clock too.
+        setInvestigateStartedAt(requestStartedAt);
         setInvestigatePercent(investigateEnabled ? PHASE_PERCENT_FLOOR.planning : null);
         setInvestigateKeywords([]);
         setInvestigatePapers([]);
@@ -4579,6 +4898,8 @@ function LLMAgent({ isRouteActive = true }) {
            still writing keeps its registry mark, because taking it down would free the
            conversation for a second turn onto a history id that is still busy. */
         let streamOutcome = 'ok';
+        // Set by an example answer's Complete frame: nothing ran, so nothing is counted.
+        let servedExample = false;
         /* Saved refreshes the server-backed ordering. Keep this run marked active until that
            refresh has landed: Complete can arrive before the request below resolves, and
            removing the mark first briefly drops the row into the stale server order before
@@ -4615,11 +4936,14 @@ function LLMAgent({ isRouteActive = true }) {
                 ),
                 kgQueryList: update.kgQueryList ?? update.kg_query_list ?? [],
                 answerOptions: update.answerOptions ?? answerOptionsOf(update.answer_options),
+                searchLimit: update.searchLimit ?? searchLimitOf(update.search_limit),
+                ...followupRouteFields(update.route),
                 timestamp,
                 thinkingSteps: existing.thinkingSteps || [],
                 thoughtDurationMs: Date.now() - requestStartedAt,
                 trajectory: update.trajectory || null,
                 investigateMode: investigateEnabled,
+                effort: turnEffort,
                 ...(investigateEnabled ? {
                     investigateFunnel: settleFunnel(
                         existing.investigateFunnel || emptyFunnel(),
@@ -4654,6 +4978,7 @@ function LLMAgent({ isRouteActive = true }) {
                 thinkingSteps: [],
                 thoughtDurationMs: Date.now() - requestStartedAt,
                 investigateMode: investigateEnabled,
+                effort: turnEffort,
             };
             if (next[next.length - 1]?.role === 'assistant') {
                 next[next.length - 1] = assistantMessage;
@@ -4664,6 +4989,8 @@ function LLMAgent({ isRouteActive = true }) {
             clearActiveRunSnapshot(runConversationId);
             return true;
         };
+        let markRunSettled = () => {};
+        runSettledRef.current.set(streamId, new Promise((resolve) => { markRunSettled = resolve; }));
         try {
             logDev('[LLM] submit', { input: inputText });
 
@@ -4676,6 +5003,7 @@ function LLMAgent({ isRouteActive = true }) {
                 thoughtDurationMs: null,
                 trajectory: null,
                 investigateMode: investigateEnabled,
+                effort: turnEffort,
             };
             if (activeStreamIdRef.current === streamId) {
                 // Append a blank message
@@ -4772,7 +5100,11 @@ function LLMAgent({ isRouteActive = true }) {
                             }));
                             return;
                         }
-                        if (update.phase) {
+                        /* The Started frame's phase is a default ("searching"), not something the
+                           run reported. A chat run's stages come from its own progress frames
+                           (ChatProgress), so it stays at "Understanding the question" until one
+                           arrives rather than claiming to search before it has begun. */
+                        if (update.phase && investigateEnabled) {
                             investigatePhaseRef.current = update.phase;
                             setInvestigatePhase(update.phase);
                         }
@@ -4862,6 +5194,7 @@ function LLMAgent({ isRouteActive = true }) {
                                         thinkingSteps: thinkingStepsRef.current,
                                         thoughtDurationMs: Date.now() - requestStartedAt,
                                         investigateMode: investigateEnabled,
+                                        effort: turnEffort,
                                     };
                                     newHistory[newHistory.length - 1] = assistantMessage;
 
@@ -4932,6 +5265,17 @@ function LLMAgent({ isRouteActive = true }) {
                                         update.label,
                                     );
                                     setInvestigateDetail({ ...investigateDetailRef.current });
+                                    /* The agent will answer this follow-up from the earlier
+                                       investigation: the chat agent takes over, and the run is
+                                       drawn with the chat's panel (MessageCard). Its stages
+                                       start at the beginning, not at the phase the deep-research
+                                       Started frame had already claimed. */
+                                    if (update.detail.followup_route === 'answer_from_prior') {
+                                        investigatePhaseRef.current = 'planning';
+                                        setInvestigatePhase('planning');
+                                        investigatePercentRef.current = null;
+                                        setInvestigatePercent(null);
+                                    }
                                 }
                                 // Capture progress labels as rich phase markers
                                 if (update.isProgress && update.label && update.phase) {
@@ -5109,6 +5453,7 @@ function LLMAgent({ isRouteActive = true }) {
                         break;
                     }
                     case 'final':
+                        if (update.example) servedExample = true;
                         if (!isActiveStream) {
                             persistDetachedCompletion(update);
                             return;
@@ -5139,11 +5484,19 @@ function LLMAgent({ isRouteActive = true }) {
                                 directCitations: parseDirectCitations(update.directCitations),
                                 kgQueryList: update.kgQueryList || [],
                                 answerOptions: update.answerOptions || {},
+                                searchLimit: update.searchLimit || null,
+                                // How a follow-up was answered: the Complete frame's route, else
+                                // what this run's `followup_route` frame announced.
+                                ...followupRouteFields(
+                                    update.route,
+                                    investigateDetailRef.current?.followupRoute,
+                                ),
                                 timestamp: timestamp,
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 trajectory: update.trajectory || null,
                                 investigateMode: investigateEnabled,
+                                effort: effortOf(update.effort) || turnEffort,
                                 investigateFunnel: settledFunnel(),
                                 investigatePhase: investigatePhaseRef.current || 'verifying',
                                 investigatePercent: mergePercentMonotonic(
@@ -5219,7 +5572,13 @@ function LLMAgent({ isRouteActive = true }) {
                                     sessionIdRef.current = update.sessionId;
                                 }
                             }
-                            if (update.invocationId) {
+                            /* What the exchange is saved as: its invocation id (chat), the answer's
+                               row (`messageId`, chat and Investigate — the answer graph is asked
+                               for by it), and the level the server resolved. */
+                            const savedEffort = effortOf(update.effort)
+                                && isDeepEffort(update.effort) === investigateEnabled
+                                ? update.effort : '';
+                            if (update.invocationId || update.messageId || savedEffort) {
                                 updateRunningChatHistory((prev) => {
                                     const next = [...prev];
                                     let assistantIndex = -1;
@@ -5232,8 +5591,16 @@ function LLMAgent({ isRouteActive = true }) {
                                     if (assistantIndex < 0) return prev;
                                     const userIndex = assistantIndex - 1;
                                     if (userIndex < 0) return prev;
-                                    next[userIndex] = { ...next[userIndex], invocationId: update.invocationId };
-                                    next[assistantIndex] = { ...next[assistantIndex], invocationId: update.invocationId };
+                                    const both = {
+                                        ...(update.invocationId ? { invocationId: update.invocationId } : {}),
+                                        ...(savedEffort ? { effort: savedEffort } : {}),
+                                    };
+                                    next[userIndex] = { ...next[userIndex], ...both };
+                                    next[assistantIndex] = {
+                                        ...next[assistantIndex],
+                                        ...both,
+                                        ...(update.messageId ? { messageId: update.messageId } : {}),
+                                    };
                                     return next;
                                 });
                             }
@@ -5270,6 +5637,7 @@ function LLMAgent({ isRouteActive = true }) {
                                     timestamp,
                                     thinkingSteps: [],
                                     investigateMode: investigateEnabled,
+                                    effort: turnEffort,
                                 };
                                 return newHistory;
                             });
@@ -5313,6 +5681,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 investigateMode: investigateEnabled,
+                                effort: turnEffort,
                             };
                             newHistory[newHistory.length - 1] = errorMessage;
                             return newHistory;
@@ -5335,6 +5704,9 @@ function LLMAgent({ isRouteActive = true }) {
                 attachments: turnAttachments.length ? attachmentIdsOf(turnAttachments) : undefined,
                 figures: turnAnswerOptions.figures,
                 graph: turnAnswerOptions.graph,
+                // Off the wire at Medium and Extra (service/LLMAgent.jsx).
+                effort: effortForRequest(turnEffort, investigateEnabled),
+                forceFullResearch: forceFullResearch || undefined,
                 notifyEmail: (investigateEnabled && notifyEmailEnabled)
                     ? (getUserNotifyEmail() || undefined)
                     : undefined,
@@ -5362,11 +5734,16 @@ function LLMAgent({ isRouteActive = true }) {
                                 role: 'assistant',
                                 content: run.response || '',
                                 references: parseReferences(run.references),
+                                ...followupRouteFields(
+                                    run.route,
+                                    investigateDetailRef.current?.followupRoute,
+                                ),
                                 timestamp,
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 trajectory: run.trajectory || null,
                                 investigateMode: true,
+                                effort: turnEffort,
                                 investigateFunnel: settledFunnel(),
                                 investigatePhase: 'verifying',
                                 investigatePercent: investigatePercentRef.current ?? 100,
@@ -5412,6 +5789,23 @@ function LLMAgent({ isRouteActive = true }) {
                exchange visibly unfinished, for the reattach path to collect. */
             const pollSessionId = runSessionId || sessionIdRef.current;
             let outcome = refusal ? 'refused' : 'unknown';
+            if (error?.connectionLost && pollSessionId && activeStreamIdRef.current === streamId) {
+                setStreamingStepName('Connection interrupted — reconnecting to the answer');
+            }
+            /* A first turn refused for credits leaves the row createConversation made with
+               nothing in it, and the address bar already naming it: reloading that row is what
+               showed an empty page (2026-11-02). Take the row away and start over with the
+               question back in the box; the pop-up (handleRefusal) says why. */
+            if (refusal?.code === 'INSUFFICIENT_CREDITS' && shouldStartNewConversation && historyId
+                && activeStreamIdRef.current === streamId) {
+                const emptyId = historyId;
+                removeConversation(emptyId)
+                    .catch((removeError) => logDev('[LLM] Failed to remove the refused conversation', removeError));
+                setConversationsState((prev) => prev.filter((item) => String(item.id) !== String(emptyId)));
+                startNewConversation();
+                navigate(CHAT_HOME_PATH, { replace: true });
+                setUserInput(inputText);
+            }
             const canRecoverDetached = () => Boolean(
                 runConversationId && isConversationRunning(runConversationId),
             );
@@ -5460,11 +5854,16 @@ function LLMAgent({ isRouteActive = true }) {
                                 role: 'assistant',
                                 content: run.response || '',
                                 references: parseReferences(run.references),
+                                ...(investigateEnabled ? followupRouteFields(
+                                    run.route,
+                                    investigateDetailRef.current?.followupRoute,
+                                ) : {}),
                                 timestamp,
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 trajectory: run.trajectory || null,
                                 investigateMode: investigateEnabled,
+                                effort: turnEffort,
                             };
                             if (run.response) llmService.updateMessages(run.response);
                             return newHistory;
@@ -5509,6 +5908,7 @@ function LLMAgent({ isRouteActive = true }) {
                         thinkingSteps: thinkingStepsRef.current,
                         thoughtDurationMs: Date.now() - requestStartedAt,
                         investigateMode: investigateEnabled,
+                        effort: turnEffort,
                     };
                     newHistory[newHistory.length - 1] = errorMessage;
                     return newHistory;
@@ -5521,7 +5921,9 @@ function LLMAgent({ isRouteActive = true }) {
             streamOutcome = outcome;
         } finally {
             // A guest's ten are counted per browser (service/credits.js), once the answer is in.
-            if (isGuest && !investigateEnabled && (streamOutcome === 'ok' || streamOutcome === 'recovered')) {
+            // An example answer is free (the backend served it without counting it either).
+            if (isGuest && !investigateEnabled && !servedExample
+                && (streamOutcome === 'ok' || streamOutcome === 'recovered')) {
                 recordGuestQuestion();
             }
             refreshTierStatus();
@@ -5566,10 +5968,15 @@ function LLMAgent({ isRouteActive = true }) {
                 setClarificationError('');
                 setClarificationSubmitting(false);
             }
+            runSettledRef.current.delete(streamId);
+            markRunSettled();
         }
         // The turn was started; a queued follow-up that reaches here must not be re-queued.
         return true;
     };
+    // The latest `handleSubmit`, for callbacks that must not hold a stale one: the clarify retry
+    // below, the composer's send and the queue (`submitOrQueue`, `useQueueDispatch`).
+    const stableSubmit = useStableCallback(handleSubmit);
 
     const updateClarificationDraft = useCallback((questionKey, nextDraft) => {
         setClarificationDrafts((prev) => ({
@@ -5646,8 +6053,37 @@ function LLMAgent({ isRouteActive = true }) {
                 if (retryQuestion) {
                     message.info('Clarification session expired. Restarting with your answers applied.');
                     const prior = lastSearchOptionsRef.current || {};
-                    handleSubmit(null, retryQuestion, null, {
-                        resetInvestigateSession: true,
+                    /* The run that asked is gone — the agent has no run waiting for this round
+                       (its process restarted, or this answer reached another worker) — but it
+                       kept the round, applied the answers, and handed back the question to ask
+                       again. This view still follows that run, and its conversation is still
+                       marked as answering, which refuses a second turn: so let go of it first.
+                       Client-side only — the agent has said the run is not there, and a server
+                       Stop would be charged to the reader as theirs. The retry then waits for the
+                       run's own `finally` (its mark comes down there) before starting. A
+                       reattached view has no request of its own to settle; its mark goes here,
+                       and its polling yields to the retry's live stream. */
+                    const conversationId = runningConversationIdRef.current
+                        ?? activeConversationIdRef.current
+                        ?? null;
+                    const expiredStreamId = activeStreamIdRef.current;
+                    const expiredRunSettled = expiredStreamId
+                        ? runSettledRef.current.get(expiredStreamId)
+                        : null;
+                    if (abortControllerRef.current) abortControllerRef.current.abort();
+                    if (expiredRunSettled) {
+                        await expiredRunSettled;
+                    } else if (conversationId != null) {
+                        forgetRun(String(conversationId));
+                    }
+                    const transcript = runningChatHistoryRef.current?.length
+                        ? runningChatHistoryRef.current
+                        : getStoredChatHistory(conversationId);
+                    stableSubmit(null, retryQuestion, null, {
+                        // On the conversation's own agent session — see `handleSubmit`.
+                        clarifyRetry: { sessionId: sessionId || null },
+                        conversationId,
+                        baseHistory: withoutPendingAnswer(transcript),
                         searchOptions: {
                             investigateEnabled: true,
                             filters: prior.filters,
@@ -5656,6 +6092,12 @@ function LLMAgent({ isRouteActive = true }) {
                             // A restarted clarify run is the SAME question; re-running it on a
                             // different tier would silently change the answer's provenance.
                             serviceTier: prior.serviceTier,
+                            // Nor may a forced full investigation be routed on its retry.
+                            forceFullResearch: prior.forceFullResearch,
+                            // Nor run at another level.
+                            effort: prior.effort,
+                            // The same question, so the same documents.
+                            attachments: prior.attachments,
                         },
                     });
                 } else {
@@ -5667,7 +6109,7 @@ function LLMAgent({ isRouteActive = true }) {
             setClarificationError(String(detail));
             setClarificationSubmitting(false);
         }
-    }, [clarificationDrafts, llmService, pendingClarification]);
+    }, [applyPendingClarification, clarificationDrafts, llmService, pendingClarification, stableSubmit]);
 
     // Resume completed DR runs if the tab was backgrounded / SSE dropped quietly
     useEffect(() => {
@@ -5715,6 +6157,10 @@ function LLMAgent({ isRouteActive = true }) {
                         thoughtDurationMs: last.thoughtDurationMs || null,
                         trajectory: run.trajectory || null,
                         investigateMode: true,
+                        ...followupRouteFields(
+                            run.route,
+                            investigateDetailRef.current?.followupRoute,
+                        ),
                         investigateFunnel: settledFunnel(),
                         investigatePhase: 'verifying',
                         investigatePercent: investigatePercentRef.current ?? 100,
@@ -5779,6 +6225,8 @@ function LLMAgent({ isRouteActive = true }) {
         handleSubmit(e, content, null, {
             baseHistory: editedHistory,
             attachments: chatHistory[index]?.attachments,
+            // At the level it was first asked at, when that is this conversation's pipeline.
+            effort: chatHistory[index]?.effort,
         });
     };
 
@@ -6026,8 +6474,78 @@ function LLMAgent({ isRouteActive = true }) {
         setShowReloadPrompt(false);
         handleSubmit(e, userMessage.content, null, {
             baseHistory: trimmedHistory,
-            // The same question, so the same files.
+            // The same question, so the same files, at the same level.
             attachments: userMessage.attachments,
+            effort: assistantMessage.effort || userMessage.effort,
+        });
+    };
+
+    /* "Ask in Investigate" under a chat answer whose search the agent cut short (see
+       searchLimit.js). The same question — the reader's own words for that turn, without its
+       files, which stay with the chat they were sent in — opens a NEW Investigate conversation,
+       handed over exactly as the home composer's Investigate tab hands one over, so the hand-over effect
+       above starts it (releasing, not aborting, anything still being written). The chat
+       conversation stays as it is, one click away in the sidebar. A guest gets the sign-in
+       prompt instead: Investigate needs an account. */
+    const handleAskInInvestigate = (index) => {
+        const question = investigateQuestionFor(chatHistory, index);
+        if (!question) return;
+        trackGtagEvent('search_limit_investigate_click', {
+            reason: chatHistory[index]?.searchLimit || '',
+            guest: isGuest,
+        });
+        if (isGuest) {
+            requireSignIn(GUEST_INVESTIGATE_REASON);
+            return;
+        }
+        trackGtagEvent('investigate_question_submit', {
+            source: 'search_limit_notice',
+            input_method: 'button',
+            queued: false,
+        });
+        navigate(CHAT_NEW_PATH, { state: investigateHandoffState(question, serviceTier) });
+    };
+
+    /* "Run a full investigation" under an Investigate follow-up the agent answered from the
+       earlier investigation (FollowupRouteNotice). The same question — the reader's own words
+       for that turn — is asked again in the SAME conversation, as its next turn, with
+       `force_full_research`, so the agent skips its follow-up router and runs the whole
+       deep-research pass. The quick answer stays where it is, above the report. The tier is the
+       picker's, which is also the price on the button. Not while this conversation is still
+       answering: a second turn would race the first (the button is disabled for the view's own
+       run; a background follow-up in the same thread is caught here). */
+    const handleRunFullInvestigation = (index) => {
+        const question = investigateQuestionFor(chatHistory, index);
+        if (!question) return;
+        trackGtagEvent('followup_route_full_investigation_click', {
+            route: chatHistory[index]?.followupRoute || '',
+            guest: isGuest,
+        });
+        if (isGuest) {
+            requireSignIn(GUEST_INVESTIGATE_REASON);
+            return;
+        }
+        if ((isLoading && isViewingRunningConversation)
+            || isConversationRunning(activeConversationIdRef.current)) {
+            message.info('This conversation is still answering. Run the full investigation when it finishes.');
+            return;
+        }
+        trackGtagEvent('investigate_question_submit', {
+            source: 'followup_route_notice',
+            input_method: 'button',
+            queued: false,
+        });
+        stableSubmit(null, question, null, {
+            searchOptions: {
+                investigateEnabled: true,
+                serviceTier: typeof serviceTier === 'string' ? serviceTier : '',
+                // The level the follow-up was asked at (Extra or Max).
+                effort: effortForTurn(chatHistory[index]?.effort, true),
+                forceFullResearch: true,
+            },
+            // The same question, so the same documents (regenerate does the same for chat).
+            attachments: investigateAttachmentsFor(chatHistory, index),
+            queryMethod: 'button',
         });
     };
 
@@ -6187,6 +6705,11 @@ function LLMAgent({ isRouteActive = true }) {
                 interactionLocked={isLoading}
                 conversationId={activeConversationId}
                 answerReady={isStreamingCard && answerReady}
+                onAskInInvestigate={stableAskInInvestigate}
+                investigateTier={serviceTier}
+                isGuest={isGuest}
+                onRunFullInvestigation={stableRunFullInvestigation}
+                effortsLive={effortsLive}
             />
             </ErrorBoundary>
             );
@@ -6499,10 +7022,7 @@ function LLMAgent({ isRouteActive = true }) {
         message.success('Q&A downloaded');
     };
 
-    // Declared here, after every handler above exists, and read by `renderMessages` — which is
-    // defined earlier but only called from the JSX below. Without these the memo on MessageCard
-    // never held: six props were a new function on every render.
-    const stableSubmit = useStableCallback(handleSubmit);
+    // `stableSubmit` is declared right after `handleSubmit`; the clarify retry needs it too.
 
     /**
      * Send now, or queue if an answer is still being written.
@@ -6517,18 +7037,22 @@ function LLMAgent({ isRouteActive = true }) {
     const submitOrQueue = useCallback((event, composerOptions, queryMethod = 'button') => {
         event?.preventDefault?.();
         /* Files on the composer ride on the turn's options, so a queued follow-up keeps its
-           own. Never while one is still uploading or failed — the composer holds the send back
-           and its chips say why — and never on Investigate, which does not read them. A
-           question that is only files asks for a summary of them. */
+           own. Never while one is still uploading or failed, or while an image waits on an
+           Investigate question (Investigate reads documents only) — the composer holds the send
+           back and says why. A question that is only files asks for a summary of them. */
         const readyAttachments = composerAttachments.readyAttachments;
         if (composerAttachments.hasItems
             && (composerAttachments.isUploading || composerAttachments.hasErrors
-                || composerOptions?.investigateEnabled)) {
+                || attachmentBlockedNote(composerAttachments, {
+                    investigate: Boolean(composerOptions?.investigateEnabled),
+                }))) {
             return;
         }
         const typed = userInput.trim();
-        const text = typed || (readyAttachments.length ? defaultQuestionFor(readyAttachments) : '');
-        if (!text) return;
+        const asked = typed || (readyAttachments.length ? defaultQuestionFor(readyAttachments) : '');
+        if (!asked) return;
+        // The passages being replied to go in front of the question, one blockquote each.
+        const text = withQuotes(asked, replyQuotes);
         const searchOptions = readyAttachments.length
             ? { ...composerOptions, attachments: readyAttachments }
             : composerOptions;
@@ -6556,12 +7080,14 @@ function LLMAgent({ isRouteActive = true }) {
                 && Boolean(resumingConversationRef.current)
                 && !runningConversationIdRef.current);
         if (!targetBusy) {
-            // `input` only when the words are not the box's own (files with no question).
-            stableSubmit(event, typed ? null : text, null, {
+            // `input` only when the words are not the box's own (files with no question, or a
+            // quote in front of them).
+            stableSubmit(event, text === typed ? null : text, null, {
                 searchOptions,
                 queryMethod,
                 fromComposer: true,
             });
+            setReplyQuotes([]);
             return;
         }
         const ownerConversationId = isViewingRunningConversation
@@ -6592,9 +7118,37 @@ function LLMAgent({ isRouteActive = true }) {
         }]);
         setUserInput('');
         clearComposerAttachments();
-    }, [userInput, isLoading, isViewingRunningConversation, isLimitReachedEffective,
+        setReplyQuotes([]);
+    }, [userInput, replyQuotes, isLoading, isViewingRunningConversation, isLimitReachedEffective,
         isGuest, requireSignIn, limitWarningText, stableSubmit, composerAttachments,
         clearComposerAttachments]);
+
+    /* Reply, over a selection in an answer: the passage is added to the composer's quotes and the
+       cursor goes into the field. The selection itself is let go — the chip now holds the passage. */
+    const handleSelectionReply = useCallback((text) => {
+        const quote = clipQuote(text);
+        if (!quote) return;
+        trackGtagEvent('chat_selection_reply_click', { length: quote.length });
+        setReplyQuotes((current) => addQuote(current, quote));
+        const field = composerInputRef.current;
+        if (field) {
+            field.focus();
+            const end = String(field.value || '').length;
+            field.setSelectionRange?.(end, end);
+        }
+    }, []);
+    const removeReplyQuote = useCallback(() => setReplyQuotes([]), []);
+    /* A quote belongs to the conversation it was taken from: opening another drops it (New Chat
+       drops it in `startNewConversation`). A thread that has only just been given its id
+       (null → id) is still the same conversation. */
+    const quoteConversationRef = useRef(activeConversationId);
+    useEffect(() => {
+        const previous = quoteConversationRef.current;
+        quoteConversationRef.current = activeConversationId;
+        if (previous != null && String(previous) !== String(activeConversationId ?? '')) {
+            setReplyQuotes([]);
+        }
+    }, [activeConversationId]);
 
     const removeQueuedPrompt = useCallback((entry) => {
         if (!entry?.id) return;
@@ -6694,6 +7248,8 @@ function LLMAgent({ isRouteActive = true }) {
         const investigateEnabled = Boolean(
             requestSearchOptions?.investigateEnabled ?? getConversationInvestigateMode(conversationId),
         );
+        // The level the follow-up was queued at (see handleSubmit).
+        const turnEffort = effortForTurn(requestSearchOptions?.effort, investigateEnabled);
         recordSubmittedMode(conversationId, investigateEnabled);
         /* Settled before the run is registered, because the registry records it: it is the
            address this answer can be collected at after the page goes away. */
@@ -6735,10 +7291,8 @@ function LLMAgent({ isRouteActive = true }) {
                     logDev('[LLM] background turn base refetch failed', error);
                 }
             }
-            // The files the queued follow-up was written with — AI Chat only, as in handleSubmit.
-            const turnAttachments = investigateEnabled
-                ? []
-                : normalizeAttachmentList(requestSearchOptions?.attachments);
+            // The files the queued follow-up was written with — on both pipelines, as in handleSubmit.
+            const turnAttachments = normalizeAttachmentList(requestSearchOptions?.attachments);
             const turnAnswerOptions = answerOptionsForTurn(requestSearchOptions, base, investigateEnabled);
             const userMessage = {
                 role: 'user',
@@ -6746,6 +7300,7 @@ function LLMAgent({ isRouteActive = true }) {
                 references: [],
                 timestamp,
                 investigateMode: investigateEnabled,
+                effort: turnEffort,
                 modeSource: 'submitted',
                 ...(turnAttachments.length ? { attachments: turnAttachments } : {}),
             };
@@ -6758,6 +7313,7 @@ function LLMAgent({ isRouteActive = true }) {
                 thoughtDurationMs: null,
                 trajectory: null,
                 investigateMode: investigateEnabled,
+                effort: turnEffort,
             }];
             let savedConversationRefresh = null;
             writeConversationMessages(conversationId, history);
@@ -6786,6 +7342,7 @@ function LLMAgent({ isRouteActive = true }) {
                                     thinkingSteps: [...localThinkingSteps],
                                     thoughtDurationMs: Date.now() - requestStartedAt,
                                     investigateMode: investigateEnabled,
+                                    effort: turnEffort,
                                 });
                             } else if (update.step && String(update.content ?? '').trim()) {
                                 localThinkingSteps.push({ step: update.step, content: update.content });
@@ -6807,11 +7364,14 @@ function LLMAgent({ isRouteActive = true }) {
                                 directCitations: parseDirectCitations(update.directCitations),
                                 kgQueryList: update.kgQueryList || [],
                                 answerOptions: update.answerOptions || {},
+                                searchLimit: update.searchLimit || null,
+                                ...followupRouteFields(update.route),
                                 timestamp,
                                 thinkingSteps: [...localThinkingSteps],
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 trajectory: update.trajectory || null,
                                 investigateMode: investigateEnabled,
+                                effort: turnEffort,
                             });
                             break;
                         case 'saved': {
@@ -6839,6 +7399,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 thinkingSteps: [...localThinkingSteps],
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 investigateMode: investigateEnabled,
+                                effort: turnEffort,
                             });
                             break;
                         default:
@@ -6861,6 +7422,9 @@ function LLMAgent({ isRouteActive = true }) {
                     attachments: turnAttachments.length ? attachmentIdsOf(turnAttachments) : undefined,
                     figures: turnAnswerOptions.figures,
                     graph: turnAnswerOptions.graph,
+                    effort: effortForRequest(turnEffort, investigateEnabled),
+                    forceFullResearch: (investigateEnabled
+                        && requestSearchOptions?.forceFullResearch === true) || undefined,
                     messagesOverride: [...base, userMessage].map((msg) => ({
                         role: msg?.role,
                         content: msg?.content,
@@ -6892,11 +7456,13 @@ function LLMAgent({ isRouteActive = true }) {
                             role: 'assistant',
                             content: run.response || '',
                             references: parseReferences(run.references),
+                            ...(investigateEnabled ? followupRouteFields(run.route) : {}),
                             timestamp,
                             thinkingSteps: [...localThinkingSteps],
                             thoughtDurationMs: Date.now() - requestStartedAt,
                             trajectory: run.trajectory || null,
                             investigateMode: investigateEnabled,
+                            effort: turnEffort,
                         });
                         outcome = 'recovered';
                         break;
@@ -6916,6 +7482,7 @@ function LLMAgent({ isRouteActive = true }) {
                         thinkingSteps: [...localThinkingSteps],
                         thoughtDurationMs: Date.now() - requestStartedAt,
                         investigateMode: investigateEnabled,
+                        effort: turnEffort,
                     });
                 }
             } finally {
@@ -7035,6 +7602,8 @@ function LLMAgent({ isRouteActive = true }) {
     const stableDownload = useStableCallback(handleDownloadConversation);
     const stableOpenFeedback = useStableCallback(handleOpenFeedback);
     const stableReloadLatest = useStableCallback(handleReloadLatest);
+    const stableAskInInvestigate = useStableCallback(handleAskInInvestigate);
+    const stableRunFullInvestigation = useStableCallback(handleRunFullInvestigation);
 
     /* Nothing to show: no conversation restored, nothing streaming, and no question
        handed over from the home page.
@@ -7372,6 +7941,8 @@ function LLMAgent({ isRouteActive = true }) {
 
             {/* The leave-while-running dialog is gone with the guard that raised it. */}
 
+            <CreditDialog notice={creditDialog} onClose={() => setCreditDialog(null)} source="chat_page" />
+
             <Dialog
                 open={feedbackOpen}
                 onClose={handleCloseFeedback}
@@ -7636,6 +8207,14 @@ function LLMAgent({ isRouteActive = true }) {
                                                         {!isConversationLoading && renderMessages()}
                                                         <div ref={messagesEndRef} />
                                                     </div>
+                                                    {/* Reply over a selection in an answer (chat or
+                                                        Investigate) — into <body>, outside the
+                                                        transcript, so it is never part of an answer. */}
+                                                    <SelectionReply
+                                                        containerRef={messagesContainerRef}
+                                                        onReply={handleSelectionReply}
+                                                        touch={isPhoneDevice}
+                                                    />
                                                     {isConversationLoading && loadingConversationId && (
                                                         <div className="chat-loading-overlay">
                                                             <CircularProgress size={28} sx={{ color: 'var(--color-grey-900)' }} />
@@ -7743,19 +8322,40 @@ function LLMAgent({ isRouteActive = true }) {
                                                         // A guest at the limit keeps a live composer: sending
                                                         // opens the sign-in overlay instead (handleSubmit).
                                                         isQueryLimitReached={isLimitReachedEffective && !isGuest}
-                                                        investigateEnabled={chatInvestigateEnabled}
                                                         serviceTier={serviceTier}
-                                                        pipelineIsDeepResearch={chatInvestigateEnabled}
                                                         onServiceTierChange={handleServiceTierChange}
                                                         onServiceTierResolveDefault={setServiceTier}
+                                                        effort={composerEffort}
+                                                        onEffortChange={handleEffortChange}
+                                                        composerOptions={composerOptions}
+                                                        onComposerOptionsChange={setComposerOptions}
                                                         isGuest={isGuest}
-                                                        onRequireSignIn={requestPremiumSignIn}
+                                                        onRequireSignIn={requestComposerSignIn}
                                                         attachments={composerAttachments}
                                                         onAttachRequireSignIn={requestAttachSignIn}
+                                                        quotes={replyQuotes}
+                                                        onRemoveQuote={removeReplyQuote}
+                                                        inputRef={composerInputRef}
                                                         onSubmit={(event, submissionMeta) => {
+                                                            /* The effort picks the pipeline for THIS
+                                                               question: Extra is deep research, which
+                                                               takes no filters and does figures and
+                                                               the graph on its own. */
+                                                            const deep = INVESTIGATE_ENABLED
+                                                                && isDeepEffort(composerEffort);
+                                                            const flags = answerFlags(composerOptions, composerEffort);
                                                             submitOrQueue(event, {
-                                                                investigateEnabled: chatInvestigateEnabled,
+                                                                investigateEnabled: deep,
+                                                                // The turn's own level, queued with it;
+                                                                // Medium and Extra go without, as before.
+                                                                ...(isDefaultEffort(effortForTurn(composerEffort, deep))
+                                                                    ? {} : { effort: effortForTurn(composerEffort, deep) }),
                                                                 serviceTier,
+                                                                ...(deep ? {} : {
+                                                                    ...searchFilters(composerOptions),
+                                                                    figures: Boolean(flags.figures),
+                                                                    graph: Boolean(flags.graph),
+                                                                }),
                                                             }, submissionMeta?.queryMethod || 'button');
                                                         }}
                                                         onStop={handleStopStreaming}
@@ -8045,5 +8645,9 @@ function LLMAgent({ isRouteActive = true }) {
         </>
     );
 }
+
+/* One answer's card, exported so a test can draw it (followupRoute.test.jsx). The page itself
+   uses it only through `renderMessages`. */
+export { MessageCard };
 
 export default LLMAgent; 

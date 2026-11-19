@@ -1,5 +1,10 @@
 /**
- * About, from Figma 604:7226.
+ * About, first drawn from Figma 604:7226 and since turned into a scroll story:
+ * the hero's screen tilts up into view, a statement lights word by word, the
+ * knowledge base and the workflow each pin a screen while their content turns
+ * over, and the rest of the page rises in as it is reached. motion.jsx holds
+ * the machinery; without motion (prerender, reduced motion) every section is
+ * simply there.
  *
  * This page is also where the blog lives: "From the Lab" lists the articles,
  * and /blog sends readers here. See SiteChrome for the nav and footer both
@@ -8,20 +13,20 @@
 import './scoped.css';
 
 import React, {
-  useEffect,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
 } from 'react';
 
 import PublicPageSeo from '../Units/PublicPageSeo';
 import {
-  useLocation,
-  useNavigate,
+    Link,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
-import AddIcon from '@mui/icons-material/Add';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import RemoveIcon from '@mui/icons-material/Remove';
 
 import teamLogo from '../../img/about/frame11/logo 1.png';
 import logoHarvard from '../../img/about/v2/trusted/harvard.png';
@@ -39,15 +44,30 @@ import browserSecure from '../../img/about/v2/browser/secure.svg';
 import browserTabShape from '../../img/about/v2/browser/tab.svg';
 import browserTabClose from '../../img/about/v2/browser/tab-close.svg';
 import browserActions from '../../img/about/v2/browser/toolbar-actions.svg';
-import useCaseBookmark from '../../img/about/v2/use-cases/bookmark.svg';
-import useCaseQuote from '../../img/about/v2/use-cases/quote.svg';
 import browserFavicon from '../../img/GLKB_logo_icon.png';
 import { CHAT_HOME_PATH, markAboutSeen } from '../../config/entryRoutes';
+import { LITERATURE_REVIEW_ENABLED } from '../../config/features';
 import { useAuth } from '../Auth/AuthContext';
 import { posts } from '../Blog/posts';
-import { DEMO_VIDEO_URL, PostCard, SiteFooter, SiteNav } from '../SiteChrome';
+import { SiteFooter, SiteNav } from '../SiteChrome';
+import { DemoModal, DemoPlayer } from './DemoVideo';
+import { EXAMPLE_QUESTIONS, exampleChatLink } from './exampleQuestions';
 import faqData from './faqData.json';
-import { USE_CASES } from './useCases';
+import {
+    CountUp,
+    Track,
+    easeInOut,
+    segment,
+    useIdleAutoScroll,
+    useMotionAllowed,
+    useReveal,
+    useScrollProgress,
+} from './motion';
+import LocalNav from './LocalNav';
+import ReviewScene from './ReviewScene';
+import ScaleScene from './ScaleScene';
+import UseCasesSection from './UseCasesSection';
+import WorkflowScene from './WorkflowScene';
 
 /* Figma 604:7257 — the six, in the design's order and at its widths. These are
    the frame's own exports: the repo's older logo files are cropped differently,
@@ -61,51 +81,132 @@ const TRUSTED_LOGOS = [
     { src: logoUcSanDiego, name: 'UC San Diego', width: 205 },
 ];
 
-/* Figma 604:7362 */
-const STEPS = [
-    ['Ask', 'Type any biomedical query: a gene, variant, drug target, or disease.'],
-    ['Retrieve', 'GLKB searches 263M terms and 14.6M relationships, surfacing the most relevant PubMed papers.'],
-    ['Reason', 'The AI synthesizes retrieved evidence into a structured, concise, cited answer.'],
-    ['Verify', 'Every claim links to a PubMed ID. Gaps are labeled "none found" and never fabricated.'],
+/* The hero's backdrop: terms drifting at three depths, so they part at three
+   speeds as the screen rises. Positions are percentages of the stage. */
+const HERO_TERMS = [
+    { label: 'TP53', type: 'gene', x: 7, y: 24, depth: 1 },
+    { label: 'Insulin resistance', type: 'disease', x: 91, y: 20, depth: 1 },
+    { label: 'Harmine', type: 'chemical', x: 6, y: 54, depth: 2 },
+    { label: 'APOE ε4', type: 'variant', x: 93, y: 48, depth: 2 },
+    { label: 'DYRK1A', type: 'gene', x: 8, y: 82, depth: 3 },
+    { label: 'Type 2 diabetes', type: 'disease', x: 91, y: 78, depth: 3 },
 ];
+const HERO_DOTS = [
+    [18, 10, 1], [26, 36, 2], [3, 38, 1], [94, 30, 1], [76, 40, 2], [70, 8, 1],
+    [97, 66, 2], [9, 70, 1], [30, 92, 2], [62, 94, 1], [88, 92, 1], [46, 6, 3],
+];
+
+/* Lit word by word as the reader scrolls through it. */
+const STATEMENT = [
+    ['Biomedical literature grows faster than anyone can read.', false],
+    ['GLKB reads it for you, links what it finds, and shows you', false],
+    ['exactly where every answer comes from.', true],
+];
+const STATEMENT_WORDS = STATEMENT.flatMap(([text, accent]) => text.split(' ').map((word) => [word, accent]));
+// The pin progress at which the last word is fully lit (scoped.css: --p * 1.35 reaches 1), and a little after.
+const STATEMENT_LIT_AT = 0.78;
+
+// The FAQ's two columns: the first half of the questions, then the rest.
+const FAQ_SPLIT = Math.ceil(faqData.length / 2);
+const FAQ_COLUMNS = [faqData.slice(0, FAQ_SPLIT), faqData.slice(FAQ_SPLIT)];
 
 /* Figma 604:7399 — the three cards under the wide one. */
 const DIFFERENTIATORS = [
-    ['Biomedical-native', 'Built on the full PubMed corpus: 263M biomedical terms and 14.6M relationships across gene-disease associations, pathways, and ontology hierarchies.'],
-    ['Reproducible by design', 'Same query, same results. Outputs are structured, machine-readable, and consistent across, making them suitable for publication-grade workflows.'],
+    ['Biomedical-native', 'Built on the full PubMed corpus: 41.2M+ papers, 3.71M+ biomedical terms and 14.6M+ relationships across gene-disease associations, pathways, and ontology hierarchies.'],
+    ['Built for verification', 'Answers include literature references so you can review the supporting evidence and assess how it relates to your research question.'],
     ['Built for scale', 'Analyze hundreds of targets, variants, or genes in parallel. Structured, cited outputs feed directly into your downstream pipeline.'],
 ];
 
-/* Figma 604:7600 */
-const STATS = [
-    ['+24.8%', 'Accuracy improvement\non PubMedQA-HC'],
-    ['263M', 'Biomedical terms in\nthe knowledge graph'],
-    ['14.6M', 'Relationships\nencoded'],
-    ['~30 min', 'To process 1,500 candidate\ngenes with full citations'],
+/* Questions of the kind researchers bring, in two rows that slide apart. */
+/* The figures as a bento grid (Figma 604:7600's five, regrouped): the corpus, then what it buys. */
+const NUMBERS = [
+    { key: 'papers', value: '41.2M+', label: 'Papers indexed from the literature' },
+    { key: 'terms', value: '3.71M+', label: 'Biomedical terms in the knowledge graph' },
+    { key: 'relations', value: '14.6M+', label: 'Relationships encoded between them' },
+    { key: 'accuracy', value: '+24.8%', label: 'Accuracy improvement on PubMedQA-HC' },
+    { key: 'speed', value: '~30 min', label: 'To process 1,500 candidate genes with full citations' },
 ];
+const TERM_TYPES = ['Genes', 'Diseases', 'Chemicals', 'Variants', 'Pathways'];
+
+const REVIEW_PATH = '/literature-review';
 
 const AboutPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [openFaqId, setOpenFaqId] = useState(faqData[0]?.id ?? null);
-    const [useCase, setUseCase] = useState(USE_CASES[0].id);
-    const { isAuthenticated, loading: authLoading } = useAuth();
+    const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
     const previousAuth = useRef(null);
+    // Where a sign-in started from this page goes next: the chat, unless the reader
+    // asked for something that needed the account (a literature review).
+    const afterSignIn = useRef(CHAT_HOME_PATH);
     const railRef = useRef(null);
     const [railOverflows, setRailOverflows] = useState(false);
+    const pageRef = useRef(null);
+    const heroRef = useRef(null);
+    const statementRef = useRef(null);
+    const motion = useMotionAllowed();
+    const [demoOpen, setDemoOpen] = useState(false);
+    const openDemo = useCallback(() => setDemoOpen(true), []);
+    const closeDemo = useCallback(() => setDemoOpen(false), []);
+
+    useReveal(pageRef, motion);
+
+    // The hero's screen rises and flattens over the first part of the pin; the
+    // eased value drives it so it settles rather than stops.
+    useScrollProgress(heroRef, {
+        mode: 'pin',
+        onProgress: (progress) => {
+            heroRef.current.style.setProperty('--e', easeInOut(segment(progress, 0, 0.8)).toFixed(4));
+        },
+    });
+    useScrollProgress(statementRef, { mode: 'pin' });
+    // Every word is lit once progress reaches 1 / 1.35 (the CSS's --lit); a reader who stops
+    // part-way is carried there, and no further, so the next scene is theirs to scroll to.
+    useIdleAutoScroll(statementRef, { enabled: motion, stops: [STATEMENT_LIT_AT] });
+    // The hero's screen has finished rising and flattening at 0.8 (--e above).
+    useIdleAutoScroll(heroRef, { enabled: motion, stops: [0.8] });
+
+    // The screen starts just under the copy, however tall the copy is at this width (it
+    // wraps differently per window, and a news line can sit above the title).
+    const heroCopyRef = useRef(null);
+    useEffect(() => {
+        const copy = heroCopyRef.current;
+        const hero = heroRef.current;
+        if (!copy || !hero) return undefined;
+        const measure = () => hero.style.setProperty('--copy-h', `${copy.offsetHeight}px`);
+        measure();
+        if (typeof window.ResizeObserver !== 'function') {
+            window.addEventListener('resize', measure);
+            return () => window.removeEventListener('resize', measure);
+        }
+        const observer = new window.ResizeObserver(measure);
+        observer.observe(copy);
+        return () => observer.disconnect();
+    }, []);
 
     // Redirect a sign-in completed on About, not a restored session or a signed-in
     // reader deliberately returning to About from inside the app.
     useEffect(() => {
         if (authLoading) return;
         if (previousAuth.current === false && isAuthenticated) {
-            navigate(CHAT_HOME_PATH, { replace: true });
+            navigate(afterSignIn.current, { replace: true });
         }
         previousAuth.current = Boolean(isAuthenticated);
     }, [authLoading, isAuthenticated, navigate]);
 
     const handleGetStarted = () => {
         navigate(CHAT_HOME_PATH);
+    };
+
+    // A review needs an account (guests have AI Chat only), so a guest signs in first
+    // and lands on the review's Scope step afterwards.
+    const startReview = () => {
+        if (isAuthenticated) {
+            navigate(REVIEW_PATH);
+            return;
+        }
+        afterSignIn.current = REVIEW_PATH;
+        openLoginModal?.('Sign in to write a literature review. It’s free.');
     };
 
     // Once seen, `/` stops sending this browser here (config/entryRoutes.js).
@@ -137,158 +238,219 @@ const AboutPage = () => {
         return () => window.clearTimeout(timer);
     }, [location.hash]);
 
-    const activeUseCase = USE_CASES.find((item) => item.id === useCase) || USE_CASES[0];
-
-    const scrollRail = () => {
+    // One card plus its gap per press, so the row steps rather than glides.
+    const scrollRail = (direction) => {
         const rail = railRef.current;
         if (!rail) return;
-        // One card plus its gap, so the row steps rather than glides an arbitrary
-        // distance; wrap to the start once the end is in view.
-        const step = (rail.firstElementChild?.getBoundingClientRect().width || 240) + 24;
-        const atEnd = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 8;
-        rail.scrollTo({ left: atEnd ? 0 : rail.scrollLeft + step, behavior: 'smooth' });
+        const step = (rail.firstElementChild?.getBoundingClientRect().width || 320) + 24;
+        rail.scrollBy({ left: direction * step, behavior: motion ? 'smooth' : 'auto' });
     };
 
     return (
         <>
             <PublicPageSeo title="GLKB: Genomic Literature Knowledge Base" description="GLKB synthesizes biomedical literature into structured, evidence-backed answers. Every claim links directly to its source paper." />
 
-            <div className="about-page">
+            <div className={`about-page${motion ? ' about-page--motion' : ''}`} ref={pageRef}>
                 <SiteNav active="home" onGetStarted={handleGetStarted} />
+                <LocalNav motion={motion} onTry={handleGetStarted} />
 
-                <section className="about-hero" id="top">
-                    <div className="about-hero-copy">
-                        <p className="about-eyebrow">AI-Powered Biomedical Research Engine</p>
-                        <h1 className="about-hero-title">
-                            Weeks of research,
-                            <br />
-                            done in minutes.
-                        </h1>
-                        <p className="about-hero-lede">
-                            GLKB synthesizes biomedical literature into structured, evidence-
-                            <br />
-                            backed answers. Every claim links directly to its source paper.
-                        </p>
-                        <div className="about-hero-actions">
-                            <button type="button" className="site-button" onClick={() => navigate(CHAT_HOME_PATH)}>
-                                Try GLKB
-                            </button>
-                            <button type="button" className="site-button site-button--ghost" onClick={() => window.open(DEMO_VIDEO_URL, '_blank', 'noopener,noreferrer')}>
-                                View Demo
-                            </button>
+                <section className="about-hero" id="top" ref={heroRef}>
+                    <div className="about-hero-stage">
+                        <div className="about-hero-backdrop" aria-hidden="true">
+                            {[1, 2, 3].map((depth) => (
+                                <div className={`about-hero-layer about-hero-layer--${depth}`} key={depth}>
+                                    {HERO_DOTS.filter(([, , d]) => d === depth).map(([x, y]) => (
+                                        <i className="about-hero-dot" style={{ left: `${x}%`, top: `${y}%` }} key={`${x}-${y}`} />
+                                    ))}
+                                    {HERO_TERMS.filter((term) => term.depth === depth).map((term) => (
+                                        <span
+                                            className={`about-hero-term is-${term.type}`}
+                                            style={{ left: `${term.x}%`, top: `${term.y}%` }}
+                                            key={term.label}
+                                        >
+                                            {term.label}
+                                        </span>
+                                    ))}
+                                </div>
+                            ))}
                         </div>
-                    </div>
-                    <div className="about-hero-media">
-                        {/* Figma 1088:28340 — the Chrome frame, 79px of chrome over the
-                            app, running off the right edge of the band. */}
-                        <div className="about-browser">
-                            <div className="about-browser-tabs">
-                                <span className="about-browser-lights" aria-hidden="true">
-                                    <i /><i /><i />
-                                </span>
-                                <span className="about-browser-tab">
-                                    <img className="about-browser-tab-shape" src={browserTabShape} alt="" />
-                                    <img className="about-browser-favicon" src={browserFavicon} alt="" />
-                                    <span className="about-browser-tab-title">GLKB API Docs</span>
-                                    <img className="about-browser-tab-close" src={browserTabClose} alt="" />
-                                </span>
-                                <img className="about-browser-newtab" src={browserNewTab} alt="" />
+                        <div className="about-hero-copy" ref={heroCopyRef}>
+                            {/* The newest post, where a first-time reader will see it. */}
+                            <Link className="about-hero-news" to={`/blog/${posts[0].slug}`}>
+                                <span className="about-hero-news-tag">New</span>
+                                <span className="about-hero-news-text">{posts[0].cardTitle || posts[0].title}</span>
+                                <ChevronRightIcon className="about-hero-news-chevron" />
+                            </Link>
+                            <p className="about-eyebrow">AI-Powered Biomedical Research Engine</p>
+                            <h1 className="about-hero-title">
+                                Weeks of research,
+                                <br />
+                                done in minutes.
+                            </h1>
+                            <p className="about-hero-lede">
+                                GLKB synthesizes biomedical literature into structured, evidence-backed
+                                answers. Every claim links directly to its source paper.
+                            </p>
+                            <div className="about-hero-actions">
+                                <button type="button" className="site-button" onClick={() => navigate(CHAT_HOME_PATH)}>
+                                    Try GLKB
+                                </button>
+                                <button type="button" className="site-button site-button--ghost" onClick={openDemo}>
+                                    View Demo
+                                </button>
                             </div>
-                            <div className="about-browser-toolbar">
-                                <img className="about-browser-actions" src={browserActions} alt="" />
-                                <span className="about-browser-address">
-                                    <img className="about-browser-secure" src={browserSecure} alt="" />
-                                    <span className="about-browser-url">https://glkb.org/</span>
-                                </span>
-                                <img className="about-browser-menu" src={browserMenu} alt="" />
+                        </div>
+                        <div className="about-hero-media">
+                            <div className="about-hero-glow" aria-hidden="true" />
+                            {/* Figma 1088:28340 — the Chrome frame, 79px of chrome over the app. */}
+                            <div className="about-browser">
+                                <div className="about-browser-tabs">
+                                    <span className="about-browser-lights" aria-hidden="true">
+                                        <i /><i /><i />
+                                    </span>
+                                    <span className="about-browser-tab">
+                                        <img className="about-browser-tab-shape" src={browserTabShape} alt="" />
+                                        <img className="about-browser-favicon" src={browserFavicon} alt="" />
+                                        <span className="about-browser-tab-title">GLKB</span>
+                                        <img className="about-browser-tab-close" src={browserTabClose} alt="" />
+                                    </span>
+                                    <img className="about-browser-newtab" src={browserNewTab} alt="" />
+                                </div>
+                                <div className="about-browser-toolbar">
+                                    <img className="about-browser-actions" src={browserActions} alt="" />
+                                    <span className="about-browser-address">
+                                        <img className="about-browser-secure" src={browserSecure} alt="" />
+                                        <span className="about-browser-url">https://glkb.org/</span>
+                                    </span>
+                                    <img className="about-browser-menu" src={browserMenu} alt="" />
+                                </div>
+                                <img className="about-browser-body" src={heroAppImage} alt="A GLKB answer with its citations" />
                             </div>
-                            <img className="about-browser-body" src={heroAppImage} alt="A GLKB answer with its citations" />
                         </div>
                     </div>
                 </section>
 
                 <section className="about-trusted">
                     <p className="about-trusted-title">Trusted by the biomedical researchers at:</p>
-                    <div className="about-trusted-logos">
-                        {TRUSTED_LOGOS.map((logo) => (
-                            <img
-                                key={logo.name}
-                                className="about-trusted-logo"
-                                style={{ width: `${logo.width}px` }}
-                                src={logo.src}
-                                alt={logo.name}
-                            />
-                        ))}
-                    </div>
-                </section>
-
-                {/* The blog lives here: /blog sends readers to this section. */}
-                <section className="about-section about-lab" id="from-the-lab">
-                    <div className="about-inner">
-                        <h2 className="about-lab-title">
-                            From the Lab
-                            <ChevronRightIcon className="about-lab-chevron" />
-                        </h2>
-                        <div className="about-lab-rail-wrap">
-                            <div className="about-lab-rail" ref={railRef}>
-                                {posts.map((post) => (
-                                    <div className="about-lab-slot" key={post.slug}>
-                                        <PostCard post={post} onOpen={(slug) => navigate(`/blog/${slug}`)} />
-                                    </div>
-                                ))}
-                            </div>
-                            {railOverflows && (
-                                <button
-                                    type="button"
-                                    className="about-lab-next"
-                                    onClick={scrollRail}
-                                    aria-label="Show more posts"
-                                >
-                                    <ChevronRightIcon />
-                                </button>
-                            )}
+                    <div className="about-trusted-marquee">
+                        <div className="about-trusted-logos">
+                            {[...TRUSTED_LOGOS, ...TRUSTED_LOGOS].map((logo, index) => {
+                                const copy = index >= TRUSTED_LOGOS.length;
+                                return (
+                                    <img
+                                        key={`${logo.name}-${copy ? 'copy' : 'first'}`}
+                                        className={`about-trusted-logo${copy ? ' is-copy' : ''}`}
+                                        style={{ width: `${logo.width}px` }}
+                                        src={logo.src}
+                                        alt={copy ? '' : logo.name}
+                                        aria-hidden={copy ? 'true' : undefined}
+                                    />
+                                );
+                            })}
                         </div>
                     </div>
                 </section>
 
-                <section className="about-section about-works" id="how-it-works">
-                    <div className="about-inner">
-                        <p className="about-eyebrow">From query to answer</p>
-                        <h2 className="about-heading">How GLKB Works</h2>
-                        <ol className="about-steps">
-                            {STEPS.map(([name, body], index) => (
-                                <li className="about-step" key={name}>
-                                    <span className="about-step-number">{index + 1}</span>
-                                    <h3 className="about-step-name">{name}</h3>
-                                    <p className="about-step-body">{body}</p>
-                                </li>
+                <section className="about-statement" ref={statementRef} style={{ '--n': STATEMENT_WORDS.length }}>
+                    <div className="about-statement-stage">
+                        <p className="about-statement-text">
+                            {STATEMENT_WORDS.map(([word, accent], index) => (
+                                // eslint-disable-next-line react/no-array-index-key
+                                <React.Fragment key={index}>
+                                    <span className={`about-statement-word${accent ? ' is-accent' : ''}`} style={{ '--i': index }}>{word}</span>
+                                    {' '}
+                                </React.Fragment>
                             ))}
-                        </ol>
+                        </p>
+                    </div>
+                </section>
+
+                <ScaleScene motion={motion} />
+
+                <WorkflowScene motion={motion} />
+
+                <section className="about-section about-demo" id="demo">
+                    <div className="about-inner">
+                        <p className="about-eyebrow" data-reveal>See it in action</p>
+                        <h2 className="about-heading" data-reveal style={{ '--d': 1 }}>Watch the GLKB research agent at work</h2>
+                        <p className="about-demo-lede" data-reveal style={{ '--d': 2 }}>
+                            A walkthrough of GLKB answering a research question, from the query to the cited answer.
+                        </p>
+                        <div className="about-demo-frame" data-reveal style={{ '--d': 3 }}>
+                            <DemoPlayer />
+                        </div>
+                    </div>
+                </section>
+
+                {LITERATURE_REVIEW_ENABLED && <ReviewScene motion={motion} onStart={startReview} />}
+
+                {/* The blog lives here: /blog sends readers to this section. Placed after the
+                    product scenes rather than at the foot of the page, so it is seen. */}
+                <section className="about-section about-lab" id="from-the-lab" aria-labelledby="about-lab-heading">
+                    <div className="about-inner">
+                        <div className="about-lab-head">
+                            <div>
+                                <p className="about-eyebrow" data-reveal>From the Lab</p>
+                                <h2 className="about-display" id="about-lab-heading" data-reveal style={{ '--d': 1 }}>
+                                    How GLKB works, from the people who build it.
+                                </h2>
+                            </div>
+                            {railOverflows && (
+                                <div className="about-lab-controls">
+                                    <button type="button" className="about-lab-arrow" onClick={() => scrollRail(-1)} aria-label="Previous posts">
+                                        <ChevronRightIcon className="is-back" />
+                                    </button>
+                                    <button type="button" className="about-lab-arrow" onClick={() => scrollRail(1)} aria-label="More posts">
+                                        <ChevronRightIcon />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        <div className="about-lab-rail" ref={railRef} data-reveal style={{ '--d': 2 }}>
+                            {posts.map((post, index) => (
+                                <Link className={`about-lab-card${index === 0 ? ' is-new' : ''}`} to={`/blog/${post.slug}`} key={post.slug}>
+                                    <span className="about-lab-media">
+                                        {post.thumb ? <img src={post.thumb} alt="" loading="lazy" /> : null}
+                                    </span>
+                                    <span className="about-lab-body">
+                                        <span className="about-lab-date">
+                                            {index === 0 ? <b>New</b> : null}
+                                            {post.date}
+                                        </span>
+                                        <span className="about-lab-card-title">{post.title}</span>
+                                        <span className="about-lab-excerpt">{post.lede}</span>
+                                        <span className="about-lab-more">
+                                            Read the article
+                                            <ChevronRightIcon />
+                                        </span>
+                                    </span>
+                                </Link>
+                            ))}
+                        </div>
                     </div>
                 </section>
 
                 <section className="about-section about-different" id="why">
                     <div className="about-inner">
-                        <p className="about-eyebrow">By researcher, for researcher</p>
-                        <h2 className="about-heading">What Makes GLKB Different</h2>
-                        <article className="about-evidence">
+                        <p className="about-eyebrow" data-reveal>By researcher, for researcher</p>
+                        <h2 className="about-heading" data-reveal style={{ '--d': 1 }}>What Makes GLKB Different</h2>
+                        <article className="about-evidence" data-reveal style={{ '--d': 2 }}>
                             <div className="about-evidence-text">
-                                <h3 className="about-card-title">Evidence, not estimates</h3>
+                                <h3 className="about-card-title">Explore the supporting evidence</h3>
                                 <p className="about-card-body">
-                                    General LLMs can&apos;t tell you when they&apos;re guessing. GLKB grounds every
-                                    answer in retrieved literature: your synthesis only reflects what the
-                                    evidence actually says. Where support is missing, GLKB labels it &quot;none
-                                    found&quot; rather than filling it in with plausible-sounding fabrications. That
-                                    transparency is the feature.
+                                    GLKB uses retrieved literature to help synthesize answers to biomedical
+                                    research questions. References and source excerpts let you review the
+                                    supporting evidence, assess its relevance, and identify questions that
+                                    need further investigation.
                                 </p>
                             </div>
-                            <div className="about-evidence-media">
+                            <Track className="about-evidence-media">
                                 <img src={evidenceImage} alt="A citation list with its source sentences" />
-                            </div>
+                            </Track>
                         </article>
                         <div className="about-different-grid">
-                            {DIFFERENTIATORS.map(([title, body]) => (
-                                <article className="about-card" key={title}>
+                            {DIFFERENTIATORS.map(([title, body], index) => (
+                                <article className="about-card" key={title} data-reveal style={{ '--d': index }}>
                                     <h3 className="about-card-title">{title}</h3>
                                     <p className="about-card-body">{body}</p>
                                 </article>
@@ -297,115 +459,86 @@ const AboutPage = () => {
                     </div>
                 </section>
 
-                <section className="about-section about-graph" id="knowledge-graph">
+                <Track as="section" className="about-section about-graph" id="knowledge-graph">
                     <div className="about-inner about-graph-inner">
                         <div className="about-graph-copy">
-                            <p className="about-eyebrow">The Knowledge Graph</p>
-                            <h2 className="about-heading">
-                                Visualize what
-                                <br />
-                                the literature knows and
-                                <br />
-                                where the gaps are.
+                            <p className="about-eyebrow" data-reveal>The Knowledge Graph</p>
+                            <h2 className="about-heading about-lines">
+                                {['Visualize what', 'the literature knows and', 'where the gaps are.'].map((line, index) => (
+                                    // The clipped line is what is watched: its sliding child is
+                                    // fully clipped until it moves, so it never "intersects".
+                                    <span className="about-line" data-reveal="line" style={{ '--d': index }} key={line}>
+                                        <span>{line}</span>
+                                    </span>
+                                ))}
                             </h2>
-                            <p className="about-graph-body">
+                            <p className="about-graph-body" data-reveal style={{ '--d': 3 }}>
                                 Explore connections between genes, diseases, drugs, and pathways, then jump
                                 directly to the supporting papers. Not just what science has established, but
                                 where the evidence runs thin.
                             </p>
                         </div>
-                        <img className="about-graph-media" src={knowledgeGraphImage} alt="A knowledge graph linking genes, diseases, drugs and variants" />
-                    </div>
-                </section>
-
-                <section className="about-section about-use" id="use-cases">
-                    <div className="about-inner">
-                        <p className="about-eyebrow">Use cases</p>
-                        <h2 className="about-heading">Built for Your Research</h2>
-                        <div className="about-tabs" role="tablist">
-                            {USE_CASES.map((item) => (
-                                <button
-                                    key={item.id}
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={item.id === activeUseCase.id}
-                                    className={`about-tab${item.id === activeUseCase.id ? ' is-active' : ''}`}
-                                    onClick={() => setUseCase(item.id)}
-                                >
-                                    {item.label}
-                                </button>
-                            ))}
+                        <div className="about-graph-media">
+                            <img src={knowledgeGraphImage} alt="A knowledge graph linking genes, diseases, drugs and variants" />
                         </div>
-                        {activeUseCase.lede ? (
-                            <p className="about-use-lede">{activeUseCase.lede}</p>
-                        ) : null}
-                        {/* The first tab is the worked example supplied by the design. */}
-                        {activeUseCase.answer ? (
-                        <div className="about-sample">
-                            <div className="about-sample-question-bar">
-                                <div className="about-sample-question">Q: {activeUseCase.question}</div>
-                            </div>
-                            <div className="about-sample-body">
-                                <div className="about-sample-answer">
-                                    <div className="about-sample-answer-content">
-                                        {activeUseCase.answer.map((block, index) => {
-                                            const key = `${block.type}-${block.text?.slice(0, 40) || index}`;
-                                            if (block.type === 'heading') {
-                                                return <p className="about-sample-answer-heading" key={key}>{block.text}</p>;
-                                            }
-                                            if (block.type === 'list') {
-                                                return (
-                                                    <ul className="about-sample-answer-list" key={key}>
-                                                        {block.items.map((item) => <li key={item.slice(0, 48)}>{item}</li>)}
-                                                    </ul>
-                                                );
-                                            }
-                                            return <p key={key}>{block.text}</p>;
-                                        })}
-                                    </div>
-                                </div>
-                                <aside className="about-sample-references">
-                                    <h3 className="about-sample-references-title">References</h3>
-                                    {activeUseCase.references.map((reference, index) => (
-                                        // eslint-disable-next-line react/no-array-index-key
-                                        <div className="about-reference" key={`${reference.pmid}-${index}`}>
-                                            <span className="about-reference-index">{index + 1}</span>
-                                            <div className="about-reference-body">
-                                                <p className="about-reference-title">{reference.title}</p>
-                                                <p className="about-reference-meta">{reference.meta}</p>
-                                                <div className="about-reference-quote">{reference.quote}</div>
-                                                <div className="about-reference-footer">
-                                                    <p className="about-reference-pmid">
-                                                        {`PubMed ID: ${reference.pmid} · ${reference.citations} Citations`}
-                                                    </p>
-                                                    <span className="about-reference-actions" aria-hidden="true">
-                                                        <img src={useCaseQuote} alt="" />
-                                                        <img src={useCaseBookmark} alt="" />
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </aside>
-                            </div>
-                        </div>
-                        ) : null}
                     </div>
-                </section>
+                </Track>
 
-                <section className="about-stats">
-                    {STATS.map(([value, label]) => (
-                        <div className="about-stat" key={value}>
-                            <div className="about-stat-value">{value}</div>
-                            <div className="about-stat-label">{label}</div>
+                <Track as="section" className="about-ask" aria-labelledby="about-ask-heading">
+                    <div className="about-ask-head">
+                        <p className="about-eyebrow" data-reveal>Ask anything</p>
+                        <h2 className="about-heading" id="about-ask-heading" data-reveal style={{ '--d': 1 }}>
+                            From a single gene to a whole field.
+                        </h2>
+                        <p className="about-ask-hint" data-reveal style={{ '--d': 2 }}>
+                            Pick a question to see GLKB&rsquo;s answer, with its sources. Free, no sign-in needed.
+                        </p>
+                    </div>
+                    {EXAMPLE_QUESTIONS.map((row, rowIndex) => (
+                        <div className={`about-ask-row about-ask-row--${rowIndex + 1}`} key={row[0]}>
+                            <ul className="about-ask-track">
+                                {row.map((question) => (
+                                    <li key={question}>
+                                        <Link className="about-ask-chip" {...exampleChatLink(question)}>
+                                            <span className="about-ask-text">{question}</span>
+                                            <ChevronRightIcon className="about-ask-go" aria-hidden="true" />
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     ))}
-                </section>
+                </Track>
 
+                <UseCasesSection />
+
+                <section className="about-section about-numbers" aria-labelledby="about-numbers-heading">
+                    <div className="about-inner">
+                        <div className="about-numbers-head">
+                            <p className="about-eyebrow" data-reveal>By the numbers</p>
+                            <h2 className="about-display" id="about-numbers-heading" data-reveal style={{ '--d': 1 }}>
+                                The literature, connected.
+                            </h2>
+                        </div>
+                        <div className="about-bento">
+                            {NUMBERS.map((item, index) => (
+                                <div className={`about-tile about-tile--${item.key}`} key={item.key} data-reveal style={{ '--d': index }}>
+                                    <CountUp className="about-tile-value" value={item.value} motion={motion} />
+                                    <p className="about-tile-label">{item.label}</p>
+                                    {item.key === 'terms' ? (
+                                        <ul className="about-tile-types" aria-label="Term types">
+                                            {TERM_TYPES.map((type) => <li key={type}>{type}</li>)}
+                                        </ul>
+                                    ) : null}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
                 <section className="about-section about-team" id="team">
                     <div className="about-inner about-team-inner">
-                        <img className="about-team-logo" src={teamLogo} alt="Michigan Medicine, University of Michigan" />
-                        <div className="about-team-copy">
+                        <img className="about-team-logo" src={teamLogo} alt="Michigan Medicine, University of Michigan" data-reveal />
+                        <div className="about-team-copy" data-reveal style={{ '--d': 1 }}>
                             <p className="about-eyebrow">Behind GLKB</p>
                             <h2 className="about-heading">The Team</h2>
                             <p className="about-team-body">
@@ -418,33 +551,47 @@ const AboutPage = () => {
 
                 <section className="about-section about-faq" id="faq">
                     <div className="about-inner">
-                        <h2 className="about-heading about-faq-heading">Frequently Asked Questions</h2>
+                        <h2 className="about-heading about-faq-heading" data-reveal>Frequently Asked Questions</h2>
+                        {/* Two fixed columns rather than CSS columns: an answer opening in one
+                            column must not reflow questions into the other. */}
                         <div className="about-faq-columns">
-                            {faqData.map((item) => {
-                                const isOpen = openFaqId === item.id;
-                                return (
-                                    <details open={isOpen} className={`about-faq-item${isOpen ? ' is-open' : ''}`} key={item.id}>
-                                        <summary
-                                            className="about-faq-question"
-                                            aria-expanded={isOpen}
-                                            aria-controls={`faq-${item.id}`}
-                                            onClick={(event) => { event.preventDefault(); setOpenFaqId(isOpen ? null : item.id); }}
-                                        >
-                                            <span>{item.question}</span>
-                                            <span className="about-faq-toggle" aria-hidden="true">
-                                                {isOpen ? <RemoveIcon /> : <AddIcon />}
-                                            </span>
-                                        </summary>
-                                        <p className="about-faq-answer" id={`faq-${item.id}`}>{item.answer}</p>
-                                    </details>
-                                );
-                            })}
+                            {FAQ_COLUMNS.map((column, columnIndex) => (
+                                // eslint-disable-next-line react/no-array-index-key
+                                <div className="about-faq-column" key={columnIndex}>
+                                    {column.map((item) => {
+                                        const isOpen = openFaqId === item.id;
+                                        return (
+                                            <div className={`about-faq-item${isOpen ? ' is-open' : ''}`} key={item.id}>
+                                                <h3 className="about-faq-heading-row">
+                                                    <button
+                                                        type="button"
+                                                        className="about-faq-question"
+                                                        id={`faq-q-${item.id}`}
+                                                        aria-expanded={isOpen}
+                                                        aria-controls={`faq-${item.id}`}
+                                                        onClick={() => setOpenFaqId(isOpen ? null : item.id)}
+                                                    >
+                                                        <span>{item.question}</span>
+                                                        <span className="about-faq-toggle" aria-hidden="true" />
+                                                    </button>
+                                                </h3>
+                                                <div className="about-faq-panel" id={`faq-${item.id}`} role="region" aria-labelledby={`faq-q-${item.id}`}>
+                                                    <div className="about-faq-panel-inner">
+                                                        <p className="about-faq-answer">{item.answer}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </section>
 
-                <SiteFooter />
+                <SiteFooter onViewDemo={openDemo} />
             </div>
+            <DemoModal open={demoOpen} onClose={closeDemo} />
         </>
     );
 };

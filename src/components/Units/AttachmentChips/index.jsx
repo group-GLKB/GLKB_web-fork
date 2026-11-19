@@ -27,6 +27,7 @@ import {
     attachmentMetaText,
     attachmentObjectUrl,
     formatLabelForName,
+    INVESTIGATE_IMAGES_NOTE,
     isCodeFormat,
     normalizeAttachmentList,
 } from '../../../service/attachments';
@@ -71,8 +72,8 @@ export const dragHasFiles = (event) => {
  * photos and files". Any file type — the backend reads each as a picture or as text. Pasting
  * needs no entry: Ctrl/⌘+V in the message box attaches what is on the clipboard.
  *
- * A guest is asked to sign in instead; on Investigate it is disabled, with the reason as its
- * tooltip. The panel anchors to the nearest `[data-attach-anchor]` (the composer's box), or
+ * A guest is asked to sign in instead; a composer that cannot take files right now disables it,
+ * with the reason as its tooltip. The panel anchors to the nearest `[data-attach-anchor]` (the composer's box), or
  * to the button itself when there is none.
  */
 export const AttachButton = ({
@@ -89,7 +90,11 @@ export const AttachButton = ({
     itemLabel = 'Add photos and files',
     itemHint = 'Upload from computer',
     accept,
+    /* The composer's "+" (design: GLKB Effort A): a bordered square that opens the file picker
+       straight away, with no panel in between. */
+    variant = 'menu',
 }) => {
+    const direct = variant === 'square';
     const inputRef = useRef(null);
     const buttonRef = useRef(null);
     const [anchor, setAnchor] = useState(null);
@@ -109,10 +114,10 @@ export const AttachButton = ({
                     <button
                         ref={buttonRef}
                         type="button"
-                        className={`attach-button${menuOpen ? ' is-open' : ''}`}
+                        className={`attach-button${menuOpen ? ' is-open' : ''}${direct ? ' is-square' : ''}`}
                         aria-label={label}
-                        aria-haspopup="menu"
-                        aria-expanded={menuOpen}
+                        aria-haspopup={direct ? undefined : 'menu'}
+                        aria-expanded={direct ? undefined : menuOpen}
                         disabled={disabled}
                         onMouseDown={(event) => {
                             // Keeps focus (and, on the home page, the example list) where it was.
@@ -128,6 +133,11 @@ export const AttachButton = ({
                                 onRequireSignIn?.();
                                 return;
                             }
+                            if (direct) {
+                                trackGtagEvent('chat_attach_click', { source, via: 'button' });
+                                inputRef.current?.click();
+                                return;
+                            }
                             if (menuOpen) {
                                 close();
                                 return;
@@ -136,7 +146,8 @@ export const AttachButton = ({
                             setAnchor(button?.closest('[data-attach-anchor]') || button);
                         }}
                     >
-                        <AddIcon className="attach-button-icon" />
+                        {direct ? <span className="attach-button-plus" aria-hidden="true">+</span>
+                            : <AddIcon className="attach-button-icon" />}
                     </button>
                     <input
                         ref={inputRef}
@@ -215,12 +226,120 @@ const chipMeta = (item) => {
 
 /**
  * The files waiting on a composer, with their upload state. `blockedNote` explains why the
- * question cannot be sent as it stands (a failed upload, Investigate).
+ * question cannot be sent as it stands (a failed upload, an image on Investigate).
  */
-export const AttachmentChips = ({ items = [], notice = '', blockedNote = '', onRemove }) => {
+// The design chip's tag: the file's extension, "PDF", "PNG", "CSV".
+const extensionTag = (name) => {
+    const text = String(name || '');
+    const dot = text.lastIndexOf('.');
+    const ext = dot > 0 ? text.slice(dot + 1) : '';
+    return (ext && ext.length <= 5 ? ext : 'file').toUpperCase();
+};
+
+/**
+ * The composer's waiting files in the design's form (GLKB Effort A): one compact chip each —
+ * the extension as a tag, the name, and × — with the upload's progress along its foot and an
+ * error in place of the name's tail.
+ */
+const DesignChips = ({ items, notice, blockedNote, onRemove }) => (
+    <div
+        className="attachment-chips is-design"
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+    >
+        {items.length > 0 && (
+            <ul className="attachment-chip-list" aria-label="Attached files">
+                {items.map((item) => (
+                    <li
+                        key={item.key}
+                        className={`attachment-chip is-${item.status} is-${item.kind}`}
+                        data-testid="attachment-chip"
+                        title={item.status === 'error' ? chipMeta(item) : item.name}
+                    >
+                        <span className="attachment-chip-tag">{extensionTag(item.name)}</span>
+                        <span className="attachment-chip-name">{item.name}</span>
+                        {item.status !== 'ready' && (
+                            <span
+                                className="attachment-chip-meta"
+                                role={item.status === 'error' ? 'alert' : undefined}
+                            >
+                                {item.status === 'uploading'
+                                    ? `${Math.round((Number(item.progress) || 0) * 100)}%`
+                                    : chipMeta(item)}
+                            </span>
+                        )}
+                        {item.status === 'uploading' && (
+                            <span
+                                className="attachment-chip-progress"
+                                role="progressbar"
+                                aria-label={`Uploading ${item.name}`}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-valuenow={Math.round((Number(item.progress) || 0) * 100)}
+                            >
+                                <span style={{ width: `${Math.round((Number(item.progress) || 0) * 100)}%` }} />
+                            </span>
+                        )}
+                        <button
+                            type="button"
+                            className="attachment-chip-remove"
+                            title="Remove"
+                            aria-label={`Remove ${item.name}`}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                onRemove?.(item.key);
+                            }}
+                        >
+                            ×
+                        </button>
+                    </li>
+                ))}
+            </ul>
+        )}
+        {(blockedNote || notice) && (
+            <div className="attachment-chips-note" role="status">
+                {blockedNote || notice}
+            </div>
+        )}
+    </div>
+);
+
+/**
+ * The composer's warning when the chosen effort does not read some of the waiting files (design:
+ * GLKB Effort A). Since Extra (deep research) reads documents (2026-11-02) that is an image waiting
+ * on an Extra question: "Images work at Medium — Extra reads documents.  [Use Medium] [Remove image]".
+ * `text` says what is wrong (the default is the original wording, for an effort that reads no file
+ * at all), `count` how many files the remove button takes away and `noun` what they are. Without
+ * `onUseFallback` (a conversation whose pipeline is fixed) only removing them is offered.
+ */
+export const AttachConflict = ({
+    modeName, fallbackName, onUseFallback, onRemoveFiles, count = 1, text = '', noun = 'file',
+}) => (
+    <div
+        className="attach-conflict"
+        role="status"
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+    >
+        <span className="attach-conflict-text">{text || `${modeName} doesn't read attached files.`}</span>
+        {onUseFallback && fallbackName && (
+            <button type="button" className="attach-conflict-primary" onClick={onUseFallback}>Use {fallbackName}</button>
+        )}
+        <button type="button" className="attach-conflict-secondary" onClick={onRemoveFiles}>
+            {count > 1 ? `Remove ${noun}s` : `Remove ${noun}`}
+        </button>
+    </div>
+);
+
+export const AttachmentChips = ({ items = [], notice = '', blockedNote = '', onRemove, variant = 'card' }) => {
     // The waiting image shown large (its local preview), until closed.
     const [preview, setPreview] = useState(null);
     if (!items.length && !notice && !blockedNote) return null;
+    if (variant === 'design') {
+        return <DesignChips items={items} notice={notice} blockedNote={blockedNote} onRemove={onRemove} />;
+    }
     return (
         <div
             className="attachment-chips"
@@ -313,14 +432,22 @@ export const AttachmentChips = ({ items = [], notice = '', blockedNote = '', onR
     );
 };
 
+/** The waiting images on a composer (`useAttachments`), which an Investigate question cannot carry. */
+export const waitingImages = (controller) => (controller?.items || []).filter((item) => item.kind === 'image');
+
 /**
  * Why a composer holding these attachments cannot send yet, or '' when it can. Uploads in
  * flight only disable the button (their chips show progress); this is for what the reader has
- * to act on.
+ * to act on. `investigate`: the question goes to Investigate, which reads documents and refuses
+ * images (INVESTIGATE_DOCUMENTS_ONLY) — an image attached in Chat before the switch holds the
+ * send back until it is removed.
  */
 export const attachmentBlockedNote = (controller, { investigate = false, review = false, maxFiles = null } = {}) => {
     if (!controller?.hasItems) return '';
-    if (investigate) return 'Attachments work in AI Chat. Remove them, or ask in a new AI Chat.';
+    const images = investigate ? waitingImages(controller).length : 0;
+    if (images) {
+        return `${INVESTIGATE_IMAGES_NOTE} Remove ${images > 1 ? 'the images' : 'the image'} to send.`;
+    }
     if (controller.hasErrors) {
         return review
             ? 'Remove the files that could not be added to start the review.'

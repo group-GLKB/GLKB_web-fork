@@ -80,3 +80,21 @@ it('repairs legacy queued flags but preserves newly captured queue intent', () =
     expect(resolveQueuedSearchOptions(legacy, false)).toEqual({ investigateEnabled: false, model: 'chosen' });
     expect(resolveQueuedSearchOptions({ ...legacy, pipelineVersion: 1 }, false).investigateEnabled).toBe(true);
 });
+
+describe('effort levels in a conversation that mixes them', () => {
+    it('a queued question keeps the level it was asked at', () => {
+        const entry = { pipelineVersion: 1, searchOptions: { investigateEnabled: false, effort: 'high', serviceTier: 'advanced' } };
+        expect(resolveQueuedSearchOptions(entry, true)).toMatchObject({ investigateEnabled: false, effort: 'high' });
+        const max = { pipelineVersion: 1, searchOptions: { investigateEnabled: true, effort: 'max' } };
+        expect(resolveQueuedSearchOptions(max, false)).toMatchObject({ investigateEnabled: true, effort: 'max' });
+    });
+
+    it('a pending answer moved to the other pipeline takes that pipeline\'s default level', () => {
+        const messages = [{ role: 'user', content: 'q' }, { role: 'assistant', content: '', investigateMode: false, effort: 'high' }];
+        expect(normalizePendingMode(messages, true)[1]).toMatchObject({ investigateMode: true, effort: 'extra' });
+        const max = [{ role: 'assistant', content: '', investigateMode: true, effort: 'max' }];
+        expect(normalizePendingMode(max, false)[0]).toMatchObject({ investigateMode: false, effort: 'medium' });
+        // Nothing recorded, nothing invented; earlier turns untouched.
+        expect(normalizePendingMode([{ role: 'assistant', investigateMode: false }], true)[0]).not.toHaveProperty('effort');
+    });
+});

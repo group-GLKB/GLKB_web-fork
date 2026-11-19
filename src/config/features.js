@@ -17,12 +17,16 @@
 /**
  * Whether the API documentation is reachable.
  *
- * Gates BOTH the entry point (the "API Docs" button on the API dashboard) and
- * the `/api-docs` routes themselves. They have to move together: with the
- * routes redirected to `/` but the button showing, the button just bounces the
- * user to the home page.
+ * Gates BOTH the entry points (the "API Docs" button on the API dashboard, the
+ * footer link, the line on Contact) and the `/api-docs` routes themselves, which
+ * are then neither routed nor prerendered. They have to move together: with the
+ * routes redirected to `/` but a link showing, the link just bounces the user to
+ * the home page.
+ *
+ * Off everywhere since 2026-11-04 (owner: take the API Docs button down for now).
+ * Turning it back on restores all of it.
  */
-export const SHOW_API_DOCS = true;
+export const SHOW_API_DOCS = false;
 
 /**
  * Whether Investigate (deep research) is offered.
@@ -47,38 +51,14 @@ export const INVESTIGATE_ENABLED = true;
  * file's line in WITHOUT a conflict (checked with `git merge-tree` on 2026-09-30): whatever master
  * says here is what glkb.org gets with the next release.
  *
- * THE SWITCH is the last line of this file — one value, nothing else to change:
+ * THE SWITCH is the `LITERATURE_REVIEW_ENABLED` line near the end of this file — one value, nothing
+ * else to change:
  *   false                 off everywhere (2026-10-09; also 10-03 to 10-06)
  *   !isProductionSite()   on for dev.glkb.org and localhost, off on glkb.org (internal testing,
  *                         2026-10-10 to 10-14, for the redesigned review pages)
  *   true                  on everywhere (launch; current since 2026-10-14)
  * Off hides the entry points only; the page, the client and the pipeline stay in the codebase.
  */
-/**
- * Whether a literature review stops at its outline for the reader to approve before anything is
- * written (OutlineStep; the phone design's "You'll approve an outline before any writing starts").
- *
- * OFF until the user schedules it (2026-10-13: "确认大纲留在之后做"). Off, the review runs straight
- * through as it always has: Scope says "Start writing", no request asks for approval, and nothing
- * looks for a waiting outline. On needs glkb-agent a5eec61 and glkb-backend d1951de deployed first.
- * `false` is also the safe value on `production`, which has no line for it.
- */
-export const LR_OUTLINE_APPROVAL_ENABLED = false;
-
-/**
- * Where a signed-in reader BUYS CREDITS: the e-Lucid store page for GLKB credits.
- *
- * The backend already credits a purchase there (`POST /api/v1/payment/elucid/webhook`,
- * glkb-backend `app/services/elucid_service.py`): $10 = 100 purchased credits that never
- * expire, spent after the free monthly allowance. The buyer is matched to a GLKB account by
- * the EMAIL used at checkout, so every entry tells the reader to use the address they sign in
- * with.
- *
- * Empty hides every "Buy credits" entry (the Account page row, the out-of-credits notice in
- * the chat): an entry with nowhere to go is worse than none. Set it to the store's URL to open
- * purchasing — nothing else needs to change.
- */
-export const CREDITS_PURCHASE_URL = '';
 
 export const PRODUCTION_HOSTS = ['glkb.org', 'www.glkb.org'];
 
@@ -86,4 +66,58 @@ export const isProductionSite = (hostname = (typeof window !== 'undefined' ? win
     PRODUCTION_HOSTS.includes(String(hostname || '').toLowerCase())
 );
 
+/**
+ * Where a signed-in reader ADDS FUNDS: the U-M Innovation Partnerships store page for GLKB web
+ * access (a separate U-M site, with its own account).
+ *
+ * A payment there adds DOLLARS to the account's balance (`POST /api/v1/payment/elucid/webhook`,
+ * glkb-backend `app/services/elucid_service.py`), matched to a GLKB account by the EMAIL used at
+ * checkout. Dollars become web credits only on the Account page's "Buy more" (POST
+ * /balance/exchange, $0.10 a credit). The Account page asks before sending the reader there
+ * ("Leaving GLKB", Figma 244:4476).
+ *
+ * Empty hides Add funds and every "Buy credits" entry. On for dev.glkb.org and localhost, off on
+ * glkb.org until the production backend has the exchange (POST /balance/exchange, 2026-11-10)
+ * and the owner opens purchasing there: then drop the isProductionSite() test.
+ */
+export const STORE_URL = 'https://available-inventions.umich.edu/product/genomic-literature-knowledge-base---web-access';
+export const ADD_FUNDS_URL = isProductionSite() ? '' : STORE_URL;
+
+/**
+ * Where the chat's "Buy credits" entries (the out-of-credits notice and dialog) go: the Account
+ * page, opened on its Buy more dialog — credits are bought there, with the balance. A new tab, so
+ * the conversation stays where it was. Empty (no store configured) hides those entries.
+ */
+export const ACCOUNT_BUY_CREDITS_PATH = '/account?buy=credits';
+export const CREDITS_PURCHASE_URL = ADD_FUNDS_URL ? ACCOUNT_BUY_CREDITS_PATH : '';
+
 export const LITERATURE_REVIEW_ENABLED = true;
+
+/**
+ * Whether a literature review stops at its outline for the reader to approve before anything is
+ * written (OutlineStep: rename, reorder, resize or leave out sections, then "Approve & start writing").
+ *
+ *   false                 off everywhere (2026-10-13 to 10-27: "确认大纲留在之后做"); the review runs
+ *                         straight through, Scope says "Start writing", nothing looks for an outline
+ *   !isProductionSite()   on for dev.glkb.org and localhost, off on glkb.org (current since
+ *                         2026-10-27, the outline page's first version)
+ *   true                  on everywhere
+ *
+ * On needs glkb-agent and glkb-backend with section lengths in the approval (2026-10-27) deployed
+ * first. Defined after isProductionSite, which it calls when the module loads.
+ */
+export const LR_OUTLINE_APPROVAL_ENABLED = !isProductionSite();
+
+/**
+ * Whether an answer at High, Extra or Max draws the ANSWER graph — what the answer says, built
+ * after it by the backend (`POST /api/v1/new-llm-agent/answer-graph`; components/AnswerGraph/
+ * AnswerGraphV2.jsx) — instead of the basic co-occurrence graph.
+ *
+ *   !isProductionSite()   on for dev.glkb.org and localhost, off on glkb.org (current since
+ *                         2026-11-05: the effort levels are dev-only until the owner says otherwise)
+ *   true                  on everywhere
+ *
+ * Safe on a backend that does not have the endpoint yet: its 404 is remembered for the page load
+ * and every answer draws the basic graph, as before. Off, nothing asks for it at all.
+ */
+export const ANSWER_GRAPH_V2_ENABLED = !isProductionSite();

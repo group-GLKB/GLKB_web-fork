@@ -169,3 +169,103 @@ export const limitReachedText = (usage) => {
         ? `You're out of credits. Your free monthly credits come back on ${resets}.`
         : "You're out of credits for this month.";
 };
+
+/* Before a question is sent, as in Claude: a quiet line once the month's credits run low, and a
+   plain notice when the balance cannot pay for the question as it is set up (mode x model),
+   so the reader learns it from the composer rather than from a refused answer. Running out
+   altogether (`limitReached`) keeps its own notice, `limitReachedText`, which the pages show. */
+
+/** "Low" is at most this share of the monthly allowance left. */
+export const LOW_CREDITS_SHARE = 0.2;
+
+const PIPELINE_NOUNS = {
+    chat: 'An AI Chat question',
+    deep_research: 'An Investigate run',
+    literature_review: 'A Literature Review',
+};
+const PIPELINE_NAMES = { chat: 'AI Chat', deep_research: 'Investigate', literature_review: 'Literature Review' };
+/* The levels that are not their pipeline's default name themselves (service/effortLevels.js);
+   Medium and Extra keep the pipeline's words, which is all there was before 2026-11-05. */
+const EFFORT_NOUNS = {
+    low: 'A Low-effort question',
+    high: 'A High-effort question',
+    max: 'A Max-effort Investigate run',
+};
+const EFFORT_NAMES = { low: 'Low effort', high: 'High effort', max: 'Max effort' };
+
+const creditCount = (n) => `${n} credit${n === 1 ? '' : 's'}`;
+
+/**
+ * What the reader can still afford when the question as set up costs more than they have: the
+ * most capable model on the same mode (and effort level) that fits; else AI Chat at Medium on
+ * their own model (`tierId`), or the most capable chat that fits; else null. `pricing` is
+ * `parsePricing`'s shape (tiers most capable first); `{ tierId, pipeline, effort, credits }`.
+ * `effort` is a level other than its pipeline's default (Low, High, Max), priced from the
+ * `efforts` block; '' prices the pipeline as before.
+ */
+export const affordableChoice = (pricing, pipeline, remaining, tierId = '', effort = '') => {
+    const tiers = pricing?.tiers || [];
+    const priceOn = (t, p, level) => {
+        const own = level ? t.effortCredits?.[level] : undefined;
+        return Number.isFinite(own) ? own : t.credits?.[p];
+    };
+    const fitsOn = (t, p, level = '') => Number.isFinite(priceOn(t, p, level)) && priceOn(t, p, level) <= remaining;
+    const same = tiers.find((t) => fitsOn(t, pipeline, effort));
+    if (same) {
+        return {
+            tierId: same.id, pipeline, ...(effort ? { effort } : {}), credits: priceOn(same, pipeline, effort),
+        };
+    }
+    if (pipeline === 'chat' && !effort) return null;
+    const chat = tiers.find((t) => t.id === tierId && fitsOn(t, 'chat')) || tiers.find((t) => fitsOn(t, 'chat'));
+    return chat ? { tierId: chat.id, pipeline: 'chat', credits: chat.credits.chat } : null;
+};
+
+/**
+ * The composer's credit notice for a signed-in reader, or null — `{ level, text, brief }`, where
+ * `text` is the whole sentence (the pop-up) and `brief` the few words the floating notice shows:
+ *   'short'  the question as set up costs `cost` and the balance is less — the send is held back;
+ *   'low'    at most LOW_CREDITS_SHARE of the monthly allowance is left.
+ * Guests (their ten questions have their own notice), an unknown balance and an empty one
+ * (`limitReachedText`) get none. `labelFor(tierId)` names a model; `alternative` is
+ * `affordableChoice`'s answer.
+ */
+export const creditNotice = (usage, {
+    cost = null, pipeline = 'chat', effort = '', tierId = '', labelFor = (id) => id, alternative = null,
+} = {}) => {
+    if (usage?.kind !== 'credits' || usage.remaining === null || usage.remaining < 1) return null;
+    const { remaining } = usage;
+    const resets = formatResetDate(usage.resetsAt);
+    const back = resets ? ` Your free monthly credits come back on ${resets}.` : '';
+    if (Number.isFinite(cost) && remaining < cost) {
+        const on = tierId ? ` on ${labelFor(tierId)}` : '';
+        const noun = EFFORT_NOUNS[effort] || PIPELINE_NOUNS[pipeline] || 'This question';
+        const name = EFFORT_NAMES[effort] || PIPELINE_NAMES[pipeline] || 'This question';
+        let text = `${noun}${on} costs ${creditCount(cost)}`
+            + ` and you have ${remaining} left.${back}`;
+        if (alternative) {
+            const model = labelFor(alternative.tierId);
+            const sameKind = alternative.pipeline === pipeline
+                && (alternative.effort || '') === (effort || '');
+            // A Low or High question that does not fit falls back to Medium, which is AI Chat too.
+            const altName = alternative.pipeline === pipeline ? 'Medium effort' : PIPELINE_NAMES[alternative.pipeline];
+            text += sameKind
+                ? ` Switch to ${model} (${creditCount(alternative.credits)}) to go ahead now.`
+                : ` ${altName} on ${model} (${creditCount(alternative.credits)}) still works.`;
+        }
+        return {
+            level: 'short',
+            text,
+            brief: `${name} needs ${creditCount(cost)} · ${remaining} left`,
+        };
+    }
+    const allowance = usage.monthlyAllowance;
+    if (Number.isFinite(allowance) && allowance > 0 && remaining <= allowance * LOW_CREDITS_SHARE) {
+        return {
+            level: 'low',
+            text: `${creditCount(remaining)} left this month.${back}`,
+            brief: `${creditCount(remaining)} left${resets ? ` · resets ${resets}` : ' this month'}`,
+        };
+    }
+    return null;
+};

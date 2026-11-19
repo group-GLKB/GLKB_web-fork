@@ -1,17 +1,21 @@
 /**
- * The blog articles are transcriptions, not writing. Every word a reader sees
- * has to come from the Figma frame — an invented sentence in an article about
- * verifiable citations is exactly the failure the articles describe.
+ * The two designed articles are transcriptions, not writing. Every word a
+ * reader sees has to come from the Figma frame — an invented sentence in an
+ * article about verifiable citations is exactly the failure the articles
+ * describe.
  *
- * So: render both posts and assert every line of text appears in the design.
+ * So: render both and assert every line of text appears in the design. The
+ * Literature Review article has no frame — it was written for the site — so
+ * only the checks that do not need one apply to it.
  */
 import fs from 'fs';
 import path from 'path';
 
-import { posts } from './posts';
+import { IMAGES, posts } from './posts';
 import renderArticle from './__fixtures__/renderArticle';
 
 const DIVIDER = '#####';
+const DESIGNED = ['glkb-knowledge-graph', 'investigate-auditable-research'];
 
 /** Every element that holds a line of the article's own text. */
 const TEXT_NODES = [
@@ -57,6 +61,17 @@ describe('blog post content', () => {
             expect(post.thumb).toBe(firstFigure.getAttribute('src'));
         });
 
+        it(`${post.slug} names only figures posts.js imports`, () => {
+            // An unknown name falls through to <img src="name.svg">, which 404s.
+            const names = post.segments
+                .flatMap((segment) => [...(segment.content || '').matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)])
+                .map((match) => match[1]);
+            expect(names.length).toBeGreaterThan(0);
+            expect(names.filter((name) => !IMAGES[name])).toEqual([]);
+        });
+    });
+
+    posts.filter((post) => DESIGNED.includes(post.slug)).forEach((post) => {
         it(`${post.slug} says only what the design says`, () => {
             const haystack = design[post.slug];
             expect(haystack).toBeTruthy();
@@ -80,8 +95,8 @@ describe('blog post content', () => {
 
     it('covers both designed posts', () => {
         expect(posts.map((post) => post.slug).sort()).toEqual([
-            'glkb-knowledge-graph',
-            'investigate-auditable-research',
+            ...DESIGNED,
+            'literature-review',
         ]);
     });
 });

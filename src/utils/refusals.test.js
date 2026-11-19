@@ -36,3 +36,18 @@ it('only a guest refusal is answered by signing in', () => {
     expect(refusalNeedsSignIn({ code: 'GUEST_LOGIN_REQUIRED' })).toBe(true);
     expect(refusalNeedsSignIn({ code: 'INSUFFICIENT_CREDITS' })).toBe(false);
 });
+
+describe('a level a guest may not use', () => {
+    it("is answered with the backend's words, else High's own sentence", () => {
+        expect(refusalText({ code: 'GUEST_LOGIN_REQUIRED', reason: 'effort', message: 'Sign in to use High.' }))
+            .toBe('Sign in to use High.');
+        expect(refusalText({ code: 'GUEST_LOGIN_REQUIRED', reason: 'effort' }))
+            .toBe("High effort is available to signed-in users. Sign in to use it — it's free.");
+        expect(refusalNeedsSignIn({ code: 'GUEST_LOGIN_REQUIRED', reason: 'effort' })).toBe(true);
+    });
+
+    it('says a switched-off level is not available', () => {
+        expect(refusalText({ code: 'EFFORT_UNAVAILABLE', status: 400 })).toMatch(/not available right now/);
+        expect(refusalNeedsSignIn({ code: 'EFFORT_UNAVAILABLE' })).toBe(false);
+    });
+});

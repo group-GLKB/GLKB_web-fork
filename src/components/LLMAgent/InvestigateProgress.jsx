@@ -35,6 +35,7 @@ import {
 } from '../../service/investigatePhases';
 import { getNotifyPrefs, subscribeToNotifyPrefs } from '../../service/notifications';
 import NotifyPopover from './NotifyPopover';
+import FollowupRouteLine from './FollowupRouteLine';
 
 // ── tuning ──────────────────────────────────────────────────────────────────────────────────
 const COUNT_UP_MS = 1100;        // measured: Retrieved 1.30s, Screened 1.87s, Extracted 0.77s, Cited 1.03s
@@ -133,7 +134,7 @@ export const formatElapsed = (totalSeconds) => {
  * A missing `startedAt` falls back to mount time. That keeps the clock plausible instead of
  * printing the ~56 years that `Date.now() - 0` would give.
  */
-const useElapsedSeconds = (startedAt, running) => {
+export const useElapsedSeconds = (startedAt, running) => {
     const mountedAt = useRef(Date.now());
     const origin = Number.isFinite(Number(startedAt)) && Number(startedAt) > 0
         ? Number(startedAt)
@@ -511,8 +512,10 @@ const AnalyzingDetail = ({ facets, nClaims, nConflicted }) => (
     </>
 );
 
-const REPORT_SECTIONS = 'Direct answer, Investigation findings, Evidence analysis, '
-    + 'Conflict analysis, Evidence-based judgment, Remaining uncertainties';
+// The agent's report layout since 2026-11-02 (glkb-agent dr_writer.py `_DR_HEADERS`); "Where
+// studies disagree" appears only when studies do.
+const REPORT_SECTIONS = 'Direct answer, What the evidence shows, Where studies disagree, '
+    + 'How strong the evidence is, Open questions';
 
 const WritingDetail = ({ section, step, total }) => (
     <>
@@ -573,6 +576,7 @@ const InvestigateProgress = ({
         [],
     );
     const safeFunnel = funnel || {};
+    const interpretedAs = typeof detail?.interpretedAs === 'string' ? detail.interpretedAs.trim() : '';
     const meta = INVESTIGATE_PHASE_META[phase] || INVESTIGATE_PHASE_META.planning;
     const idx = phaseIndex(phase);
     // Stops for a clarify round too: the seconds a reader spends answering the question are
@@ -774,6 +778,21 @@ const InvestigateProgress = ({
                     />
                 </Box>
             </Box>
+
+            {/* How a follow-up was read — the agent turns "and in mice?" into a standalone
+                question first, and the whole report answers that. Shown for the rest of the run,
+                above the collapsible body, so a misreading is visible now rather than when the
+                report lands minutes later. */}
+            {interpretedAs ? (
+                <p className="ip-interpreted">
+                    <span className="ip-interpreted-label">Interpreted as:</span>
+                    {' '}
+                    {interpretedAs}
+                </p>
+            ) : null}
+            {/* How the agent chose to answer the follow-up — from the earlier investigation, or
+                building on it. Standing, like the line above; nothing for a full investigation. */}
+            <FollowupRouteLine route={detail?.followupRoute} reason={detail?.followupReason} />
 
             {/* Hidden when collapsed, NOT unmounted. Every counter's memory — the value it is
                 showing, the fact that it has already counted up, and where its ramp had got to —

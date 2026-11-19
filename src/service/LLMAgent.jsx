@@ -1,4 +1,6 @@
 import axios from '../utils/axiosConfig';
+import { followupRouteOf, followupRouteText } from './followupRoute';
+import { effortForRequest, effortOf } from './effortLevels';
 import { PHASE_PERCENT_FLOOR } from './investigatePhases';
 import { humanizeTrace } from './traceLabel';
 
@@ -332,6 +334,14 @@ export const answerOptionsOf = (value) => {
     return out;
 };
 
+/**
+ * Why a chat answer's search was cut short, from the agent's `search_limit` on `Complete`:
+ * 'context' (the turn's material outgrew the model's context, so it answered from what it had),
+ * 'calls' (it reached its cap on model calls), or null — the answer was not cut short, or the
+ * value is one this client does not know. Chat only; deep research never sets it.
+ */
+export const searchLimitOf = (value) => (value === 'context' || value === 'calls' ? value : null);
+
 export const frameToUpdate = (data) => {
     if (!data || typeof data !== 'object') return null;
     const detail = data.detail && typeof data.detail === 'object' ? data.detail : {};
@@ -384,6 +394,56 @@ export const frameToUpdate = (data) => {
             keywords,
             papers,
         };
+    } else if (data.type === 'question_rewritten') {
+        // How an Investigate follow-up was read: the agent resolves "what about in mice?" into
+        // a standalone question before anything else runs, and the whole report answers THAT
+        // question (glkb-agent service/api.py: `step: 'Interpreting the question'`, `original`,
+        // `question`). As a plain step it carried no text and showed nothing, so a misread was
+        // only discovered when the report landed, minutes later. It now becomes a line in the
+        // thoughts and, through `detail.interpreted_as`, a standing line on the progress panel.
+        //
+        // The phase is pinned to planning: inferring it from the text would read the QUESTION's
+        // words ("papers", "analyze", "write") as the run's phase, and phases never go back.
+        const rewritten = typeof data.question === 'string' ? data.question.trim() : '';
+        const original = typeof data.original === 'string' ? data.original.trim() : '';
+        return {
+            type: 'step',
+            step: data.step || 'Interpreting the question',
+            content: rewritten ? `Interpreted as: ${rewritten}` : '',
+            phase: 'planning',
+            funnel: null,
+            percent: null,
+            keywords: null,
+            papers: null,
+            label: '',
+            detail: rewritten ? { interpreted_as: rewritten, original_question: original } : {},
+            isProgress: false,
+        };
+    } else if (data.type === 'followup_route') {
+        // How the agent chose to answer an Investigate follow-up (service/followupRoute.js):
+        // `{step: 'Choosing how to answer', type: 'followup_route', route, reason}`, sent after
+        // the follow-up is resolved and before any retrieval, and never on a first turn. It
+        // becomes a line in the thoughts and, through `detail.followup_route`, a standing line
+        // on the progress panel — and, for `answer_from_prior`, the switch that turns the live
+        // view from an investigation into a chat answer.
+        //
+        // Pinned to planning like `question_rewritten`, and for the same reason: the router's
+        // reason is prose ("the report already compares the papers"), not a phase.
+        const route = followupRouteOf(data.route);
+        const reason = typeof data.reason === 'string' ? data.reason.trim() : '';
+        return {
+            type: 'step',
+            step: data.step || 'Choosing how to answer',
+            content: route ? followupRouteText(route, reason) : '',
+            phase: 'planning',
+            funnel: null,
+            percent: null,
+            keywords: null,
+            papers: null,
+            label: '',
+            detail: route ? { followup_route: route, followup_reason: reason } : {},
+            isProgress: false,
+        };
     } else if (data.step === 'Thinking') {
         // The opening line, written by a cheap model while the agent is still
         // on its first turn. It is not the answer and never becomes it — the
@@ -431,6 +491,20 @@ export const frameToUpdate = (data) => {
             // What an AI Chat turn asked for beyond the answer ({figures, graph}), echoed by the
             // agent; the graph under a chat answer is drawn only when it asked for one.
             answerOptions: answerOptionsOf(data.answer_options),
+            // Set when the agent stopped searching early (see searchLimitOf); the answer then
+            // offers to ask the same question in Investigate.
+            searchLimit: searchLimitOf(data.search_limit),
+            // How an Investigate follow-up was answered ('answer_from_prior' | 'incremental' |
+            // 'full'), null on a first turn and on every chat turn (service/followupRoute.js).
+            // An `answer_from_prior` Complete is a CHAT Complete — this same shape — and the
+            // answer is drawn as a chat answer inside the Investigate conversation.
+            route: followupRouteOf(data.route),
+            // One of GLKB's example questions, answered from its stored answer (backend
+            // services/example_answers.py): free, so a guest's question is not counted.
+            example: data.example === true,
+            // The level the agent resolved the turn to (service/effortLevels.js); '' from an
+            // agent that predates efforts.
+            effort: effortOf(data.effort),
             messages: data.messages || [],
             sessionId: data.session_id || null,
             trajectory: data.trajectory || null,
@@ -446,6 +520,11 @@ export const frameToUpdate = (data) => {
             historyId: data.history_id,
             sessionId: data.session_id || null,
             invocationId: data.invocation_id || null,
+            // The answer's row (chat and Investigate; an Investigate answer has no invocation
+            // id) — what the answer graph is asked for by — and the level it was saved at.
+            messageId: Number.isFinite(Number(data.message_id)) && data.message_id !== null
+                ? Number(data.message_id) : null,
+            effort: effortOf(data.effort),
             credits: data.credits || null,
         };
     } else if (data.step === 'Error') {
@@ -566,30 +645,48 @@ export class LLMAgentService {
                 if (typeof options.rankingMode === 'string' && options.rankingMode.trim()) {
                     payload.ranking_mode = options.rankingMode.trim();
                 }
-                // Uploaded images and PDFs (service/attachments.js), by id. AI Chat only — the
-                // backend refuses them on Investigate — and omitted when there are none.
-                const attachmentIds = Array.isArray(options.attachments)
-                    ? options.attachments
-                        .map((id) => (typeof id === 'string' || typeof id === 'number' ? String(id).trim() : ''))
-                        .filter(Boolean)
-                    : [];
-                if (attachmentIds.length) {
-                    payload.attachments = attachmentIds;
-                }
                 // The answer options (the composer's Options → Include in the answer), only
                 // when on: figures embedded from the cited papers, and the knowledge graph.
                 if (options.figures) payload.figures = true;
                 if (options.graph) payload.graph = true;
             }
+            // Uploaded files (service/attachments.js), by id, on BOTH paths, omitted when there
+            // are none. AI Chat takes any type; Investigate takes documents only (since
+            // 2026-11-02) — the backend refuses an image there with INVESTIGATE_DOCUMENTS_ONLY,
+            // and the composers never send one (attachmentBlockedNote holds the send back).
+            const attachmentIds = Array.isArray(options.attachments)
+                ? options.attachments
+                    .map((id) => (typeof id === 'string' || typeof id === 'number' ? String(id).trim() : ''))
+                    .filter(Boolean)
+                : [];
+            if (attachmentIds.length) {
+                payload.attachments = attachmentIds;
+            }
             // The service tier (service/serviceTiers.js), on BOTH paths: the backend prices the
             // query by it and the agent picks the model. Omitted when blank, which the backend
-            // reads as its default (Standard). `model` and `effort` are never sent — since the
-            // credit system the backend answers either with a 422.
+            // reads as its default (Standard). `model` is never sent — since the credit system
+            // the backend answers it with a 422.
             const serviceTier = typeof options.serviceTier === 'string'
                 ? options.serviceTier.trim().toLowerCase()
                 : '';
             if (serviceTier) {
                 payload.service_tier = serviceTier;
+            }
+            // The effort level (service/effortLevels.js), ONLY when it is not the pipeline's
+            // default: Low or High on chat, Max on deep research. Medium and Extra — and anything
+            // else, such as the `quick` a queue entry from before the credit system may still
+            // carry — leave the field off, so those requests are exactly what they were before
+            // efforts existed and a backend that predates them never sees one.
+            const effort = effortForRequest(options.effort, investigateEnabled);
+            if (effort) {
+                payload.effort = effort;
+            }
+            // "Run a full investigation" under an answer the agent gave from the earlier
+            // investigation: the same question again, and the agent skips its follow-up router
+            // (glkb-agent docs/investigate-followup-routing.md). Investigate only, and only when
+            // asked — absent means false, so every other request is exactly what it was.
+            if (investigateEnabled && options.forceFullResearch === true) {
+                payload.force_full_research = true;
             }
             // Backend PR #31: email when Deep Research hits Complete
             if (
@@ -620,18 +717,24 @@ export class LLMAgentService {
                     processSSEChunk(chunk);
                 },
             });
-            try {
-                await post();
-            } catch (error) {
-                // 503 CREDITS_BUSY: the balance covers the query but three concurrent charges
-                // raced for it. The backend asks for one retry after a second; nothing was taken.
-                if (refusalOf(error)?.code !== 'CREDITS_BUSY') throw error;
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-                // The refused response's body went through the progress handler; the retry is a
-                // new response, read from its start.
-                processedLength = 0;
-                buffer = '';
-                await post();
+            // 503 CREDITS_BUSY: the balance covers the query but three concurrent charges raced
+            // for it; the backend asks for one retry after a second. 503 SERVER_BUSY: the backend
+            // ran out of database connections for a moment; it asks for a retry after 5 s. Nothing
+            // was taken either way, so the reader never sees these.
+            const BUSY_RETRIES = { CREDITS_BUSY: [1000], SERVER_BUSY: [5000, 5000, 10000] };
+            for (let attempt = 0; ; attempt += 1) {
+                try {
+                    await post();
+                    break;
+                } catch (error) {
+                    const waits = BUSY_RETRIES[refusalOf(error)?.code];
+                    if (!waits || attempt >= waits.length) throw error;
+                    await new Promise((resolve) => setTimeout(resolve, waits[attempt]));
+                    // The refused response's body went through the progress handler; the retry
+                    // is a new response, read from its start.
+                    processedLength = 0;
+                    buffer = '';
+                }
             }
 
             // Flush trailing buffer without newline
@@ -643,6 +746,14 @@ export class LLMAgentService {
                 return;
             }
             console.error('Chat error:', error);
+            /* The connection dropped with no HTTP answer (axios's "Network Error": the reader's
+               wifi blinking, a laptop waking). The run is still going on the server, and both
+               callers poll it back in their catch. An 'error' update here would write
+               "Error: Network Error" over an answer that is still being written (2026-11-02). */
+            if (!error?.response) {
+                error.connectionLost = true;
+                throw error;
+            }
             const refusal = refusalOf(error);
             onUpdate({
                 type: 'error',

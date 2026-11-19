@@ -1,6 +1,7 @@
 import './scoped.css';
 
 import React, {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -25,7 +26,10 @@ import {
 } from '../../service/Tier';
 import { CHAT_HOME_PATH } from '../../config/entryRoutes';
 import { fetchUsage } from '../../service/credits';
-import { CREDITS_PURCHASE_URL } from '../../config/features';
+import { ADD_FUNDS_URL } from '../../config/features';
+import { fetchBalance, fetchBilling, formatUsd } from '../../service/balance';
+import { DEFAULT_CREDITS_PER_USD, fetchTierPricing } from '../../service/serviceTiers';
+import { BillingDialog, BuyMoreDialog, LeavingDialog } from './Billing';
 import { trackGtagEvent } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
 import {
@@ -38,7 +42,6 @@ import {
     subscribeToNotifyPrefs,
 } from '../../service/notifications';
 import { AVATARS, avatarById } from './avatars';
-import { parseServerTime } from '../../utils/serverTime';
 import useAccountTier from '../../hooks/useAccountTier';
 
 const getSessionValue = (key) => {
@@ -52,22 +55,16 @@ const setSessionValue = (key, value) => {
 
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
-/* The same rule the rest of the app uses — see utils/serverTime.js. This was a third private
-   copy of it, and its own test for "already says which clock it is on" was unanchored on the
-   `Z` branch, so any value containing a z anywhere counted as timezoned. */
-const parseNaiveUtcDate = parseServerTime;
-
-const formatResetTime = (value) => {
-    const parsed = parseNaiveUtcDate(value);
-    if (!parsed) return '--';
-    return parsed.toLocaleString('en-US', {
-        weekday: 'short',
-        month: 'long',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-    });
+/**
+ * "Next reset in 10 days (Dec 1)" (Figma 244:4882). The allowance resets at 00:00 UTC on the
+ * 1st, so the date is read in UTC: in the Americas that instant is the evening before, and the
+ * reader is told the 1st, the day the credits are theirs again.
+ */
+export const nextResetText = (resetsAt, now = new Date()) => {
+    const day = resetsAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    const days = Math.max(0, Math.ceil((resetsAt.getTime() - now.getTime()) / 86400000));
+    if (days <= 1) return `Next reset ${days === 0 ? 'today' : 'tomorrow'} (${day})`;
+    return `Next reset in ${days} days (${day})`;
 };
 
 const formatTierLabel = (tier) => {
@@ -228,16 +225,57 @@ const AccountPage = () => {
         };
     }, []);
 
+    /* The balance in dollars (service/balance.js) and the exchange rate the Buy more dialog prices
+       with; the dialogs open from the rows below, and `?buy=credits` (the chat's "Buy credits"
+       links) opens Buy more on arrival. */
+    const [balance, setBalance] = useState(null);
+    const [creditsPerUsd, setCreditsPerUsd] = useState(DEFAULT_CREDITS_PER_USD);
+    const [dialog, setDialog] = useState(
+        () => (ADD_FUNDS_URL && new URLSearchParams(location.search).get('buy') === 'credits' ? 'buy' : null),
+    );
+    const [billingRows, setBillingRows] = useState(undefined);
+    const reloadMoney = useCallback(() => {
+        fetchBalance().then((next) => setBalance(next));
+        fetchUsage({ isAuthenticated: true }).then((next) => { if (next) setCredits(next); });
+    }, []);
+    useEffect(() => {
+        if (!ADD_FUNDS_URL) return undefined;
+        let isMounted = true;
+        fetchBalance().then((next) => { if (isMounted) setBalance(next); });
+        fetchTierPricing().then((pricing) => {
+            if (isMounted && pricing?.creditsPerUsd) setCreditsPerUsd(pricing.creditsPerUsd);
+        });
+        // A purchase at the store lands while this tab sits in the background.
+        const onFocus = () => { if (document.visibilityState === 'visible') reloadMoney(); };
+        document.addEventListener('visibilitychange', onFocus);
+        return () => {
+            isMounted = false;
+            document.removeEventListener('visibilitychange', onFocus);
+        };
+    }, [reloadMoney]);
+    const openBilling = () => {
+        setBillingRows(undefined);
+        setDialog('billing');
+        fetchBilling().then((rows) => setBillingRows(rows));
+    };
+    const closeDialog = useCallback(() => {
+        setDialog(null);
+        if (new URLSearchParams(location.search).get('buy')) navigate('/account', { replace: true, state: location.state });
+    }, [location.search, location.state, navigate]);
+    const onPurchased = (result) => {
+        setDialog(null);
+        setToastMessage(`${(result.credits || 0).toLocaleString('en-US')} credits added`);
+        // fetchUsage publishes the new figure to the rest of the app (service/credits.js).
+        reloadMoney();
+    };
+
     const creditsLoading = !credits;
     const monthlyAllowance = Math.max(0, credits?.monthlyAllowance || 0);
     const monthlyRemaining = Math.max(0, Math.min(monthlyAllowance, credits?.monthlyRemaining ?? monthlyAllowance));
     const monthlyUsed = monthlyAllowance - monthlyRemaining;
-    const creditsRemaining = Math.max(0, credits?.remaining || 0);
     const purchasedRemaining = Math.max(0, credits?.purchasedRemaining || 0);
     const usagePercent = monthlyAllowance > 0 ? Math.min(100, (monthlyUsed / monthlyAllowance) * 100) : 0;
-    const usageResetText = credits?.resetsAt
-        ? `Resets ${formatResetTime(credits.resetsAt.toISOString().replace(/Z$/, ''))}`
-        : '--';
+    const usageResetText = credits?.resetsAt ? nextResetText(credits.resetsAt) : '--';
     const normalizedTier = `${tierInfo?.tier || 'free'}`.toLowerCase();
     const isUpgradeDisabled = normalizedTier === 'pro' || normalizedTier === 'admin';
 
@@ -447,6 +485,26 @@ const AccountPage = () => {
 
                                 <h2 className="settings-title">Usage &amp; Balance</h2>
 
+                                {/* Figma 244:4882 — the balance in dollars, what the monthly
+                                    allowance has left, what was bought on top of it. */}
+                                {ADD_FUNDS_URL ? (
+                                    <div className="settings-row settings-row-figure">
+                                        <span className="settings-row-labels">
+                                            <span className="settings-row-label">Balance</span>
+                                            <span className="settings-figure">
+                                                {balance ? formatUsd(balance.balanceUsd) : '—'}
+                                            </span>
+                                        </span>
+                                        <button
+                                            type="button"
+                                            className="settings-row-action"
+                                            onClick={() => { trackGtagEvent('add_funds_click', { source: 'account_page' }); setDialog('leaving'); }}
+                                        >
+                                            Add funds
+                                        </button>
+                                    </div>
+                                ) : null}
+
                                 <div className="settings-row settings-row-stacked">
                                     <div className="settings-row-head">
                                         <span className="settings-row-label">Monthly Credits</span>
@@ -457,6 +515,7 @@ const AccountPage = () => {
                                     <div
                                         className="subscription-progress"
                                         role="progressbar"
+                                        aria-label="Monthly credits used"
                                         aria-valuemin={0}
                                         aria-valuemax={monthlyAllowance || 100}
                                         aria-valuenow={monthlyUsed}
@@ -468,33 +527,32 @@ const AccountPage = () => {
                                     </div>
                                     <div className="subscription-progress-footer">
                                         <span className="subscription-progress-used">
-                                            {creditsLoading ? '-- used' : `${monthlyUsed} of ${monthlyAllowance} used`}
+                                            {creditsLoading ? '-- used' : `${monthlyUsed} used`}
                                         </span>
                                         <span>
-                                            {creditsLoading
-                                                ? '-- remaining'
-                                                : `${creditsRemaining} credits remaining${purchasedRemaining ? ` (${purchasedRemaining} purchased)` : ''}`}
+                                            {creditsLoading ? '-- remaining' : `${monthlyRemaining} remaining`}
                                         </span>
                                     </div>
                                 </div>
 
-                                {CREDITS_PURCHASE_URL ? (
-                                    <div className="settings-row">
+                                {ADD_FUNDS_URL ? (
+                                    <div className={`settings-row${purchasedRemaining > 0 ? ' settings-row-figure' : ''}`}>
                                         <span className="settings-row-labels">
-                                            <span className="settings-row-label">Buy Credits</span>
-                                            <span className="settings-row-sub settings-row-sub-wrap">
-                                                $10 = 100 credits, never expire. Check out with {email}.
-                                            </span>
+                                            <span className="settings-row-label">Additional Credits</span>
+                                            {/* Before the first purchase the row is the label alone (Figma 244:5005). */}
+                                            {purchasedRemaining > 0 ? (
+                                                <span className="settings-figure">
+                                                    {purchasedRemaining.toLocaleString('en-US')} available
+                                                </span>
+                                            ) : null}
                                         </span>
-                                        <a
+                                        <button
+                                            type="button"
                                             className="settings-row-action"
-                                            href={CREDITS_PURCHASE_URL}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            onClick={() => trackGtagEvent('credits_buy_click', { source: 'account_page' })}
+                                            onClick={() => { trackGtagEvent('credits_buy_click', { source: 'account_page' }); setDialog('buy'); }}
                                         >
-                                            Buy credits
-                                        </a>
+                                            Buy more
+                                        </button>
                                     </div>
                                 ) : null}
 
@@ -503,7 +561,7 @@ const AccountPage = () => {
                                     <span className="plan-badge">{formatTierLabel(tierInfo?.tier)}</span>
                                 </div>
 
-                                <div className="settings-row settings-row-last">
+                                <div className={`settings-row${ADD_FUNDS_URL ? '' : ' settings-row-last'}`}>
                                     <span className="settings-row-label">API Usage</span>
                                     <button
                                         type="button"
@@ -513,6 +571,15 @@ const AccountPage = () => {
                                         View dashboard
                                     </button>
                                 </div>
+
+                                {ADD_FUNDS_URL ? (
+                                    <div className="settings-row settings-row-last">
+                                        <span className="settings-row-label">Billing</span>
+                                        <button type="button" className="settings-row-action" onClick={openBilling}>
+                                            View
+                                        </button>
+                                    </div>
+                                ) : null}
 
                                 <h2 className="settings-title">System</h2>
 
@@ -671,6 +738,14 @@ const AccountPage = () => {
                         <ul className="modal-list">
                             <li>Your profile details, preferences, and settings will be removed.</li>
                             <li>Your search history, threads, and any other content you've shared will be deleted.</li>
+                            {/* Figma 244:4611: what is paid for goes with the account. GLKB offers no refunds. */}
+                            {(balance?.balanceUsd > 0 || purchasedRemaining > 0) && (
+                                <li>
+                                    Your remaining balance ({formatUsd(balance?.balanceUsd ?? 0)})
+                                    {purchasedRemaining > 0 ? ` and additional credits (${purchasedRemaining.toLocaleString('en-US')})` : ''}
+                                    {' '}will be forfeited and cannot be refunded.
+                                </li>
+                            )}
                         </ul>
                         <p className="modal-text">
                             All data will be permanently deleted 30 days after account deletion. Keep in mind that deleting your account can't be undone.
@@ -723,6 +798,17 @@ const AccountPage = () => {
                     </div>
                 </div>
             )}
+
+            {dialog === 'buy' && (
+                <BuyMoreDialog
+                    balanceUsd={balance?.balanceUsd ?? 0}
+                    creditsPerUsd={creditsPerUsd}
+                    onClose={closeDialog}
+                    onPurchased={onPurchased}
+                />
+            )}
+            {dialog === 'leaving' && <LeavingDialog url={ADD_FUNDS_URL} email={user?.email} onClose={closeDialog} />}
+            {dialog === 'billing' && <BillingDialog rows={billingRows} onClose={closeDialog} />}
 
             {toastMessage && (
                 <div className="success-toast" role="status">

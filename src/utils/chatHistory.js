@@ -10,6 +10,8 @@ import { isConversationRunning, reconcileRunsWithServer } from '../service/activ
 import { isExchangeUnfinished } from '../service/resumeRun';
 import { parseServerTime, serverTimeMs, toIsoUtc } from './serverTime';
 import { replayTrace } from '../components/LLMAgent/traceReplay';
+import { followupRouteOf } from '../service/followupRoute';
+import { effortOf } from '../service/effortLevels';
 import { normalizeAttachmentList } from './attachmentList';
 import { LITERATURE_REVIEW_ENABLED } from '../config/features';
 import { CHAT_NEW_PATH, isConversationPath } from '../config/entryRoutes';
@@ -181,8 +183,19 @@ const normalizeDetail = (detail) => ({
                 references: normalizeReferences(message.references),
                 timestamp: formatTimestamp(message.created_at),
                 ...trace,
+                /* How an Investigate follow-up was answered. Normally replayed from the trace
+                   (its Complete stub keeps `route`); a `route` the backend returns on the
+                   message itself says the same thing and wins. Absent on every other answer. */
+                ...(message.role === 'assistant' && followupRouteOf(message.route)
+                    ? { followupRoute: message.route }
+                    : {}),
                 trajectory: message.trajectory || trace.trajectory || null,
                 invocationId: message.invocation_id ?? message.invocationId ?? null,
+                /* The level the exchange ran at (`ChatMessageResponse.effort`, on the question and
+                   on its answer). Null on rows from before efforts and on a server that predates
+                   them; `messageEffort` (service/effortLevels.js) then reads the level off
+                   `investigateMode` — Extra for an investigation, Medium for anything else. */
+                ...(effortOf(message.effort) ? { effort: effortOf(message.effort) } : {}),
                 // null for user messages, for answers saved before this shipped, and for
                 // answers with no bindings — all of which mean the same thing here.
                 directCitations: message.direct_citations ?? message.directCitations ?? null,
