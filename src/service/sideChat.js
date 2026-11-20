@@ -42,21 +42,36 @@ const text = (value, max) => {
     return max && s.length > max ? s.slice(0, max) : s;
 };
 
-/** A message's references as `{ pmid, title, journal, year }` (the shapes the chat holds). */
+/* The backend's limits on a reference (`SideChatReference`): one field past them is a 422 for the
+   whole request, so every shape is cut to them here. */
+const REFERENCE_LIMITS = { pmid: 32, title: 1000, journal: 300, year: 32 };
+
+const field = (value, max) => (value === null || value === undefined || value === ''
+    ? null
+    : text(String(value), max));
+
+/** A message's references as `{ pmid, title, journal, year }` (the shapes the chat holds: the
+ * agent's objects and the legacy `[title, url, citations, year, journal, authors]` rows). */
 export const referencesForSideChat = (refs) => (Array.isArray(refs) ? refs : [])
     .slice(0, MAX_REFERENCES)
     .map((ref) => {
+        let row;
         if (Array.isArray(ref)) {
             const [title, url, , year, journal] = ref;
-            return { pmid: String(url || '').match(PUBMED_ID)?.[1] || null, title: title || null, journal: journal || null, year: year == null ? null : String(year) };
+            row = { pmid: String(url || '').match(PUBMED_ID)?.[1], title, journal, year };
+        } else {
+            row = {
+                pmid: ref?.pmid || String(ref?.url || '').match(PUBMED_ID)?.[1],
+                title: ref?.title,
+                journal: ref?.journal,
+                year: ref?.year ?? ref?.date,
+            };
         }
-        const pmid = ref?.pmid ? String(ref.pmid) : (String(ref?.url || '').match(PUBMED_ID)?.[1] || null);
-        const year = ref?.year ?? ref?.date ?? null;
         return {
-            pmid,
-            title: ref?.title ? text(String(ref.title), 1000) : null,
-            journal: ref?.journal ? text(String(ref.journal), 300) : null,
-            year: year === null || year === undefined || year === '' ? null : text(String(year), 32),
+            pmid: field(row.pmid, REFERENCE_LIMITS.pmid),
+            title: field(row.title, REFERENCE_LIMITS.title),
+            journal: field(row.journal, REFERENCE_LIMITS.journal),
+            year: field(row.year, REFERENCE_LIMITS.year),
         };
     })
     .filter((ref) => ref.pmid || ref.title);
@@ -144,6 +159,18 @@ export const runProgressLines = ({ groups = [], current = '' } = {}) => {
     const now = String(current || '').trim();
     if (now && !lines.some((line) => line.startsWith(now))) lines.push(`Now: ${now}`);
     return lines.slice(-MAX_PROGRESS_LINES);
+};
+
+/**
+ * A side question as the model reads it: the quoted passage as a blockquote above the question,
+ * in the shape the agent gives the new question (glkb-agent `side_chat.question_message`), so an
+ * earlier question in the thread keeps the passage it was about.
+ */
+export const sideQuestionText = (question, quote) => {
+    const passage = String(quote || '').trim();
+    if (!passage) return String(question || '');
+    const quoted = passage.split('\n').map((line) => (line.trim() ? `> ${line}` : '>')).join('\n');
+    return `About this passage from the conversation:\n${quoted}\n\n${question}`;
 };
 
 /** The request body: the context, the side thread's finished messages, the question, the quote. */

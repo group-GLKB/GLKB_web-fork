@@ -244,3 +244,29 @@ it('Shift+Enter is a new line, not a send', () => {
     fireEvent.keyDown(box, { key: 'Enter', shiftKey: true });
     expect(calls).toHaveLength(0);
 });
+
+
+it('an unknown price says nothing about credits', () => {
+    renderPanel({ price: null });
+    expect(screen.queryByText(/per question/)).toBeNull();
+    expect(screen.getByText(/Not saved · Closes with Esc/)).toBeInTheDocument();
+});
+
+it('one credit is singular', () => {
+    renderPanel({ price: 1 });
+    expect(screen.getByText(/1 credit per question/)).toBeInTheDocument();
+});
+
+it('a follow-up keeps the passage an earlier question was about', async () => {
+    const calls = scripted();
+    render(<SideChatPanel getContext={() => ({})} seed={{ quote: 'RFX6 is required', at: 1 }} />);
+    ask('Which study shows this?');
+    calls[0].send({ step: 'Complete', answer: 'Smith 2010.' });
+    await calls[0].end();
+    ask('And in humans?');
+    expect(calls[1].body.thread).toEqual([
+        { role: 'user', content: 'About this passage from the conversation:\n> RFX6 is required\n\nWhich study shows this?' },
+        { role: 'assistant', content: 'Smith 2010.' },
+    ]);
+    expect(calls[1].body.quote).toBeUndefined();
+});

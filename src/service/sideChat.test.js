@@ -20,6 +20,7 @@ import {
     sideChatContext,
     sideChatRequest,
     sideChatShortcutLabel,
+    sideQuestionText,
     streamSideChat,
 } from './sideChat';
 
@@ -211,5 +212,31 @@ describe('the shortcut', () => {
     it('is labelled for the platform', () => {
         expect(sideChatShortcutLabel('MacIntel')).toBe('⌘;');
         expect(sideChatShortcutLabel('Win32')).toBe('Ctrl+;');
+    });
+});
+
+
+describe('review fixes', () => {
+    it('cuts a legacy reference row to the backend\'s limits, as an object one is', () => {
+        const long = 'x'.repeat(5000);
+        const [legacy, object] = referencesForSideChat([
+            [long, 'https://pubmed.ncbi.nlm.nih.gov/111/', 3, long, long, []],
+            { pmid: '9'.repeat(100), title: long, journal: long, year: long },
+        ]);
+        expect(legacy.title).toHaveLength(1000);
+        expect(legacy.journal).toHaveLength(300);
+        expect(legacy.year).toHaveLength(32);
+        expect(legacy.pmid).toBe('111');
+        expect(object.pmid).toHaveLength(32);
+        expect(object.title).toHaveLength(1000);
+        expect(object.journal).toHaveLength(300);
+        expect(object.year).toHaveLength(32);
+    });
+
+    it('writes an earlier quoted question the way the agent writes the new one', () => {
+        expect(sideQuestionText('Which study?', 'RFX6 is required\n\nfor islets')).toBe(
+            'About this passage from the conversation:\n> RFX6 is required\n>\n> for islets\n\nWhich study?',
+        );
+        expect(sideQuestionText('Plain?', '  ')).toBe('Plain?');
     });
 });

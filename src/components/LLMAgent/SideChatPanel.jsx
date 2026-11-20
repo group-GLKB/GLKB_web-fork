@@ -26,6 +26,7 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import {
     SIDE_CHAT_QUESTION_MAX,
     sideChatRequest,
+    sideQuestionText,
     sideChatShortcutLabel,
     streamSideChat,
 } from '../../service/sideChat';
@@ -145,7 +146,10 @@ const SideChatPanel = ({
         for (let i = 0; i + 1 < messages.length; i += 2) {
             const [asked, answered] = [messages[i], messages[i + 1]];
             if (answered.status === 'done' && answered.content) {
-                thread.push({ role: 'user', content: asked.content }, { role: 'assistant', content: answered.content });
+                thread.push(
+                    { role: 'user', content: sideQuestionText(asked.content, asked.quote) },
+                    { role: 'assistant', content: answered.content },
+                );
             }
         }
         let context = {};
@@ -226,8 +230,9 @@ const SideChatPanel = ({
     };
 
     const shortcut = sideChatShortcutLabel();
-    const priceNote = Number.isFinite(Number(price))
-        ? `${price} credit${Number(price) === 1 ? '' : 's'} per question`
+    // Only a real number: `Number(null)` is 0 and would read "null credits per question".
+    const priceNote = typeof price === 'number' && Number.isFinite(price)
+        ? `${price} credit${price === 1 ? '' : 's'} per question`
         : '';
 
     return (
