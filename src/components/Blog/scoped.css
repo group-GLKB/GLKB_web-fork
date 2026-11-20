@@ -377,6 +377,23 @@
 
 /* Numbered steps and the BibTeX block: no Figma frame has either, so they
    borrow the bullet list's rhythm and the table's border and fill. */
+/* Links in the prose: the brand blue, underlined so they do not rely on colour alone. */
+.blog-article a {
+    color: var(--color-brand-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.blog-article a:hover {
+    color: var(--color-blue-600);
+}
+
+.blog-article a:focus-visible {
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
 .blog-article ol {
     margin: 0 0 16px;
     padding-left: 20px;

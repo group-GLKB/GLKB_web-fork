@@ -26,11 +26,20 @@ it('shows one item at a time and moves on by itself', () => {
 it('opens a post, or hands a "Try it" back to the page', () => {
     const onTry = jest.fn();
     render(<NewsStrip onTry={onTry} />);
+    fireEvent.click(screen.getByRole('button', { name: 'News 2 of ' + newsItems().length }));
     fireEvent.click(screen.getByRole('button', { name: /Read more/ }));
     expect(mockNavigate).toHaveBeenCalledWith('/blog/glkb-knowledge-graph');
-    fireEvent.click(screen.getByRole('button', { name: 'News 2 of ' + newsItems().length }));
+    fireEvent.click(screen.getByRole('button', { name: 'News 3 of ' + newsItems().length }));
     fireEvent.click(screen.getByRole('button', { name: /Try it/ }));
     expect(onTry).toHaveBeenCalledWith(expect.objectContaining({ id: 'attachments' }));
+});
+
+it('leads with GLKB Cite, the Mac app, and opens its download page', () => {
+    render(<NewsStrip />);
+    expect(newsItems()[0].id).toBe('cite-app');
+    expect(screen.getByText(/GLKB Cite for Mac: select a sentence/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Get it/ }));
+    expect(mockNavigate).toHaveBeenCalledWith('/cite');
 });
 
 it('stays closed once closed, until the news changes', () => {
@@ -45,7 +54,7 @@ it('stays closed once closed, until the news changes', () => {
 
 it('on a phone, links with its arrow alone and puts the dots under the strip', () => {
     render(<NewsStrip compact />);
-    const cta = screen.getByRole('button', { name: 'Read more' });
+    const cta = screen.getByRole('button', { name: 'Get it' });
     expect(cta).toHaveTextContent(/^→$/);
     const dots = document.querySelector('.news-strip-dots');
     expect(document.querySelector('.news-strip').contains(dots)).toBe(false);

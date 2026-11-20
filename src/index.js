@@ -45,6 +45,7 @@ import { canonicalUrlFor, isIndexablePath, normalizeSeoPath } from './config/pub
  */
 const AboutPage = React.lazy(() => import('./components/AboutPage'));
 const ContactPage = React.lazy(() => import('./components/ContactPage'));
+const CitePage = React.lazy(() => import('./components/CitePage'));
 const BlogPost = React.lazy(() => import('./components/Blog/BlogPost'));
 const PrivacyPolicy = React.lazy(() => import('./components/PrivacyPolicy'));
 const TermsOfService = React.lazy(() => import('./components/TermsOfService'));
@@ -207,6 +208,8 @@ function AppWithRoutes() {
                     <Route path={CHAT_HOME_PATH} element={<HomePage />} />
                     <Route path="/about" element={<AboutRedirect />} />
                     <Route path="/contact" element={<ContactPage />} />
+                    {/* GLKB Cite, the Mac app: what it is and the download (config/citeApp.js). */}
+                    <Route path="/cite" element={<CitePage />} />
                     {/* The article list lives on About under "From the Lab". */}
                     <Route path="/blog" element={<Navigate to="/#from-the-lab" replace />} />
                     <Route path="/blog/:slug" element={<BlogPost />} />

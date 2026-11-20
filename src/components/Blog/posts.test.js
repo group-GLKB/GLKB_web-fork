@@ -5,8 +5,8 @@
  * describe.
  *
  * So: render both and assert every line of text appears in the design. The
- * Literature Review article has no frame — it was written for the site — so
- * only the checks that do not need one apply to it.
+ * Literature Review article and the GLKB Cite guide have no frame — they were
+ * written for the site — so only the checks that do not need one apply to them.
  */
 import fs from 'fs';
 import path from 'path';
@@ -95,6 +95,7 @@ describe('blog post content', () => {
 
     it('covers both designed posts', () => {
         expect(posts.map((post) => post.slug).sort()).toEqual([
+            'glkb-cite',
             ...DESIGNED,
             'literature-review',
         ]);

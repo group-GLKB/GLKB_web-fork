@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CloseIcon from '@mui/icons-material/Close';
 
+import { CITE_PAGE_PATH } from '../../config/citeApp';
 import { INVESTIGATE_ENABLED, LITERATURE_REVIEW_ENABLED } from '../../config/features';
 import { trackGtagEvent } from '../../utils/gtag';
 
@@ -13,11 +14,16 @@ import { trackGtagEvent } from '../../utils/gtag';
  *
  * `compact` is the phone design: the link is its arrow alone, and the dots sit under the strip.
  */
-export const NEWS_VERSION = '2026-10-10';
+export const NEWS_VERSION = '2026-11-20';
 const STORAGE_KEY = 'glkb-news-dismissed';
 const ROTATE_MS = 6000;
 
 export const newsItems = () => [
+    {
+        id: 'cite-app', tag: 'New app', tone: 'blue',
+        text: 'GLKB Cite for Mac: select a sentence in any app, get the papers behind it',
+        cta: 'Get it', to: CITE_PAGE_PATH,
+    },
     {
         id: 'kdd26', tag: "KDD '26", tone: 'neutral',
         text: '33M abstracts, one queryable graph — 14.6M relationships between 3.3M terms',

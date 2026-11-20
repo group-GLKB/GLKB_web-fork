@@ -1,0 +1,288 @@
+/* GLKB Cite's page. The marketing shell's type and colours (SiteChrome, ContactPage): Geist,
+   the brand blue, hairline borders. Body copy is 16px here, a step above the app's 14 — this
+   page is read once, slowly, by someone installing something. */
+
+.cite-page {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-background-surface);
+    color: var(--color-text-secondary);
+    font-family: var(--font-family-sans);
+}
+
+.cite-page *, .cite-page *::before, .cite-page *::after { box-sizing: border-box; }
+
+.cite-main {
+    flex: 1;
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 72px 24px 88px;
+}
+
+.cite-page h1, .cite-page h2, .cite-page h3, .cite-page p { margin: 0; }
+
+.cite-page a:not(.site-button):not(.site-nav-link):not(.site-nav-logo) {
+    color: var(--color-brand-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.cite-page .site-footer a { color: inherit !important; text-decoration: none !important; }
+
+.cite-page a:focus-visible,
+.cite-page summary:focus-visible {
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+.cite-page b { font-weight: 600; color: var(--color-text-primary); }
+
+/* ---------------------------------------------------------------- hero */
+.cite-hero {
+    display: grid;
+    grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
+    align-items: center;
+    gap: 48px;
+}
+
+.cite-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--color-text-tertiary);
+    font-size: 14px;
+    line-height: 22px;
+    font-weight: 600;
+}
+
+.cite-app-icon { width: 44px; height: 44px; display: block; }
+
+.cite-hero h1 {
+    margin-top: 16px;
+    color: var(--color-text-primary);
+    font-size: 40px;
+    line-height: 48px;
+    font-weight: 700;
+    letter-spacing: -.6px;
+    text-wrap: balance;
+}
+
+.cite-lede {
+    margin-top: 16px !important;
+    font-size: 18px;
+    line-height: 28px;
+    color: var(--color-text-secondary);
+}
+
+.cite-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.cite-page .site-button { height: 44px; padding: 0 18px; font-size: 15px; text-decoration: none; }
+.cite-page .site-button--ghost { color: var(--color-text-secondary); font-weight: 500; }
+.cite-page .site-button:focus-visible { outline: 2px solid var(--color-brand-primary); outline-offset: 3px; }
+
+.cite-download { gap: 8px; }
+.cite-download-icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.cite-meta {
+    margin-top: 16px !important;
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--color-text-tertiary);
+}
+
+.cite-note {
+    margin-top: 16px !important;
+    padding: 12px 16px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-2);
+    background: var(--color-background-subtle);
+    font-size: 15px;
+    line-height: 24px;
+}
+
+.cite-figure {
+    margin: 0;
+    padding: 24px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-4);
+    background: var(--color-background-subtle);
+}
+.cite-figure img { display: block; width: 100%; height: auto; }
+.cite-figure figcaption {
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+    text-align: center;
+}
+
+/* ---------------------------------------------------------------- sections */
+.cite-section {
+    margin-top: 72px;
+    padding-top: 56px;
+    border-top: 1px solid var(--color-border-default);
+}
+
+.cite-section h2, .cite-closing h2 {
+    color: var(--color-text-primary);
+    font-size: 28px;
+    line-height: 36px;
+    font-weight: 700;
+    letter-spacing: -.3px;
+}
+
+.cite-section h3 {
+    color: var(--color-text-primary);
+    font-size: 17px;
+    line-height: 24px;
+    font-weight: 600;
+}
+
+.cite-section p, .cite-section dd {
+    font-size: 16px;
+    line-height: 26px;
+}
+
+.cite-aside {
+    margin-top: 20px !important;
+    color: var(--color-text-tertiary);
+    font-size: 15px !important;
+    line-height: 24px !important;
+}
+
+.cite-page kbd {
+    display: inline-block;
+    padding: 0 6px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-1);
+    background: var(--color-background-surface);
+    font: 500 13px/22px var(--font-family-sans);
+    color: var(--color-text-secondary);
+}
+
+.cite-fit, .cite-steps {
+    list-style: none;
+    margin: 28px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 20px;
+}
+.cite-fit { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cite-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+.cite-fit li, .cite-steps li {
+    padding: 24px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-3);
+    background: var(--color-background-surface);
+}
+.cite-fit p, .cite-steps p { margin-top: 8px; }
+
+.cite-step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-bottom: 14px;
+    border-radius: 50%;
+    background: var(--color-brand-primary);
+    color: var(--color-text-inverse);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.cite-more { display: inline-block; margin-top: 12px; font-size: 15px; line-height: 24px; font-weight: 500; }
+
+/* ---------------------------------------------------------------- results */
+.cite-section-lede { margin-top: 12px !important; }
+.cite-results-list { margin: 24px 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
+.cite-results-list dt { color: var(--color-text-primary); font-size: 16px; line-height: 24px; font-weight: 600; }
+.cite-results-list dd { margin: 4px 0 0; font-size: 15px; line-height: 24px; }
+.cite-results-figure { max-width: 860px; margin: 32px auto 0; padding: 32px; }
+
+.cite-caution {
+    max-width: 860px;
+    margin: 28px auto 0 !important;
+    padding: 2px 0 2px 16px;
+    border-left: 2px solid var(--color-brand-primary);
+}
+
+/* ---------------------------------------------------------------- questions */
+.cite-questions { margin-top: 20px; border-top: 1px solid var(--color-border-default); }
+.cite-questions details { border-bottom: 1px solid var(--color-border-default); }
+.cite-questions summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 4px;
+    color: var(--color-text-primary);
+    font-size: 17px;
+    line-height: 26px;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+}
+.cite-questions summary::-webkit-details-marker { display: none; }
+.cite-questions summary::after {
+    content: '';
+    flex: none;
+    width: 9px;
+    height: 9px;
+    margin-right: 6px;
+    border-right: 2px solid var(--color-text-tertiary);
+    border-bottom: 2px solid var(--color-text-tertiary);
+    transform: rotate(45deg) translateY(-3px);
+    transition: transform .15s ease;
+}
+.cite-questions details[open] summary::after { transform: rotate(-135deg) translateY(-3px); }
+.cite-questions details p { max-width: 760px; padding: 0 4px 20px; }
+
+/* ---------------------------------------------------------------- closing */
+.cite-closing {
+    margin-top: 72px;
+    padding: 48px 32px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-4);
+    background: var(--color-brand-subtle);
+    text-align: center;
+}
+.cite-closing > p { max-width: 560px; margin: 12px auto 0 !important; font-size: 16px; line-height: 26px; }
+.cite-closing .cite-actions { justify-content: center; }
+.cite-closing .cite-meta { font-size: 14px !important; }
+
+@media (prefers-reduced-motion: reduce) {
+    .cite-questions summary::after { transition: none; }
+}
+
+@media (max-width: 960px) {
+    .cite-hero { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+    .cite-steps, .cite-results-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767px) {
+    .cite-main { padding: 40px 16px 56px; }
+    .cite-hero h1 { font-size: 30px; line-height: 38px; }
+    .cite-lede { font-size: 17px; line-height: 27px; }
+    .cite-section { margin-top: 48px; padding-top: 40px; }
+    .cite-section h2, .cite-closing h2 { font-size: 24px; line-height: 32px; }
+    .cite-fit, .cite-steps { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .cite-results-list { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .cite-results-figure { padding: 12px; }
+    .cite-figure-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .cite-figure-scroll img { width: 600px; max-width: none; }
+    .cite-figure-scroll:focus-visible { outline: 2px solid var(--color-brand-primary); outline-offset: 2px; }
+    .cite-fit li, .cite-steps li { padding: 20px; }
+    .cite-figure { padding: 12px; border-radius: var(--radius-3); }
+    .cite-actions .site-button { width: 100%; }
+    .cite-closing { margin-top: 48px; padding: 32px 20px; }
+    .cite-questions summary { font-size: 16px; }
+}

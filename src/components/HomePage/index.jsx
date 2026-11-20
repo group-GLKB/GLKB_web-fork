@@ -15,7 +15,7 @@ import Joyride, {
   EVENTS,
   STATUS,
 } from 'react-joyride';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import {
   ArrowOutward as ArrowOutwardIcon,
@@ -28,6 +28,7 @@ import {
   Typography,
 } from '@mui/material';
 
+import { CITE_PAGE_PATH } from '../../config/citeApp';
 import { ReactComponent as PillBuildEvidenceIcon } from '../../img/llm/pill_build_evidence.svg';
 import { ReactComponent as PillCheckClaimIcon } from '../../img/llm/pill_check_claim.svg';
 import { ReactComponent as PillCompareOptionsIcon } from '../../img/llm/pill_compare_options.svg';
@@ -482,6 +483,8 @@ const HomePage = () => {
                             <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
                                 <p className="homepage-footer-line">
                                     © 2026 GLKB — Genomic Literature Knowledge Base · glkb.org
+                                    {/* The quiet, lasting way to GLKB Cite: the news strip above can be closed. */}
+                                    {' · '}<Link className="homepage-lab-link" to={CITE_PAGE_PATH}>GLKB Cite for Mac</Link>
                                 </p>
                                 <p className="homepage-footer-line">
                                     Developed and maintained by the <a className="homepage-lab-link" href="https://jieliu6.github.io/" target="_blank" rel="noopener noreferrer">Jie Liu Lab</a>, Department of Computational Medicine and Bioinformatics, University of Michigan.

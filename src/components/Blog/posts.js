@@ -1,6 +1,7 @@
 /**
  * The articles. Two are from Figma 707:2703 (GLKB) and 732:8445 (Investigate);
- * the Literature Review article was written for the site, with no frame.
+ * the Literature Review article and the GLKB Cite guide were written for the site,
+ * with no frame. The newest comes first: About's hero links to posts[0].
  *
  * The prose lives in content/*.md — see markdown.js for the dialect. This file
  * only turns those files into post objects and resolves the image names the
@@ -27,7 +28,16 @@ import lr02 from '../../img/blog/lr-02-unfair.svg';
 import lr03 from '../../img/blog/lr-03-leaderboard.svg';
 import lr04 from '../../img/blog/lr-04-comparisons.svg';
 import lr05 from '../../img/blog/lr-05-claim-map.svg';
+import cite01 from '../../img/blog/cite-01-overview.svg';
+import cite02 from '../../img/blog/cite-02-install.svg';
+import cite03 from '../../img/blog/cite-03-menubar.svg';
+import cite04 from '../../img/blog/cite-04-setup.svg';
+import cite05 from '../../img/blog/cite-05-accessibility.svg';
+import cite06 from '../../img/blog/cite-06-results.svg';
+import cite07 from '../../img/blog/cite-07-formats.svg';
+import cite08 from '../../img/blog/cite-08-privacy.svg';
 
+import citeArticle from './content/glkb-cite.md';
 import glkbArticle from './content/glkb-knowledge-graph.md';
 import investigateArticle from './content/investigate-auditable-research.md';
 import literatureReviewArticle from './content/literature-review.md';
@@ -55,9 +65,17 @@ export const IMAGES = {
     'lr-03-leaderboard.svg': lr03,
     'lr-04-comparisons.svg': lr04,
     'lr-05-claim-map.svg': lr05,
+    'cite-01-overview.svg': cite01,
+    'cite-02-install.svg': cite02,
+    'cite-03-menubar.svg': cite03,
+    'cite-04-setup.svg': cite04,
+    'cite-05-accessibility.svg': cite05,
+    'cite-06-results.svg': cite06,
+    'cite-07-formats.svg': cite07,
+    'cite-08-privacy.svg': cite08,
 };
 
-export const posts = [literatureReviewArticle, investigateArticle, glkbArticle].map((source) => {
+export const posts = [citeArticle, literatureReviewArticle, investigateArticle, glkbArticle].map((source) => {
     const post = parseArticle(source);
     // Reuse the first body figure for cards everywhere (About and Read next).
     const firstImage = source.match(/!\[[^\]]*\]\(([^)]+)\)/)?.[1];

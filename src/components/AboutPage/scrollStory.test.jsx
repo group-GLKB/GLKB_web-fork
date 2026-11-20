@@ -333,3 +333,22 @@ describe('the idle auto-scroll', () => {
         expect(below.scroller.scrollTop).toBe(1000);
     });
 });
+
+describe('GLKB Cite, the Mac app', () => {
+    it('has one band after the blog, with the download as a plain file link and the way to its page', () => {
+        const { container } = render(<MemoryRouter><AboutPage /></MemoryRouter>);
+        const ids = [...container.querySelectorAll('section[id]')].map((section) => section.id);
+        expect(ids.indexOf('glkb-cite')).toBe(ids.indexOf('from-the-lab') + 1);
+        const band = container.querySelector('#glkb-cite');
+        expect(band.querySelector('h2').textContent).toBe('GLKB Cite: the papers behind any sentence you select');
+        const download = band.querySelector('a[download]');
+        expect(download.getAttribute('href')).toMatch(/^\/downloads\/GLKB-Cite-\d+\.\d+\.\d+\.dmg$/);
+        expect(download.textContent).toBe('Download for Mac');
+        expect(band.querySelector('a[href="/cite"]').textContent).toBe('See how it works');
+        expect(band.querySelector('img').getAttribute('alt')).toMatch(/^A drawing of GLKB Cite/);
+        // The guide is the newest post: the hero's pill and the first card of the rail.
+        expect(posts[0].slug).toBe('glkb-cite');
+        // And the footer of every marketing page carries the link.
+        expect(container.querySelector('.site-footer-links a[href="/cite"]').textContent).toBe('GLKB Cite for Mac');
+    });
+});

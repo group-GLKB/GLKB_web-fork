@@ -10,6 +10,7 @@ import './scoped.css';
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { CITE_PAGE_PATH } from '../../config/citeApp';
 import { ABOUT_PATH, CHAT_HOME_PATH } from '../../config/entryRoutes';
 import { SHOW_API_DOCS } from '../../config/features';
 
@@ -99,6 +100,7 @@ export const SiteFooter = ({ withCta = true, onViewDemo }) => {
                 <div className="site-footer-row">
                     <div className="site-footer-links">
                         <Link to={CHAT_HOME_PATH}>Chat</Link>
+                        <Link to={CITE_PAGE_PATH}>GLKB Cite for Mac</Link>
                         {SHOW_API_DOCS && <Link to="/api-docs">API Docs</Link>}
                         <Link to="/terms">Terms of Use</Link>
                         <Link to="/privacy">Privacy Policy</Link>

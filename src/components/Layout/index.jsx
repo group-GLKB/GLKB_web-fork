@@ -40,6 +40,7 @@ const getPageTitleByPath = (pathname) => {
     if (pathname.startsWith('/privacy')) return 'Privacy Policy | GLKB';
     if (pathname.startsWith('/terms')) return 'Terms of Service | GLKB';
     if (pathname.replace(/\/+$/, '') === '/contact') return 'Contact Us | GLKB';
+    if (pathname.replace(/\/+$/, '') === '/cite') return 'GLKB Cite for Mac | GLKB';
     if (pathname.startsWith('/blog')) return 'Our Blog | GLKB';
     if (pathname.startsWith('/search')) return 'Search | GLKB';
     if (pathname.startsWith('/history')) return 'History | GLKB';
@@ -57,7 +58,8 @@ const AppLayout = () => {
     // About is the landing page at `/` (/about only redirects there)
     const isAboutPage = location.pathname === '/' || location.pathname.startsWith('/about');
     const isBlogPage = location.pathname.startsWith('/blog');
-    const isContactPage = location.pathname.replace(/\/+$/, '') === '/contact';
+    // Contact and the GLKB Cite download page: marketing pages with the site's own nav and footer.
+    const isContactPage = ['/contact', '/cite'].includes(location.pathname.replace(/\/+$/, ''));
     // the legal notices stand on their own, as About and the blog do
     const isLegalPage = location.pathname.startsWith('/privacy')
         || location.pathname.startsWith('/terms');

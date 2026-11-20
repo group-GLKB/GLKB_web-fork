@@ -115,3 +115,38 @@ describe('escaping', () => {
         expect(unescape('a \\[bracket\\] and an \\*asterisk\\*')).toBe('a [bracket] and an *asterisk*');
     });
 });
+
+describe('the GLKB Cite guide', () => {
+    // Written for readers who do not use a Terminal: this build is signed and notarized, so
+    // none of the app's own guide's command-line workarounds belong in it.
+    const { posts } = require('./posts');
+    const renderArticle = require('./__fixtures__/renderArticle').default;
+    const guide = posts.find((post) => post.slug === 'glkb-cite');
+    const source = guide.segments.map((segment) => [segment.title, segment.content].filter(Boolean).join('\n')).join('\n');
+
+    it('has no command-line instructions', () => {
+        expect(source).not.toMatch(/terminal|xattr|quarantine|defaults (write|delete)|```/i);
+    });
+
+    it('gives every entry of its contents rail a heading to land on', () => {
+        const anchors = guide.toc.flat().map((item) => item.id);
+        expect(anchors.length).toBeGreaterThan(15);
+        anchors.forEach((anchor) => expect(source).toContain(`{#${anchor}}`));
+    });
+
+    it('sends its download links to the GLKB Cite page through the router, and its figures have captions', () => {
+        const container = renderArticle('glkb-cite');
+        const downloads = [...container.querySelectorAll('.blog-article a[href="/cite"]')];
+        expect(downloads.length).toBeGreaterThanOrEqual(2);
+        const figures = [...container.querySelectorAll('.blog-article figure')];
+        expect(figures).toHaveLength(8);
+        figures.forEach((figure) => {
+            expect(figure.querySelector('figcaption').textContent.length).toBeGreaterThan(20);
+            expect(figure.querySelector('img').getAttribute('alt')).toBeTruthy();
+        });
+        // In-page links name sections that exist.
+        [...container.querySelectorAll('.blog-article a[href^="#"]')].forEach((link) => {
+            expect(container.querySelector(link.getAttribute('href'))).not.toBeNull();
+        });
+    });
+});

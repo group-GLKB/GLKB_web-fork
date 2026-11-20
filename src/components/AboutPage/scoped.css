@@ -4338,3 +4338,111 @@
         font-size: 64px;
     }
 }
+
+/* ---------------------------------------------------------------- GLKB Cite
+   The Mac app, as one bordered band after the articles: copy and the download on
+   the left, a drawing of the app on the right. Quiet on purpose — a card, not a
+   scene — and built from the page's own card, heading and button styles. */
+.about-cite {
+    background-color: var(--color-background-surface);
+}
+
+.about-cite .about-inner {
+    padding: 64px 0;
+}
+
+.about-cite-card {
+    display: grid;
+    grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+    align-items: center;
+    gap: 48px;
+    padding: 40px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-4);
+    background-color: var(--color-brand-subtle);
+}
+
+.about-cite-copy .about-heading {
+    font-size: 28px;
+    line-height: 36px;
+    text-wrap: balance;
+}
+
+.about-cite-body {
+    margin: 12px 0 0;
+    max-width: 480px;
+    font-size: 16px;
+    line-height: 26px;
+    color: var(--color-text-secondary);
+}
+
+.about-cite-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.about-cite-actions .site-button {
+    text-decoration: none;
+}
+
+.about-cite-actions .site-button--ghost {
+    color: var(--color-text-secondary);
+}
+
+.about-cite-actions .site-button:focus-visible {
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: 3px;
+}
+
+.about-cite-meta {
+    margin: 14px 0 0;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+}
+
+.about-cite-media {
+    padding: 20px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-3);
+    background-color: var(--color-background-surface);
+}
+
+.about-cite-media img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+@media (max-width: 960px) {
+    .about-cite-card {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 28px;
+        padding: 28px;
+    }
+}
+
+@media (max-width: 767px) {
+    .about-cite .about-inner {
+        padding: 40px 0;
+    }
+
+    .about-cite-card {
+        padding: 20px;
+    }
+
+    .about-cite-copy .about-heading {
+        font-size: 24px;
+        line-height: 32px;
+    }
+
+    .about-cite-media {
+        padding: 10px;
+    }
+
+    .about-cite-actions .site-button {
+        width: 100%;
+    }
+}

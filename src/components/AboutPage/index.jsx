@@ -28,6 +28,7 @@ import {
 
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
+import citeOverview from '../../img/blog/cite-01-overview.svg';
 import teamLogo from '../../img/about/frame11/logo 1.png';
 import logoHarvard from '../../img/about/v2/trusted/harvard.png';
 import logoMichigan from '../../img/about/v2/trusted/michigan-medicine.png';
@@ -45,8 +46,10 @@ import browserTabShape from '../../img/about/v2/browser/tab.svg';
 import browserTabClose from '../../img/about/v2/browser/tab-close.svg';
 import browserActions from '../../img/about/v2/browser/toolbar-actions.svg';
 import browserFavicon from '../../img/GLKB_logo_icon.png';
+import { CITE_APP, CITE_DOWNLOAD_URL, CITE_PAGE_PATH } from '../../config/citeApp';
 import { CHAT_HOME_PATH, markAboutSeen } from '../../config/entryRoutes';
 import { LITERATURE_REVIEW_ENABLED } from '../../config/features';
+import { trackGtagEvent } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
 import { posts } from '../Blog/posts';
 import { SiteFooter, SiteNav } from '../SiteChrome';
@@ -426,6 +429,49 @@ const AboutPage = () => {
                                     </span>
                                 </Link>
                             ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* GLKB Cite, the Mac app. One quiet band after the articles: what it is, the
+                    download, and the way to its page. The guide is the first card in the rail
+                    above, and the hero's "New" pill, because it is the newest post. */}
+                <section className="about-section about-cite" id="glkb-cite" aria-labelledby="about-cite-heading">
+                    <div className="about-inner">
+                        <div className="about-cite-card" data-reveal>
+                            <div className="about-cite-copy">
+                                <p className="about-eyebrow">New · App for Mac</p>
+                                <h2 className="about-heading" id="about-cite-heading">
+                                    GLKB Cite: the papers behind any sentence you select
+                                </h2>
+                                <p className="about-cite-body">
+                                    A small app for your Mac. Select a sentence in your manuscript, click once,
+                                    and see the PubMed papers that support it, ready to cite.
+                                </p>
+                                <div className="about-cite-actions">
+                                    <a
+                                        className="site-button"
+                                        href={CITE_DOWNLOAD_URL}
+                                        download={CITE_APP.file}
+                                        onClick={() => trackGtagEvent('cite_app_download_click', { source: 'about', version: CITE_APP.version })}
+                                    >
+                                        Download for Mac
+                                    </a>
+                                    <Link className="site-button site-button--ghost" to={CITE_PAGE_PATH}>
+                                        See how it works
+                                    </Link>
+                                </div>
+                                <p className="about-cite-meta">
+                                    Version {CITE_APP.version} · {CITE_APP.sizeLabel} · {CITE_APP.minMacOS} or newer · Needs a GLKB account
+                                </p>
+                            </div>
+                            <div className="about-cite-media">
+                                <img
+                                    src={citeOverview}
+                                    loading="lazy"
+                                    alt="A drawing of GLKB Cite: a sentence selected in a document, a small blue badge next to it, and a panel listing the papers that support it."
+                                />
+                            </div>
                         </div>
                     </div>
                 </section>

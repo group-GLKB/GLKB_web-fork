@@ -3,7 +3,7 @@ import './scoped.css';
 import React, { useEffect, useMemo, useState } from 'react';
 import PublicPageSeo from '../Units/PublicPageSeo';
 import ReactMarkdown from 'react-markdown';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 
@@ -67,7 +67,15 @@ const Paragraph = function Paragraph({ node, children }) {
     );
 };
 
+/** A link to another page of the site goes through the router, so the app is not reloaded
+    to get there. Everything else (other sites, `#section` on this page) is an ordinary link. */
+const Anchor = function Anchor({ href = '', children }) {
+    if (href.startsWith('/') && !href.startsWith('//')) return <Link to={href}>{children}</Link>;
+    return <a href={href}>{children}</a>;
+};
+
 const articleComponents = {
+    a: Anchor,
     h2: heading('h2', 'blog-h2'),
     h3: heading('h3', 'blog-h3'),
     p: Paragraph,
@@ -109,7 +117,7 @@ const Segment = ({ segment }) => {
             return (
                 <aside className="blog-callout">
                     <p className="blog-callout-title">{segment.title}</p>
-                    <Markdown components={{ p: function CalloutText({ children }) {
+                    <Markdown components={{ a: Anchor, p: function CalloutText({ children }) {
                         return <p className="blog-callout-text">{children}</p>;
                     } }}
                     >
@@ -144,6 +152,7 @@ const Segment = ({ segment }) => {
 const BlogPost = () => {
     const { slug } = useParams();
     const navigate = useNavigate();
+    const { hash } = useLocation();
     const post = getPost(slug);
     const [activeId, setActiveId] = useState('');
 
@@ -155,11 +164,18 @@ const BlogPost = () => {
     // AppLayout scrolls an inner wrapper rather than the window, so both the
     // reset and the scroll-spy have to attach to that element — on the window
     // they silently never fire.
+    // A link that names a section (/blog/glkb-cite#get-your-key, from the GLKB Cite page)
+    // opens the article at that section instead of at the top.
     useEffect(() => {
+        const target = hash ? document.getElementById(decodeURIComponent(hash.slice(1))) : null;
+        if (target) {
+            target.scrollIntoView();
+            return;
+        }
         const scroller = findScrollParent(document.querySelector('.blog-page'));
         if (scroller === window) window.scrollTo(0, 0);
         else if (scroller) scroller.scrollTop = 0;
-    }, [slug]);
+    }, [slug, hash]);
 
     // Highlight whichever section heading is nearest the top of the viewport.
     useEffect(() => {
