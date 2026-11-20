@@ -2302,7 +2302,10 @@
     color: var(--color-text-tertiary);
 }
 
-@media (max-width: 1100px) {
+/* The ten links want 1222px in one row (measured: 96 padding, 80 brand, 901 links, 89 button,
+   two 28px gaps), plus room for a scrollbar that takes width on Windows. Below that they fold
+   into the contents menu rather than push Try GLKB off the edge. */
+@media (max-width: 1260px) {
     .about-localnav-bar {
         gap: 12px;
         padding: 0 20px;

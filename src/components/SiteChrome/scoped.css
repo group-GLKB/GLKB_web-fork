@@ -64,6 +64,19 @@
     color: var(--color-brand-primary);
 }
 
+.site-nav-link--cite {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.site-nav-cite-icon {
+    width: 20px;
+    height: 20px;
+    flex: none;
+    display: block;
+}
+
 /* ---------------------------------------------------------------- buttons
    Figma 604:7234 — 40px tall, 8px radius, 14/22 semibold. */
 .site-button {
@@ -113,6 +126,7 @@
     font-size: 14px;
     font-weight: 600;
     line-height: 22px;
+    white-space: nowrap;
     cursor: pointer;
 }
 
@@ -305,6 +319,13 @@
         font-size: 13px;
     }
 
+    /* Four actions do not fit one row on a phone. "for Mac" is on the page the link opens,
+       and Home is the logo right above, which goes to the same place. */
+    .site-nav-link-more,
+    .site-nav-link--home {
+        display: none;
+    }
+
     .site-cta {
         padding-top: 64px;
         padding-bottom: 64px;
@@ -323,5 +344,12 @@
     .site-footer-links {
         flex-wrap: wrap;
         gap: 16px;
+    }
+}
+
+/* The narrowest phones (320–380px): the three actions fit once the Cite icon goes. */
+@media (max-width: 380px) {
+    .site-nav-cite-icon {
+        display: none;
     }
 }

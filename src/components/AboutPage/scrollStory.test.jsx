@@ -351,4 +351,15 @@ describe('GLKB Cite, the Mac app', () => {
         // And the footer of every marketing page carries the link.
         expect(container.querySelector('.site-footer-links a[href="/cite"]').textContent).toBe('GLKB Cite for Mac');
     });
+
+    it('keeps a standing place in both bars: the site nav at the top and the in-page nav after it', () => {
+        const { container } = render(<MemoryRouter><AboutPage /></MemoryRouter>);
+        const siteLink = container.querySelector('.site-nav a[href="/cite"]');
+        // The news strip that announced the app can be closed; the bar cannot.
+        expect(siteLink.textContent).toBe('GLKB Cite for Mac');
+        expect(siteLink.querySelector('img').getAttribute('alt')).toBe('');
+        expect(siteLink.getAttribute('aria-current')).toBeNull();
+        // Once the site nav scrolls away, the in-page bar names the band.
+        expect(container.querySelector('.about-localnav-links a[href="#glkb-cite"]').textContent).toBe('GLKB Cite');
+    });
 });

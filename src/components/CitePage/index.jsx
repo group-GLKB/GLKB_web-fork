@@ -141,7 +141,7 @@ export default function CitePage() {
                 title="GLKB Cite for Mac: the papers behind any sentence | GLKB"
                 description="GLKB Cite is a small Mac app. Select a sentence in your manuscript, click once, and get the PubMed papers that support it, ready to cite. Download it here."
             />
-            <SiteNav />
+            <SiteNav active="cite" />
 
             <main className="cite-main">
                 <section className="cite-hero" aria-labelledby="cite-title">

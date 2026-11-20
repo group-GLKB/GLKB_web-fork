@@ -19,6 +19,7 @@ export const PAGE_SECTIONS = [
     ['demo', 'Demo'],
     ...(LITERATURE_REVIEW_ENABLED ? [['literature-review', 'Literature Review']] : []),
     ['from-the-lab', 'Blog'],
+    ['glkb-cite', 'GLKB Cite'],
     ['why', 'Why GLKB'],
     ['use-cases', 'Use Cases'],
     ['faq', 'FAQ'],

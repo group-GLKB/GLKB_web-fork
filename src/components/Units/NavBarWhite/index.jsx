@@ -66,6 +66,8 @@ import {
 } from '../../../img/navbar/sidebar.left.svg';
 import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
 import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
+import citeAppIcon from '../../../img/cite/app-icon.png';
+import { CITE_PAGE_PATH } from '../../../config/citeApp';
 import { ABOUT_PATH, CHAT_HOME_PATH, isConversationPath } from '../../../config/entryRoutes';
 import { LITERATURE_REVIEW_ENABLED } from '../../../config/features';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
@@ -481,6 +483,24 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
             // `/` is About; exact, or every path would read as being on it
             { label: 'About', to: ABOUT_PATH, exact: true, icon: <InfoOutlinedIcon sx={{ fontSize: 22 }} /> },
         ]
+    ), []);
+
+    // GLKB Cite, the Mac app, pinned above the account row so it never scrolls away
+    // with the recent conversations. Its own icon, so it reads as an app, not a page.
+    const citeItem = useMemo(() => (
+        {
+            label: 'GLKB Cite for Mac',
+            to: CITE_PAGE_PATH,
+            icon: (
+                <Box
+                    component="img"
+                    src={citeAppIcon}
+                    alt=""
+                    sx={{ width: 26, height: 26, display: 'block' }}
+                />
+            ),
+            noBottomMargin: true,
+        }
     ), []);
 
     const loginItem = useMemo(() => (
@@ -1098,6 +1118,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 </Box>
                 <Box sx={{ mt: 'auto', pb: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <Divider sx={{ mx: 0, borderColor: 'var(--color-border-default)' }} />
+                    <List sx={{ px: 0, py: 0 }}>
+                        {renderNavItem(citeItem)}
+                    </List>
                     <List sx={{ px: 0, py: 0 }}>
                         {!isAuthenticated ? (
                             renderNavItem({ ...loginItem, noBottomMargin: true })

@@ -13,6 +13,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { CITE_PAGE_PATH } from '../../config/citeApp';
 import { ABOUT_PATH, CHAT_HOME_PATH } from '../../config/entryRoutes';
 import { SHOW_API_DOCS } from '../../config/features';
+import citeAppIcon from '../../img/cite/app-icon.png';
 
 // The app's own mark and wordmark, not the About-only lockup that used to sit here:
 // this is one site, and the logo above the marketing pages is the logo above the app.
@@ -46,7 +47,7 @@ export const SiteNav = ({ active, onGetStarted }) => {
             </Link>
             <nav className="site-nav-actions" aria-label="Site">
                 {active === 'home' ? null : (
-                    <Link to={ABOUT_PATH} className="site-nav-link">
+                    <Link to={ABOUT_PATH} className="site-nav-link site-nav-link--home">
                         Home
                     </Link>
                 )}
@@ -54,6 +55,17 @@ export const SiteNav = ({ active, onGetStarted }) => {
                     rather than a page of their own, so the link pointed at an anchor on
                     the page the reader was most likely already on. They are still reached
                     from "From the Lab", and BLOG_LIST_PATH still routes. */}
+                {/* GLKB Cite's standing place in the bar, with the app's own icon. The news
+                    strip that announced it can be closed; this cannot. */}
+                <Link
+                    to={CITE_PAGE_PATH}
+                    className={`site-nav-link site-nav-link--cite${active === 'cite' ? ' is-active' : ''}`}
+                    aria-current={active === 'cite' ? 'page' : undefined}
+                >
+                    <img className="site-nav-cite-icon" src={citeAppIcon} alt="" />
+                    {/* One flex item for the words, so the icon's gap is not also put before "for Mac". */}
+                    <span>GLKB Cite<span className="site-nav-link-more"> for Mac</span></span>
+                </Link>
                 <a
                     href={DATASET_URL} target="_blank" rel="noopener noreferrer"
                     className="site-nav-link"

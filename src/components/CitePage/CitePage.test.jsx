@@ -86,6 +86,13 @@ describe('who it is for', () => {
 });
 
 describe('the page itself', () => {
+    it('is marked as the current page in the site nav, where every marketing page links to it', () => {
+        const { container } = renderPage();
+        const navLink = container.querySelector('.site-nav a[href="/cite"]');
+        expect(navLink).toHaveAttribute('aria-current', 'page');
+        expect(navLink).toHaveClass('is-active');
+    });
+
     it('has one h1, a heading for every section, and described pictures', () => {
         const { container } = renderPage();
         expect(container.querySelectorAll('h1')).toHaveLength(1);
