@@ -10,6 +10,7 @@ import { FcGoogle } from 'react-icons/fc';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../AuthContext';
+import { safeReturnTo } from '../returnTo';
 
 const GOOGLE_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
 let googleScriptPromise;
@@ -47,8 +48,12 @@ const loadGoogleIdentityScript = () => {
 /**
  * Sign-in overlay. Rendered once near the app root and opened from anywhere via
  * `openLoginModal()` so the user never loses the page they were on.
+ *
+ * `returnTo`: a page outside the app layout that mounts its own overlay (the consent page an
+ * outside app sends the reader to) names its address here, so signing in with an emailed code
+ * comes back to it from `/verify-code` instead of going on to the chat (see ../returnTo.js).
  */
-const LoginModal = () => {
+const LoginModal = ({ returnTo = '' } = {}) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
@@ -204,7 +209,8 @@ const LoginModal = () => {
 
     if (result.success) {
       closeLoginModal();
-      navigate('/verify-code', { state: { email } });
+      const back = safeReturnTo(returnTo);
+      navigate('/verify-code', { state: back ? { email, returnTo: back } : { email } });
     } else {
       setError(result.message);
     }

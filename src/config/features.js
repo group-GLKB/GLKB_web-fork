@@ -137,3 +137,21 @@ export const ANSWER_GRAPH_V2_ENABLED = !isProductionSite();
  * switch); a backend without the block offers nothing, so nothing is shown.
  */
 export const SIDE_CHAT_ENABLED = !isProductionSite();
+
+/**
+ * Whether GLKB can be CONNECTED to an outside app (2026-11-20): the sign-in an MCP client such as
+ * Claude or ChatGPT asks for before it runs paid Investigate reports with the reader's account.
+ *
+ *   /oauth/authorize   the consent page the backend's `/oauth/authorize` sends the browser to
+ *                      (components/OAuthConsent; service/oauthConnect.js). Off, it sends the
+ *                      reader home.
+ *   Account page       "Connected apps", with Disconnect (components/AccountPage/ConnectedApps.jsx)
+ *
+ *   !isProductionSite()   on for dev.glkb.org and localhost, off on glkb.org (current since
+ *                         2026-11-20, like the other new features)
+ *   true                  on everywhere
+ *
+ * On also needs glkb-backend's `/api/v1/oauth` (backend `/oauth/authorize` is what sends a reader
+ * here at all). Connected apps hides itself when its list cannot be read.
+ */
+export const OAUTH_CONNECT_ENABLED = !isProductionSite();

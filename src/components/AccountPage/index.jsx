@@ -26,10 +26,11 @@ import {
 } from '../../service/Tier';
 import { CHAT_HOME_PATH } from '../../config/entryRoutes';
 import { fetchUsage } from '../../service/credits';
-import { ADD_FUNDS_URL } from '../../config/features';
+import { ADD_FUNDS_URL, OAUTH_CONNECT_ENABLED } from '../../config/features';
 import { fetchBalance, fetchBilling, formatUsd } from '../../service/balance';
 import { DEFAULT_CREDITS_PER_USD, fetchTierPricing } from '../../service/serviceTiers';
 import { BillingDialog, BuyMoreDialog, LeavingDialog } from './Billing';
+import ConnectedApps from './ConnectedApps';
 import { trackGtagEvent } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
 import {
@@ -580,6 +581,9 @@ const AccountPage = () => {
                                         </button>
                                     </div>
                                 ) : null}
+
+                                {/* Outside apps the reader let use the account (OAuthConsent), off on glkb.org. */}
+                                {OAUTH_CONNECT_ENABLED ? <ConnectedApps onDisconnected={setToastMessage} /> : null}
 
                                 <h2 className="settings-title">System</h2>
 

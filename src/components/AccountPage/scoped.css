@@ -1173,3 +1173,47 @@ a.settings-row-action {
     font-weight: 600;
     color: var(--color-text-secondary);
 }
+
+/* ---------------------------------------------------------------- connected apps (ConnectedApps.jsx)
+   One row per app the reader let use the account, each with Disconnect. */
+.connected-apps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.connected-app {
+    align-items: center;
+}
+
+.connected-app-name {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.connected-app-when {
+    margin-top: 2px;
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+}
+
+.connected-app-when-part {
+    white-space: nowrap;
+}
+
+.billing-btn.is-danger {
+    background: var(--color-red-700);
+    color: var(--color-neutral-white);
+}
+
+.billing-btn.is-danger:hover:not(:disabled) {
+    background: var(--color-red-700);
+    filter: brightness(0.92);
+}
+
+.billing-btn.is-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

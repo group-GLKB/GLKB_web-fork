@@ -28,7 +28,7 @@ import {
   hasSeenAbout,
   shouldEnterChat,
 } from './config/entryRoutes';
-import { LITERATURE_REVIEW_ENABLED, SHOW_API_DOCS } from './config/features';
+import { LITERATURE_REVIEW_ENABLED, OAUTH_CONNECT_ENABLED, SHOW_API_DOCS } from './config/features';
 import { canonicalUrlFor, isIndexablePath, normalizeSeoPath } from './config/publicSeo';
 
 /* Everything past the landing page and the chat is fetched when it is asked for.
@@ -63,6 +63,7 @@ const ResultPage = React.lazy(() => import('./components/ResultPage'));
 const GraphViewer = React.lazy(() => import('./components/GraphViewer'));
 const AnswerGraphDemo = React.lazy(() => import('./components/AnswerGraph/Demo'));
 const TestAuth = React.lazy(() => import('./components/TestAuth'));
+const OAuthConsent = React.lazy(() => import('./components/OAuthConsent'));
 
 const RESIZE_OBSERVER_NOISE = [
     'ResizeObserver loop limit exceeded',
@@ -200,6 +201,13 @@ function AppWithRoutes() {
                 ) : (
                     <Route path="/api-docs/*" element={<Navigate to="/" replace />} />
                 )}
+                {/* An outside app (Claude, ChatGPT) asking to use the reader's account: glkb-backend's
+                    /oauth/authorize sends the browser here. Standalone, like sign-in; off on
+                    glkb.org for now (config/features.js OAUTH_CONNECT_ENABLED). */}
+                <Route
+                    path="/oauth/authorize"
+                    element={OAUTH_CONNECT_ENABLED ? <OAuthConsent /> : <Navigate to="/" replace />}
+                />
                 <Route element={<AppLayout />}>
                     <Route path='/search' element={<ResultPage />} />
                     <Route path='/graph-viewer' element={<GraphViewer />} />

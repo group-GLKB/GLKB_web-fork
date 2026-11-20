@@ -111,9 +111,12 @@ axios.interceptors.response.use(
       localStorage.removeItem('token_type');
       localStorage.removeItem('user');
       
-      // Only redirect if not already on login/signup page
-      if (!window.location.pathname.includes('/login') && 
-          !window.location.pathname.includes('/signup')) {
+      // Only redirect if not already on login/signup page, nor on a page that signs the reader in
+      // itself and has to keep its own address (the consent page at /oauth/authorize, whose
+      // `?request=` would be lost on /login).
+      if (!window.location.pathname.includes('/login') &&
+          !window.location.pathname.includes('/signup') &&
+          !window.location.pathname.startsWith('/oauth/')) {
         window.location.href = '/login';
       }
     }

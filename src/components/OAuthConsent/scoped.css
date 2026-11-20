@@ -1,0 +1,354 @@
+/* /oauth/authorize — the consent page (index.jsx). Standalone and calm, like the sign-in overlay:
+   one card on the page background, house type and colours (styles/tokens.css). */
+
+.consent-page {
+    min-height: 100%;
+    box-sizing: border-box;
+    background: var(--color-background-page);
+    font-family: var(--font-family-sans);
+    color: var(--color-text-secondary);
+}
+
+.consent-main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-6);
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 488px;
+    margin: 0 auto;
+    padding: var(--space-12) var(--space-6) var(--space-16);
+}
+
+.consent-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    border-radius: var(--radius-2);
+    text-decoration: none;
+}
+
+.consent-logo-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.consent-logo-wordmark {
+    height: 44px;
+    width: auto;
+    object-fit: contain;
+    transform: translateY(1px);
+}
+
+.consent-card {
+    width: 100%;
+    box-sizing: border-box;
+    padding: var(--space-8);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-4);
+    background: var(--color-background-surface);
+    box-shadow: 0 8px 32px rgba(12, 16, 24, 0.06);
+}
+
+.consent-title {
+    margin: 0 0 var(--space-4);
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 28px;
+    color: var(--color-text-primary);
+    outline: none;
+}
+
+.consent-subtitle {
+    margin: var(--space-6) 0 var(--space-3);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    color: var(--color-text-primary);
+}
+
+.consent-text {
+    margin: 0;
+    font-size: 15px;
+    line-height: 24px;
+    color: var(--color-text-secondary);
+}
+
+.consent-small {
+    margin-top: var(--space-6);
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+}
+
+/* Who is asking: the name the app gives itself, and where it will send the reader back to. */
+.consent-app {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-3);
+    background: var(--color-background-subtle);
+}
+
+.consent-app-mark {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-2);
+    background: var(--color-brand-soft);
+    color: var(--color-brand-primary);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.consent-app-lines {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.consent-app-name {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 22px;
+    color: var(--color-text-primary);
+    overflow-wrap: anywhere;
+}
+
+.consent-app-host {
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+    overflow-wrap: anywhere;
+}
+
+.consent-app-host strong {
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+.consent-note {
+    margin: var(--space-2) 0 0;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+}
+
+.consent-signed-in {
+    margin: var(--space-4) 0 0;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+    overflow-wrap: anywhere;
+}
+
+.consent-signed-in strong {
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+.consent-link-btn {
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-1);
+    background: none;
+    font: inherit;
+    color: var(--color-brand-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+
+.consent-link-btn:disabled {
+    color: var(--color-grey-400);
+    cursor: not-allowed;
+}
+
+.consent-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.consent-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+}
+
+.consent-mark {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+}
+
+.consent-mark.is-yes {
+    color: var(--color-status-active-text);
+}
+
+.consent-mark.is-no {
+    color: var(--color-grey-400);
+}
+
+.consent-item-title {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 22px;
+    color: var(--color-text-primary);
+}
+
+.consent-item-text {
+    display: block;
+    margin-top: 2px;
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--color-text-secondary);
+}
+
+.consent-item-text.is-plain {
+    margin-top: 0;
+}
+
+/* The price of a report and the reader's balance. */
+.consent-cost {
+    margin-top: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-3);
+}
+
+.consent-cost-figures {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+}
+
+.consent-cost-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    font-size: 14px;
+    line-height: 22px;
+}
+
+.consent-cost-row dt {
+    color: var(--color-text-secondary);
+}
+
+.consent-cost-row dd {
+    margin: 0;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+}
+
+/* Not an error: the reader can still connect. Said plainly, under the figures. */
+.consent-cost-note {
+    margin: var(--space-2) 0 0;
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--color-border-default);
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-text-secondary);
+}
+
+.consent-actions {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+}
+
+.consent-actions > .consent-btn {
+    flex: 1 1 0;
+}
+
+.consent-actions.is-single > .consent-btn {
+    flex: 0 1 auto;
+    min-width: 160px;
+}
+
+.consent-btn {
+    min-height: 44px;
+    padding: 10px var(--space-5);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-2);
+    background: var(--color-background-surface);
+    font-family: var(--font-family-sans);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 20px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.consent-btn:hover:not(:disabled) {
+    background: var(--color-background-subtle);
+}
+
+.consent-btn.is-primary {
+    border-color: var(--color-brand-primary);
+    background: var(--color-brand-primary);
+    color: var(--color-text-inverse);
+}
+
+.consent-btn.is-primary:hover:not(:disabled) {
+    border-color: var(--color-blue-600);
+    background: var(--color-blue-600);
+}
+
+.consent-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.consent-btn:focus-visible,
+.consent-link-btn:focus-visible,
+.consent-logo:focus-visible {
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: 2px;
+}
+
+.consent-error {
+    margin: var(--space-4) 0 0;
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--color-status-error-text);
+}
+
+.consent-leaving {
+    margin: var(--space-6) 0 0;
+    font-size: 15px;
+    line-height: 24px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+}
+
+@media (max-width: 480px) {
+    .consent-main {
+        gap: var(--space-4);
+        padding: var(--space-6) var(--space-4) var(--space-10);
+    }
+
+    .consent-card {
+        padding: var(--space-6) var(--space-5);
+    }
+
+    .consent-title {
+        font-size: 18px;
+        line-height: 26px;
+    }
+}

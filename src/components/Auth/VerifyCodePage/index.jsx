@@ -14,6 +14,7 @@ import {
 
 import { CHAT_HOME_PATH } from '../../../config/entryRoutes';
 import { useAuth } from '../AuthContext';
+import { safeReturnTo } from '../returnTo';
 
 const VerifyCodePage = () => {
   const location = useLocation();
@@ -21,6 +22,8 @@ const VerifyCodePage = () => {
   const { verifyCode, sendCode } = useAuth();
 
   const [email, setEmail] = useState(location.state?.email || '');
+  // The page that sent the reader to sign in, when it has to be come back to (../returnTo.js).
+  const returnTo = safeReturnTo(location.state?.returnTo);
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -97,7 +100,11 @@ const VerifyCodePage = () => {
     const result = await verifyCode(email, verificationCode);
 
     if (result.success) {
-      navigate(CHAT_HOME_PATH);
+      if (returnTo) {
+        navigate(returnTo, { replace: true });
+      } else {
+        navigate(CHAT_HOME_PATH);
+      }
     } else {
       setError(result.message);
       // Clear the code inputs
@@ -125,8 +132,9 @@ const VerifyCodePage = () => {
     setResendLoading(false);
   };
 
+  // Back to the page that asked, whose own sign-in button reopens the overlay.
   const handleChangeEmail = () => {
-    navigate('/login');
+    navigate(returnTo || '/login');
   };
 
   return (

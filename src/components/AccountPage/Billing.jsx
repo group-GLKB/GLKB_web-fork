@@ -29,7 +29,8 @@ export const parseCreditCount = (text) => {
 
 const centsOf = (usd) => Math.round(usd * 100);
 
-function Dialog({ title, onClose, className = '', children, labelId }) {
+/** The Account page's dialog frame: Escape and the backdrop close it, focus moves into it. */
+export function Dialog({ title, onClose, className = '', children, labelId }) {
     const ref = useRef(null);
     useEffect(() => {
         const onKey = (event) => { if (event.key === 'Escape') onClose(); };
