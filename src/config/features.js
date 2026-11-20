@@ -121,3 +121,19 @@ export const LR_OUTLINE_APPROVAL_ENABLED = !isProductionSite();
  * and every answer draws the basic graph, as before. Off, nothing asks for it at all.
  */
 export const ANSWER_GRAPH_V2_ENABLED = !isProductionSite();
+
+/**
+ * Whether the chat offers the SIDE CHAT (2026-11-20): a quick question about the conversation on
+ * screen, answered in a panel beside it and never saved (components/LLMAgent/SideChatPanel.jsx,
+ * service/sideChat.js; backend `POST /api/v1/new-llm-agent/side-chat`). Entry points: the "Side
+ * chat" button at the top right of a chat, ⌘; / Ctrl+;, and "Ask in side chat" over a selection
+ * in an answer.
+ *
+ *   !isProductionSite()   on for dev.glkb.org and localhost, off on glkb.org (current since
+ *                         2026-11-20, like the other new features)
+ *   true                  on everywhere
+ *
+ * On also needs the backend to offer it: `GET /credits/pricing` `side_chat.enabled` (the policy's
+ * switch); a backend without the block offers nothing, so nothing is shown.
+ */
+export const SIDE_CHAT_ENABLED = !isProductionSite();

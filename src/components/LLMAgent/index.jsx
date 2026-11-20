@@ -34,6 +34,7 @@ import {
   Close as CloseIcon,
   EditNote as EditNoteIcon,
   ExpandMore as ExpandMoreIcon,
+  ForumOutlined as ForumOutlinedIcon,
   ScienceOutlined as ScienceOutlinedIcon,
   Star as StarIcon,
 } from '@mui/icons-material';
@@ -79,6 +80,7 @@ import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
 import SearchLimitNotice from './SearchLimitNotice';
 import { BuiltOnEarlierNote, FullInvestigationOffer } from './FollowupRouteNotice';
 import SelectionReply from './SelectionReply';
+import SideChatPanel from './SideChatPanel';
 import { addQuote, clipQuote, withQuotes } from './quoteReply';
 import {
     investigateAttachmentsFor,
@@ -152,7 +154,13 @@ import {
   toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import { createQuerySubmitSuccessTracker, trackGtagEvent } from '../../utils/gtag';
-import { CREDITS_PURCHASE_URL, INVESTIGATE_ENABLED } from '../../config/features';
+import { CREDITS_PURCHASE_URL, INVESTIGATE_ENABLED, SIDE_CHAT_ENABLED } from '../../config/features';
+import {
+    isSideChatShortcut,
+    runProgressLines,
+    sideChatContext,
+    sideChatShortcutLabel,
+} from '../../service/sideChat';
 import {
     effortForRequest,
     effortForTurn,
@@ -183,6 +191,7 @@ import {
 } from '../../service/notifications';
 import {
     effectiveTier,
+    fetchTierPricing,
     getTierPref,
     GUEST_TIER,
     setTierPref,
@@ -7150,6 +7159,111 @@ function LLMAgent({ isRouteActive = true }) {
         }
     }, [activeConversationId]);
 
+    /* ---- The side chat (SideChatPanel.jsx, service/sideChat.js; 2026-11-20) ----
+       A quick question about this conversation, answered beside it and never saved. Offered off
+       glkb.org (SIDE_CHAT_ENABLED) when the backend's pricing says it is on (`side_chat`), to a
+       guest only when it says guests may, and only once there is a conversation to ask about. */
+    const [sideChatOpen, setSideChatOpen] = useState(false);
+    const [sideChatSeed, setSideChatSeed] = useState(null);
+    const [sideChatPricing, setSideChatPricing] = useState(null);
+    useEffect(() => {
+        if (!SIDE_CHAT_ENABLED) return undefined;
+        let live = true;
+        fetchTierPricing().then((pricing) => {
+            if (live) setSideChatPricing(pricing || null);
+        }).catch(() => {});
+        return () => { live = false; };
+    }, []);
+    const sideChatAvailable = SIDE_CHAT_ENABLED
+        && Boolean(sideChatPricing?.sideChat?.enabled)
+        && (!isGuest || Boolean(sideChatPricing?.sideChat?.guest))
+        && chatHistory.length > 0;
+    const sideChatAvailableRef = useRef(sideChatAvailable);
+    sideChatAvailableRef.current = sideChatAvailable;
+    const sideChatShown = sideChatOpen && sideChatAvailable;
+    // The conversation's own model: the composer's tier, as the main chat sends it (a guest's
+    // Premium falls back to the guest tier there too).
+    const sideChatTier = effectiveTier(serviceTier, { isGuest }) || sideChatPricing?.defaultTier || '';
+    const sideChatPrice = sideChatPricing?.sideChat?.prices?.[sideChatTier] ?? null;
+    const sideChatRunning = Boolean(isViewingRunningConversation && isProcessing);
+    /* What the side chat sees, read when a question is sent (never on every streamed token): the
+       conversation on screen, and the running turn with its progress lines. */
+    const sideChatContextRef = useRef(() => ({}));
+    sideChatContextRef.current = () => sideChatContext({
+        messages: chatHistory,
+        historyId: activeConversationIdRef.current || activeConversationId,
+        isGuest,
+        running: sideChatRunning,
+        progress: sideChatRunning
+            ? runProgressLines({
+                groups: streamingGroups,
+                current: investigateDetail?.label || streamingStepName,
+            })
+            : [],
+    });
+    const getSideChatContext = useCallback(() => sideChatContextRef.current(), []);
+    const openSideChat = useCallback((source = 'button') => {
+        if (!sideChatAvailableRef.current) return;
+        trackGtagEvent('side_chat_open', { source });
+        setSideChatOpen(true);
+    }, []);
+    const closeSideChat = useCallback(() => {
+        setSideChatOpen(false);
+        setSideChatSeed(null);
+    }, []);
+    const sideChatOpenRef = useRef(sideChatOpen);
+    sideChatOpenRef.current = sideChatOpen;
+    const toggleSideChat = useCallback((source = 'button') => {
+        if (sideChatOpenRef.current) closeSideChat();
+        else openSideChat(source);
+    }, [closeSideChat, openSideChat]);
+    /* "Ask in side chat" over a selection in an answer: the panel opens with the passage quoted. */
+    const handleAskSideChat = useCallback((text) => {
+        const quote = clipQuote(text);
+        if (!quote) return;
+        setSideChatSeed({ quote, at: Date.now() });
+        openSideChat('selection');
+    }, [openSideChat]);
+    // ⌘; / Ctrl+; opens and closes it, as in Claude Code.
+    useEffect(() => {
+        if (!isRouteActive || !SIDE_CHAT_ENABLED) return undefined;
+        const onKeyDown = (event) => {
+            if (!isSideChatShortcut(event) || !sideChatAvailableRef.current) return;
+            event.preventDefault();
+            toggleSideChat('shortcut');
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [isRouteActive, toggleSideChat]);
+    /* A side chat is about the conversation it was opened on: opening another closes it (and
+       throws its thread away). A thread that has only just been given its id (null → id) is
+       still the same conversation. */
+    const sideChatConversationRef = useRef(activeConversationId);
+    useEffect(() => {
+        const previous = sideChatConversationRef.current;
+        sideChatConversationRef.current = activeConversationId;
+        if (previous != null && String(previous) !== String(activeConversationId ?? '')) {
+            closeSideChat();
+        }
+    }, [activeConversationId, closeSideChat]);
+    useEffect(() => {
+        if (!chatHistory.length) closeSideChat();
+    }, [chatHistory.length, closeSideChat]);
+    const handleSideChatSettled = useCallback((frame) => {
+        // A guest's allowance, or a Stop, moves the balance without a frame saying by how much.
+        if (!frame?.credits) refreshTierStatus();
+    }, [refreshTierStatus]);
+    const sideChatPanelProps = {
+        getContext: getSideChatContext,
+        serviceTier: sideChatTier,
+        price: sideChatPrice,
+        mainRunning: sideChatRunning,
+        seed: sideChatSeed,
+        onClose: closeSideChat,
+        onRequireSignIn: requireSignIn,
+        onSettled: handleSideChatSettled,
+    };
+
     const removeQueuedPrompt = useCallback((entry) => {
         if (!entry?.id) return;
         consumeQueuedPrompt(entry);
@@ -8105,7 +8219,7 @@ function LLMAgent({ isRouteActive = true }) {
                                             <Box
                                                 className="llm-column"
                                                 sx={{
-                                                    flex: useMobileReferencesDrawer || isReferencesCollapsed
+                                                    flex: useMobileReferencesDrawer || isReferencesCollapsed || sideChatShown
                                                         ? '1 1 auto'
                                                         : `0 0 ${leftPaneWidth}%`,
                                                     minWidth: useMobileReferencesDrawer ? 0 : `${LEFT_MIN_PX}px`,
@@ -8164,18 +8278,42 @@ function LLMAgent({ isRouteActive = true }) {
                                                                 )}
                                                             </IconButton>
                                                         </Box>
-                                                        {(useMobileReferencesDrawer || isReferencesCollapsed) && (
+                                                        <Box className="llm-header-actions">
+                                                        {/* The side chat (Codex's "Open Side Chat"): top right
+                                                            of a conversation, beside References. */}
+                                                        {sideChatAvailable && (
+                                                            <MuiButton
+                                                                className={`llm-header-side-chat${useMobileReferencesDrawer ? ' mobile' : ''}${sideChatShown ? ' active' : ''}`}
+                                                                onClick={() => toggleSideChat('button')}
+                                                                startIcon={<ForumOutlinedIcon />}
+                                                                aria-pressed={sideChatShown}
+                                                                aria-keyshortcuts="Meta+; Control+;"
+                                                                aria-label={useMobileReferencesDrawer ? 'Side chat' : undefined}
+                                                                title={`Side chat (${sideChatShortcutLabel()}): ask about this conversation without adding to it`}
+                                                            >
+                                                                {useMobileReferencesDrawer ? null : 'Side chat'}
+                                                            </MuiButton>
+                                                        )}
+                                                        {(useMobileReferencesDrawer || isReferencesCollapsed || sideChatShown) && (
                                                             <MuiButton
                                                                 className={`llm-header-references-toggle${useMobileReferencesDrawer ? ' mobile' : ''}`}
                                                                 onClick={useMobileReferencesDrawer
-                                                                    ? () => setIsMobileReferencesDrawerOpen(true) : expandReferences}
+                                                                    ? () => setIsMobileReferencesDrawerOpen(true)
+                                                                    : () => {
+                                                                        // The right pane holds one of the two.
+                                                                        closeSideChat();
+                                                                        expandReferences();
+                                                                    }}
                                                                 startIcon={useMobileReferencesDrawer ? undefined : <ReferenceIcon />}
                                                                 aria-haspopup={useMobileReferencesDrawer ? 'dialog' : undefined}
-                                                                aria-expanded={useMobileReferencesDrawer ? isMobileReferencesDrawerOpen : !isReferencesCollapsed}
+                                                                aria-expanded={useMobileReferencesDrawer
+                                                                    ? isMobileReferencesDrawerOpen
+                                                                    : (!isReferencesCollapsed && !sideChatShown)}
                                                             >
                                                                 References
                                                             </MuiButton>
                                                         )}
+                                                        </Box>
                                                     </Box>
 
                                                     <div ref={messagesContainerRef} className="messages-container">
@@ -8213,6 +8351,7 @@ function LLMAgent({ isRouteActive = true }) {
                                                     <SelectionReply
                                                         containerRef={messagesContainerRef}
                                                         onReply={handleSelectionReply}
+                                                        onAskSideChat={sideChatAvailable ? handleAskSideChat : undefined}
                                                         touch={isPhoneDevice}
                                                     />
                                                     {isConversationLoading && loadingConversationId && (
@@ -8363,7 +8502,14 @@ function LLMAgent({ isRouteActive = true }) {
                                                     </div>
                                                 </div>
                                             </Box>
-                                            {!useMobileReferencesDrawer && !isReferencesCollapsed && (
+                                            {/* The side chat takes the right pane while it is open
+                                                (References come back when it closes). */}
+                                            {!useMobileReferencesDrawer && sideChatShown && (
+                                                <div className="side-chat-column-wrap">
+                                                    <SideChatPanel {...sideChatPanelProps} variant="column" />
+                                                </div>
+                                            )}
+                                            {!useMobileReferencesDrawer && !isReferencesCollapsed && !sideChatShown && (
                                                 <>
                                                     <div className="llm-split-divider" onMouseDown={handleSplitMouseDown}>
                                                         {isDraggingSplit && (
@@ -8508,6 +8654,20 @@ function LLMAgent({ isRouteActive = true }) {
                                                 </>
                                             )}
                                         </Box>
+                                        {/* The side chat on a phone: a bottom sheet over the
+                                            thread. Closing it (✕, Esc, the backdrop) drops it. */}
+                                        {useMobileReferencesDrawer && (
+                                            <Drawer
+                                                anchor="bottom"
+                                                open={sideChatShown}
+                                                onClose={closeSideChat}
+                                                PaperProps={{ className: 'side-chat-drawer-paper', role: 'dialog', 'aria-label': 'Side chat' }}
+                                            >
+                                                {sideChatShown && (
+                                                    <SideChatPanel {...sideChatPanelProps} variant="sheet" />
+                                                )}
+                                            </Drawer>
+                                        )}
                                         {useMobileReferencesDrawer && (
                                             <Drawer
                                                 anchor="bottom"

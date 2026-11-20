@@ -112,6 +112,23 @@ export const parseEfforts = (raw) => {
 };
 
 /**
+ * The pricing's `side_chat` block (glkb-backend, 2026-11-20): `{ enabled, guest, prices: {
+ * standard, advanced, premium } }` — whether the side chat is on (for guests too) and what one side
+ * question costs on each tier — or null when the backend sent none (then there is no side chat).
+ */
+export const parseSideChat = (raw) => {
+    const block = raw?.side_chat;
+    if (!block || typeof block !== 'object') return null;
+    const prices = {};
+    Object.entries(block.prices && typeof block.prices === 'object' ? block.prices : {})
+        .forEach(([tier, value]) => {
+            const credits = value === null || value === undefined ? NaN : Number(value);
+            if (Number.isFinite(credits)) prices[String(tier).trim().toLowerCase()] = credits;
+        });
+    return { enabled: block.enabled === true, guest: block.guest === true, prices };
+};
+
+/**
  * `{ defaultTier, tiers: [{ id, label, description, credits: { chat, deep_research },
  * effortCredits: { low, high, ... } }], efforts }`, where a tier appears only if some pipeline
  * enables it, `credits` holds only the enabled pipelines, and `effortCredits` the per-level
@@ -155,7 +172,7 @@ export const parsePricing = (raw) => {
     // credit since 2026-11-10, when a backend from before it names none.
     const perUsd = Number(raw?.credits_per_usd);
     const creditsPerUsd = Number.isFinite(perUsd) && perUsd > 0 ? perUsd : DEFAULT_CREDITS_PER_USD;
-    return { defaultTier, tiers, efforts, creditsPerUsd };
+    return { defaultTier, tiers, efforts, creditsPerUsd, sideChat: parseSideChat(raw) };
 };
 
 let pricingPromise = null;

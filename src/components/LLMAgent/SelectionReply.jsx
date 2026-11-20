@@ -1,7 +1,8 @@
 /**
  * The floating "Reply" button over a selection in an assistant answer (quoteReply.js says what
  * counts as one). Pressing it hands the selected text to `onReply`, which puts it on the
- * composer as a quote.
+ * composer as a quote. With `onAskSideChat`, a second button, "Ask in side chat", hands the same
+ * passage to the side chat instead (SideChatPanel.jsx).
  *
  * The selection is read the way the Literature Review's toolbar reads it (ReviewDocument.jsx):
  * when the mouse is let go, after a keyboard selection, and — a finger's selection handles have
@@ -15,6 +16,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import ReplyIcon from '@mui/icons-material/Reply';
+import ForumOutlinedIcon from '@mui/icons-material/ForumOutlined';
 
 import { readAnswerSelection, replyButtonAt } from './quoteReply';
 
@@ -22,7 +24,7 @@ import { readAnswerSelection, replyButtonAt } from './quoteReply';
 export const TOUCH_SETTLE_MS = 400;
 const OWN_CLASS = 'chat-selection-reply';
 
-const SelectionReply = ({ containerRef, onReply, touch = false }) => {
+const SelectionReply = ({ containerRef, onReply, onAskSideChat, touch = false }) => {
     const [tool, setTool] = useState(null);
     const mouseDownRef = useRef(false);
     const touchRef = useRef(false);
@@ -97,7 +99,7 @@ const SelectionReply = ({ containerRef, onReply, touch = false }) => {
 
     if (!tool || typeof document === 'undefined') return null;
 
-    const reply = () => {
+    const take = (handler) => () => {
         const { text } = tool;
         setTool(null);
         try {
@@ -105,7 +107,7 @@ const SelectionReply = ({ containerRef, onReply, touch = false }) => {
         } catch (error) {
             /* nothing selected any more is the goal either way */
         }
-        onReply?.(text);
+        handler?.(text);
     };
 
     return createPortal(
@@ -117,10 +119,16 @@ const SelectionReply = ({ containerRef, onReply, touch = false }) => {
             // Pressing the button must not take the selection away before it is read.
             onMouseDown={(event) => event.preventDefault()}
         >
-            <button type="button" onClick={reply}>
+            <button type="button" onClick={take(onReply)}>
                 <ReplyIcon className="chat-selection-reply-icon" aria-hidden="true" />
                 Reply
             </button>
+            {onAskSideChat ? (
+                <button type="button" onClick={take(onAskSideChat)}>
+                    <ForumOutlinedIcon className="chat-selection-reply-icon" aria-hidden="true" />
+                    Ask in side chat
+                </button>
+            ) : null}
         </div>,
         document.body,
     );

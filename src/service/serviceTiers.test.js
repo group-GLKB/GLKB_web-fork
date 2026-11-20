@@ -10,6 +10,7 @@ import {
     GUEST_TIER,
     isGuestTier,
     parsePricing,
+    parseSideChat,
     tiersFor,
 } from './serviceTiers';
 
@@ -42,5 +43,23 @@ describe('the fallback pricing', () => {
         expect(pricing.tiers.find((t) => t.id === 'advanced').credits)
             .toEqual({ chat: 5, deep_research: 30, literature_review: 20 });
         expect(tiersFor(pricing, 'literature_review').defaultTier).toBe('advanced');
+    });
+});
+
+
+describe('the side chat in the pricing', () => {
+    it('reads the switch and the price per tier', () => {
+        expect(parseSideChat({
+            side_chat: { enabled: true, guest: true, price_as: 'low', prices: { standard: 1, Advanced: '2', premium: null } },
+        })).toEqual({ enabled: true, guest: true, prices: { standard: 1, advanced: 2 } });
+    });
+
+    it('is absent (so off) on a backend without the block', () => {
+        expect(parseSideChat({})).toBeNull();
+        expect(parsePricing(FALLBACK_PRICING).sideChat).toBeNull();
+    });
+
+    it('is off unless the backend says true', () => {
+        expect(parseSideChat({ side_chat: { enabled: 'yes' } })).toEqual({ enabled: false, guest: false, prices: {} });
     });
 });

@@ -50,7 +50,7 @@ beforeAll(() => {
 
 /* The transcript as MessageCard draws it: each message a `.message-card` with its role, the
    text in a `.markdown-body`; a citation is a link around an `.inline-citation-number`. */
-function Transcript({ onReply, touch = false }) {
+function Transcript({ onReply, onAskSideChat, touch = false }) {
     const containerRef = useRef(null);
     return (
         <>
@@ -78,7 +78,7 @@ function Transcript({ onReply, touch = false }) {
                     <div className="markdown-body"><p>The investigation report says the same in mice.</p></div>
                 </div>
             </div>
-            <SelectionReply containerRef={containerRef} onReply={onReply} touch={touch} />
+            <SelectionReply containerRef={containerRef} onReply={onReply} onAskSideChat={onAskSideChat} touch={touch} />
         </>
     );
 }
@@ -134,6 +134,26 @@ describe('the Reply button over a selection', () => {
         // The passage is handed over; the selection and the button go.
         expect(window.getSelection().rangeCount).toBe(0);
         expect(replyButton()).toBeNull();
+    });
+
+    it('offers "Ask in side chat" beside Reply when the side chat is on, with the same passage', async () => {
+        const onReply = jest.fn();
+        const onAskSideChat = jest.fn();
+        render(<Transcript onReply={onReply} onAskSideChat={onAskSideChat} />);
+        await mouseSelect('NR4A1 drives', 'chromatin.');
+        const ask = screen.getByRole('button', { name: 'Ask in side chat' });
+        fireEvent.click(ask);
+        expect(onAskSideChat).toHaveBeenCalledWith('NR4A1 drives T-cell exhaustion.\nIt also binds chromatin.');
+        expect(onReply).not.toHaveBeenCalled();
+        expect(window.getSelection().rangeCount).toBe(0);
+        expect(screen.queryByRole('button', { name: 'Ask in side chat' })).toBeNull();
+    });
+
+    it('offers only Reply when the side chat is off', async () => {
+        render(<Transcript onReply={jest.fn()} />);
+        await mouseSelect('binds chromatin');
+        expect(replyButton()).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Ask in side chat' })).toBeNull();
     });
 
     it('works in an Investigate answer the same way', async () => {

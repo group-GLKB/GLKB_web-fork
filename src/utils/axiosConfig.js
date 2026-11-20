@@ -6,6 +6,8 @@ const GUEST_ALLOWED_ENDPOINT_PREFIXES = [
   '/api/v1/tier/guest-me',
   '/api/v1/new-llm-agent/stream',
   '/api/v1/new-llm-agent/chat',
+  // The side chat (2026-11-20) answers guests too, at Low's price from their credits.
+  '/api/v1/new-llm-agent/side-chat',
   // Guest mode (reopened 2026-10-03): the tier picker reads the public prices. Investigate (and
   // its clarification) is signed-in only since 2026-10-09, but stays listed so a guest gets the
   // backend's 403 GUEST_LOGIN_REQUIRED — which opens the sign-in overlay — not a 401 redirect.

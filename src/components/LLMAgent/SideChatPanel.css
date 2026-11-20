@@ -1,0 +1,326 @@
+/* The side chat (SideChatPanel.jsx): a panel beside the thread on a desktop, a bottom sheet on a
+   phone. Quiet on purpose — it is a scratch space next to the conversation, not a second one. */
+
+.side-chat-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    background: var(--color-background-surface, #fff);
+    font-family: 'Open Sans', sans-serif;
+    color: var(--color-text-primary, #222A38);
+}
+
+/* Desktop: a column at the right of the chat (where References sit), its own border. */
+.side-chat-column-wrap {
+    flex: 0 0 min(440px, 40%);
+    min-width: 300px;
+    min-height: 0;
+    height: 100%;
+    padding: 16px 16px 24px 0;
+    box-sizing: border-box;
+}
+
+.side-chat-column {
+    border: 1px solid var(--color-border-default, #E5E9F0);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Phone: inside the bottom Drawer. */
+.side-chat-sheet {
+    height: 85vh;
+    border-radius: 16px 16px 0 0;
+}
+
+.side-chat-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 12px 8px 16px;
+    border-bottom: 1px solid var(--color-border-default, #E5E9F0);
+}
+
+.side-chat-header-icon {
+    font-size: 18px !important;
+    color: var(--color-brand-primary, #155DFC);
+}
+
+.side-chat-title {
+    margin: 0;
+    font-family: Geist, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 18px;
+}
+
+.side-chat-badge {
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--color-background-subtle, #F3F5F9);
+    color: var(--color-text-tertiary, #5B6B86);
+    font-family: Geist, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+}
+
+.side-chat-close {
+    margin-left: auto;
+}
+
+.side-chat-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-text-tertiary, #5B6B86);
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.side-chat-icon-button:hover,
+.side-chat-icon-button:focus-visible {
+    background: var(--color-background-subtle, #F3F5F9);
+    color: var(--color-text-primary, #222A38);
+    outline: none;
+}
+
+.side-chat-intro {
+    margin: 0;
+    padding: 10px 16px;
+    color: var(--color-text-tertiary, #5B6B86);
+    font-size: 12px;
+    line-height: 18px;
+    border-bottom: 1px dashed var(--color-border-default, #E5E9F0);
+}
+
+.side-chat-messages {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.side-chat-question {
+    align-self: flex-end;
+    max-width: 90%;
+    margin-left: auto;
+    padding: 8px 12px;
+    border-radius: 12px 12px 2px 12px;
+    background: var(--color-background-subtle, #F3F5F9);
+    font-size: 14px;
+    line-height: 20px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.side-chat-user {
+    display: flex;
+}
+
+.side-chat-question-quote {
+    margin: 0 0 6px;
+    padding-left: 8px;
+    border-left: 2px solid var(--color-brand-primary, #155DFC);
+    color: var(--color-text-tertiary, #5B6B86);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.side-chat-answer {
+    font-size: 14px;
+    line-height: 21px;
+}
+
+.side-chat-markdown.markdown-body {
+    font-size: 14px;
+    line-height: 21px;
+    background: transparent;
+}
+
+.side-chat-markdown.markdown-body > :first-child {
+    margin-top: 0;
+}
+
+.side-chat-markdown.markdown-body > :last-child {
+    margin-bottom: 0;
+}
+
+.side-chat-thinking,
+.side-chat-note {
+    color: var(--color-text-tertiary, #5B6B86);
+    font-size: 13px;
+    font-style: italic;
+}
+
+.side-chat-error {
+    display: block;
+    color: #B42318;
+    font-size: 13px;
+    line-height: 19px;
+}
+
+.side-chat-answer-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.side-chat-composer {
+    padding: 8px 12px 10px;
+    border-top: 1px solid var(--color-border-default, #E5E9F0);
+}
+
+.side-chat-quote {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 6px;
+    padding: 4px 4px 4px 8px;
+    border-left: 2px solid var(--color-brand-primary, #155DFC);
+    border-radius: 0 6px 6px 0;
+    background: var(--color-background-subtle, #F3F5F9);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.side-chat-quote-icon {
+    font-size: 16px !important;
+    color: var(--color-brand-primary, #155DFC);
+}
+
+.side-chat-quote-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.side-chat-input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 6px 6px 6px 10px;
+    border: 1px solid var(--color-border-strong, #C9D2E0);
+    border-radius: 10px;
+    background: #fff;
+}
+
+.side-chat-input-row:focus-within {
+    border-color: var(--color-brand-primary, #155DFC);
+}
+
+.side-chat-input {
+    flex: 1;
+    min-width: 0;
+    resize: none;
+    border: 0;
+    outline: none;
+    background: transparent;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    max-height: 140px;
+}
+
+.side-chat-send {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: #155DFC;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.side-chat-send:disabled {
+    background: #D9E6FE;
+    cursor: default;
+}
+
+.side-chat-stop {
+    background: #D9E6FE;
+}
+
+.side-chat-stop-square {
+    width: 11px;
+    height: 11px;
+    border-radius: 2px;
+    background: #155DFC;
+}
+
+.side-chat-footnote {
+    margin: 6px 2px 0;
+    color: var(--color-text-tertiary, #5B6B86);
+    font-size: 11px;
+    line-height: 16px;
+}
+
+/* The header's entry point (index.jsx `.llm-header`). */
+.llm-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: none;
+}
+
+.llm-header-side-chat.MuiButton-root {
+    min-width: 0;
+    padding: 4px 6px;
+    border-radius: 4px;
+    color: var(--color-text-tertiary);
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    text-transform: none;
+}
+
+.llm-header-side-chat.MuiButton-root .MuiButton-startIcon {
+    margin: 0 4px 0 0;
+}
+
+.llm-header-side-chat.MuiButton-root .MuiSvgIcon-root {
+    width: 16px;
+    height: 16px;
+}
+
+.llm-header-side-chat.MuiButton-root:hover,
+.llm-header-side-chat.MuiButton-root.active {
+    background-color: var(--color-background-subtle);
+    color: var(--color-brand-primary);
+}
+
+.llm-header-side-chat.mobile.MuiButton-root {
+    padding: 12px;
+    border: 0.5px solid var(--color-border-default);
+    border-radius: 8px;
+    background: var(--color-background-subtle);
+    color: var(--color-text-primary);
+}
+
+.llm-header-side-chat.mobile.MuiButton-root .MuiButton-startIcon {
+    margin: 0;
+}
+
+.side-chat-drawer-paper.MuiPaper-root {
+    border-radius: 16px 16px 0 0;
+    overflow: hidden;
+}
