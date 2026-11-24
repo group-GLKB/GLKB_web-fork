@@ -8,6 +8,7 @@ import '@testing-library/jest-dom';
 
 import {
     AttachButton,
+    AttachConflict,
     AttachmentChips,
     attachmentBlockedNote,
     MessageAttachments,
@@ -100,12 +101,50 @@ describe('the chips', () => {
         expect(screen.getByRole('status')).toHaveTextContent('Attachments work in AI Chat.');
     });
 
-    it('blocks a failed upload, and anything on Investigate', () => {
+    it('blocks a failed upload, and an image on Investigate — which reads documents', () => {
+        const pdf = { key: 'a', kind: 'pdf', status: 'ready' };
+        const png = { key: 'b', kind: 'image', status: 'ready' };
         expect(attachmentBlockedNote({ hasItems: true, hasErrors: true })).toMatch(/Remove the files/);
-        expect(attachmentBlockedNote({ hasItems: true, hasErrors: false }, { investigate: true }))
-            .toMatch(/Attachments work in AI Chat/);
+        // Documents go to Investigate (since 2026-11-02).
+        expect(attachmentBlockedNote({ hasItems: true, hasErrors: false, items: [pdf] }, { investigate: true }))
+            .toBe('');
+        expect(attachmentBlockedNote({ hasItems: true, hasErrors: false, items: [pdf, png] }, { investigate: true }))
+            .toBe('Images work at Medium — Extra reads documents (PDF, Word, text). Remove the image to send.');
+        expect(attachmentBlockedNote({ hasItems: true, hasErrors: false, items: [png, { ...png, key: 'c' }] }, { investigate: true }))
+            .toMatch(/Remove the images to send\.$/);
+        // The same image is fine in AI Chat.
+        expect(attachmentBlockedNote({ hasItems: true, hasErrors: false, items: [pdf, png] })).toBe('');
         expect(attachmentBlockedNote({ hasItems: false, hasErrors: false }, { investigate: true })).toBe('');
         expect(attachmentBlockedNote({ hasItems: true, hasErrors: false })).toBe('');
+    });
+});
+
+describe("the note when an effort doesn't read the files", () => {
+    it('names the effort, and offers the one that does or removing them', () => {
+        const onUseFallback = jest.fn();
+        const onRemoveFiles = jest.fn();
+        render(<AttachConflict modeName="Extra" fallbackName="Medium" count={2}
+                               onUseFallback={onUseFallback} onRemoveFiles={onRemoveFiles} />);
+        expect(screen.getByRole('status')).toHaveTextContent("Extra doesn't read attached files.");
+        fireEvent.click(screen.getByRole('button', { name: 'Use Medium' }));
+        expect(onUseFallback).toHaveBeenCalledTimes(1);
+        fireEvent.click(screen.getByRole('button', { name: 'Remove files' }));
+        expect(onRemoveFiles).toHaveBeenCalledTimes(1);
+    });
+
+    it('offers only removing them where the pipeline cannot be changed', () => {
+        render(<AttachConflict modeName="Extra" count={1} onRemoveFiles={() => {}} />);
+        expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Remove file']);
+    });
+
+    it('can say which files and why — the images on an Extra question', () => {
+        render(<AttachConflict modeName="Extra" fallbackName="Medium" count={2} noun="image"
+                               text="Images work at Medium — Extra reads documents (PDF, Word, text)."
+                               onUseFallback={() => {}} onRemoveFiles={() => {}} />);
+        expect(screen.getByRole('status')).toHaveTextContent(
+            'Images work at Medium — Extra reads documents (PDF, Word, text).',
+        );
+        expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Use Medium', 'Remove images']);
     });
 });
 

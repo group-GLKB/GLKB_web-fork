@@ -1,0 +1,95 @@
+/* The chat page's notice: a card floating just above the composer (absolute, so nothing moves),
+   as wide as the composer, with its corners and border. The composer it is placed in is the
+   positioned box. The colours are the ones a warning reads as: grey when credits run low, amber
+   when the question as set up cannot be paid for — not the brand blue, which read as news. */
+.credit-float {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 8px);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+    padding: 8px 10px 8px 16px;
+    border: 1px solid #E5E9F0;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .06);
+    font: 400 13px/18px Geist, sans-serif;
+    white-space: nowrap;
+}
+
+.credit-float-low {
+    background: #FBFCFD;
+    color: var(--color-grey-600, #46566C);
+}
+
+.credit-float-short {
+    background: #FFF7E6;
+    border-color: #F3DDB0;
+    color: #7A4B00;
+}
+
+.credit-float-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.credit-float-buy {
+    flex: none;
+    color: var(--color-brand-primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.credit-float-buy:hover {
+    text-decoration: underline;
+}
+
+.credit-float-close {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: inherit;
+    opacity: .7;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.credit-float-close:hover,
+.credit-float-close:focus-visible {
+    opacity: 1;
+    background: rgba(12, 16, 24, .06);
+}
+
+/* The home page's notice is drawn by the news strip's own rules (HomePage/scoped.css), in the
+   same warning colours as the chat page's: grey when low, amber when it cannot be paid for. */
+.HomePageRoot .credit-strip .news-strip-tag {
+    background: var(--color-background-muted, #E5E9F0);
+    color: var(--color-grey-600, #46566C);
+}
+
+.HomePageRoot .credit-strip.is-short .news-strip {
+    background: #FFF7E6;
+    border-color: #F3DDB0;
+    color: #7A4B00;
+}
+
+.HomePageRoot .credit-strip.is-short .news-strip-tag {
+    background: #FCE7BE;
+    color: #7A4B00;
+}
+
+.HomePageRoot .credit-strip.is-short .news-strip-close {
+    color: #7A4B00;
+}

@@ -150,3 +150,34 @@ it('says how many citations need review when the audit found some, and nothing w
     expect(screen.queryByText('Citations verified')).toBeNull();
     expect(document.querySelector('.lr-mverified')).toBeNull();
 });
+
+it('reviews the outline on a phone: sections with their lengths, the scope, and Approve in the bar', async () => {
+    mockOutlineApproval = true;
+    streamReview.mockImplementation(async (req, onFrame) => {
+        onFrame({ step: 'Started', history_id: 1, public_id: 'p1', pipeline: 'literature_review' });
+        onFrame({ step: 'Outline', run_id: 'lr_1', outline: {
+            title: 'p53 and resistance', thesis: 'It depends on the drug.', words: 2000, target_words: 2000,
+            scope: { target_words: 2000, sources: 'search', model: 'gpt-6-luna' },
+            sections: [
+                { id: 's1', kind: 'introduction', title: 'Introduction', message: 'Why', words: 400, papers: 25, subsections: [] },
+                { id: 's2', kind: 'body', title: 'Loss of function', message: 'CRISPR screens', words: 1200, papers: 3, subsections: [] },
+                { id: 's3', kind: 'outlook', title: 'Outlook', message: '', words: 400, papers: 30, subsections: [] },
+            ] } });
+    });
+    approveOutline.mockImplementation(() => new Promise(() => {}));
+    render(<LiteratureReview />);
+    fireEvent.change(screen.getByLabelText('Topic'), { target: { value: 'Does p53 loss cause chemoresistance?' } });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Generate outline/ })); });
+    expect(screen.getByRole('heading', { name: 'Review the outline' })).toBeInTheDocument();
+    expect(document.querySelector('.lr-mtopbar-step')).toHaveTextContent('Outline');
+    expect(document.querySelector('.lr-moutline-topic')).toHaveTextContent('Does p53 loss cause chemoresistance?');
+    expect(document.querySelector('.lr-osec.is-body .lr-osec-meta')).toHaveTextContent('~3 papers');
+    // within 5% of the target is on target
+    fireEvent.click(screen.getByRole('button', { name: 'Shorter: Loss of function' }));
+    expect(document.querySelector('.lr-moutline .lr-mbar-big')).toHaveTextContent('~1,900 words');
+    expect(document.querySelector('.lr-moutline .lr-mbar-sub')).toHaveTextContent('3 sections · On target');
+    fireEvent.click(screen.getByRole('button', { name: 'Shorter: Loss of function' }));
+    expect(document.querySelector('.lr-moutline .lr-mbar-sub')).toHaveTextContent('3 sections · 200 under target');
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Approve →' })); });
+    expect(approveOutline.mock.calls[0][0].sections.map((x) => x.words)).toEqual([400, 1000, 400]);
+});

@@ -3,7 +3,7 @@ export const DOC_SLUGS = ['overview', 'quickstart', 'how-glkb-works', 'the-batch
     'prompt-templates', 'gene-list-prioritization', 'annotating-experimental-results',
     'drug-target-investigation', 'variant-and-gwas-interpretation', 'use-case-gallery',
     'batch-endpoint', 'health-check'];
-export const BLOG_SLUGS = ['glkb-knowledge-graph', 'investigate-auditable-research'];
+export const BLOG_SLUGS = ['glkb-knowledge-graph', 'investigate-auditable-research', 'literature-review'];
 export const normalizeSeoPath = path => path.replace(/\/+$/, '') || '/';
 export const canonicalPathFor = path => {
     const normalized = normalizeSeoPath(path);

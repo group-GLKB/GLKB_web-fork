@@ -137,12 +137,20 @@ export const reviewRefusal = (error) => {
 /**
  * A saved review's paragraph actions (backend POST /history/{public_id}/paragraph): one paragraph as
  * the review stores it, citations as [n]; `question` is the reader's question (Ask) or direction
- * (the others, optional) and `history` the panel's earlier [{question, answer}]. Resolves to the
- * suggestion — `{action, paragraph?, new_references?, answer?, message?}` — and saves nothing.
+ * (the others, optional) and `history` the panel's earlier [{question, answer}]. `selection` —
+ * `{text, start}`, the part of the paragraph the reader selected, exactly as stored, and its offset —
+ * makes the action work on that text: a rewrite or a shortening replaces only it (the result then
+ * carries `selection` and `replacement` as well as the whole new `paragraph`), Add evidence cites
+ * only at its sentences, and Ask answers about it. Resolves to the suggestion —
+ * `{action, paragraph?, replacement?, selection?, new_references?, answer?, message?}` — and saves nothing.
  */
-export const runParagraphAction = async (publicId, { action, paragraph, question = '', history = [] }) => {
-    const { data } = await axios.post(`${BASE}/history/${encodeURIComponent(publicId)}/paragraph`,
-        { action, paragraph, question, ...(history.length ? { history } : {}) });
+export const runParagraphAction = async (publicId, { action, paragraph, question = '', history = [], selection = null }) => {
+    const { data } = await axios.post(`${BASE}/history/${encodeURIComponent(publicId)}/paragraph`, {
+        action, paragraph, question,
+        ...(history.length ? { history } : {}),
+        ...(selection?.text ? { selection: selection.text,
+                                ...(Number.isInteger(selection.start) ? { selection_start: selection.start } : {}) } : {}),
+    });
     return data;
 };
 

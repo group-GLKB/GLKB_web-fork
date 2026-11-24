@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 760 330" xmlns="http://www.w3.org/2000/svg" font-family="Geist,Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="lr1a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8090AB"/>
+    </marker>
+  </defs>
+
+  <text x="0" y="18" font-size="12" font-weight="700" letter-spacing="1.4" fill="#5E6E87">FROM ONE TOPIC TO A CITED DRAFT REVIEW</text>
+
+  <!-- step 1 -->
+  <g>
+    <rect x="0" y="36" width="175" height="168" rx="12" fill="#FFFFFF" stroke="#E5E9F0" stroke-width="1.4"/>
+    <rect x="0" y="36" width="175" height="4" rx="2" fill="#155DFC"/>
+    <text x="16" y="68" font-size="12" font-weight="700" letter-spacing="1.2" fill="#155DFC">STEP 1</text>
+    <text x="16" y="94" font-size="17" font-weight="700" fill="#0C1018">Lock the evidence</text>
+    <text font-size="13" fill="#5E6E87">
+      <tspan x="16" y="124">Search the library,</tspan>
+      <tspan x="16" y="144">read full text, then</tspan>
+      <tspan x="16" y="164">lock the paper set.</tspan>
+    </text>
+  </g>
+  <!-- step 2 -->
+  <g>
+    <rect x="195" y="36" width="175" height="168" rx="12" fill="#FFFFFF" stroke="#E5E9F0" stroke-width="1.4"/>
+    <rect x="195" y="36" width="175" height="4" rx="2" fill="#155DFC"/>
+    <text x="211" y="68" font-size="12" font-weight="700" letter-spacing="1.2" fill="#155DFC">STEP 2</text>
+    <text x="211" y="94" font-size="17" font-weight="700" fill="#0C1018">Map the claims</text>
+    <text font-size="13" fill="#5E6E87">
+      <tspan x="211" y="124">Record what each</tspan>
+      <tspan x="211" y="144">paper claims, and how</tspan>
+      <tspan x="211" y="164">the claims relate.</tspan>
+    </text>
+  </g>
+  <!-- step 3 -->
+  <g>
+    <rect x="390" y="36" width="175" height="168" rx="12" fill="#FFFFFF" stroke="#E5E9F0" stroke-width="1.4"/>
+    <rect x="390" y="36" width="175" height="4" rx="2" fill="#155DFC"/>
+    <text x="406" y="68" font-size="12" font-weight="700" letter-spacing="1.2" fill="#155DFC">STEP 3</text>
+    <text x="406" y="94" font-size="17" font-weight="700" fill="#0C1018">Plan the outline</text>
+    <text font-size="13" fill="#5E6E87">
+      <tspan x="406" y="124">Assign each claim,</tspan>
+      <tspan x="406" y="144">and the papers behind</tspan>
+      <tspan x="406" y="164">it, to one section.</tspan>
+    </text>
+  </g>
+  <!-- step 4 -->
+  <g>
+    <rect x="585" y="36" width="175" height="168" rx="12" fill="#FFFFFF" stroke="#E5E9F0" stroke-width="1.4"/>
+    <rect x="585" y="36" width="175" height="4" rx="2" fill="#155DFC"/>
+    <text x="601" y="68" font-size="12" font-weight="700" letter-spacing="1.2" fill="#155DFC">STEP 4</text>
+    <text x="601" y="94" font-size="17" font-weight="700" fill="#0C1018">Write each section</text>
+    <text font-size="13" fill="#5E6E87">
+      <tspan x="601" y="124">Draft every section</tspan>
+      <tspan x="601" y="144">only from the material</tspan>
+      <tspan x="601" y="164">assigned to it.</tspan>
+    </text>
+  </g>
+
+  <g stroke="#8090AB" stroke-width="1.6" fill="none">
+    <path d="M176 120 H192" marker-end="url(#lr1a)"/>
+    <path d="M371 120 H387" marker-end="url(#lr1a)"/>
+    <path d="M566 120 H582" marker-end="url(#lr1a)"/>
+    <path d="M672 205 V246" marker-end="url(#lr1a)"/>
+  </g>
+
+  <text x="0" y="234" font-size="13" fill="#5E6E87">Each step starts from a fixed input, so each step can be checked and graded on its own.</text>
+
+  <rect x="0" y="252" width="760" height="62" rx="12" fill="#EEF3FF" stroke="#BBCFFE" stroke-width="1.4"/>
+  <text x="20" y="278" font-size="12" font-weight="700" letter-spacing="1.2" fill="#0A47D6">YOU RECEIVE</text>
+  <text x="20" y="300" font-size="16" font-weight="600" fill="#0C1018">A structured draft review with numbered citations and a full reference list</text>
+</svg>

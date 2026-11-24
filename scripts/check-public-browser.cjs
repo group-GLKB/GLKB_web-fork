@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require('@playwright/test');
-const BLOG_PATHS = ['/blog/glkb-knowledge-graph', '/blog/investigate-auditable-research'];
+const BLOG_PATHS = ['/blog/glkb-knowledge-graph', '/blog/investigate-auditable-research', '/blog/literature-review'];
 const root = path.resolve(__dirname, '../build');
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.md': 'text/plain', '.json': 'application/json' };
 async function main() {
@@ -49,7 +49,7 @@ async function main() {
                 }
                 if (!javaScriptEnabled && pathname === '/') {
                     assert.ok(await page.locator('#root').evaluate(el => el.scrollHeight > el.clientHeight && getComputedStyle(el).overflowY === 'auto'));
-                    const question = page.locator('summary').filter({ hasText: 'Do you search full texts, or just abstracts?' });
+                    const question = page.locator('summary').filter({ hasText: 'Does GLKB search full-text papers or abstracts?' });
                     await question.click();
                     assert.ok(await question.locator('..').getAttribute('open') !== null);
                 }
@@ -157,7 +157,7 @@ async function main() {
             assert.equal(new URL(page.url()).pathname, '/', 'the GLKB logo inside the app opens About, and it stays');
             assert.equal(await landsOn(page, '/?source=test#faq'), '/', 'a section of About stays');
             assert.equal(await landsOn(page, null, true), '/', 'and stays on refresh');
-            await page.getByRole('button', { name: 'Get Started', exact: true }).click();
+            await page.getByRole('navigation').getByRole('button', { name: 'Try GLKB', exact: true }).click();
             await page.waitForURL('**/chat');
             await context.close();
         }

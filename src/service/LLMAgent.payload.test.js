@@ -9,6 +9,7 @@
 import axios from '../utils/axiosConfig';
 import {
     extractFunnelMetrics,
+    frameToUpdate,
     INVESTIGATE_MAX_REFERENCES,
     LLMAgentService,
     PHASE_PERCENT_FLOOR,
@@ -72,14 +73,68 @@ describe('service tier', () => {
         expect(sentPayload().service_tier).toBe('premium');
     });
 
-    it('never sends `model` or `effort`, which the backend answers with a 422', async () => {
-        // Queue entries persisted before the credit system can still carry both.
+    it('never sends `model`, nor an `effort` from before the effort levels', async () => {
+        // Queue entries persisted before the credit system can still carry both; the backend
+        // answers either with a 422.
         await run({ filters: [], model: 'gpt-6.1-sol', effort: 'quick', serviceTier: 'standard' });
         expect(sentPayload()).not.toHaveProperty('model');
         expect(sentPayload()).not.toHaveProperty('effort');
         axios.post.mockReset();
         await run({ model: 'gpt-6.1-sol', effort: 'quick', investigateEnabled: true });
         expect(sentPayload()).not.toHaveProperty('model');
+        expect(sentPayload()).not.toHaveProperty('effort');
+    });
+});
+
+/* The contract's compatibility rule: a pipeline's DEFAULT level is never on the wire, so a Medium
+   or Extra question is byte for byte the request it was, and a backend that predates efforts
+   keeps answering it. */
+describe('effort', () => {
+    it('sends Low and High on chat', async () => {
+        await run({ filters: [], effort: 'low' });
+        expect(sentUrl()).not.toMatch(/deep-research/);
+        expect(sentPayload().effort).toBe('low');
+        axios.post.mockReset();
+        await run({ filters: [], effort: 'high' });
+        expect(sentPayload().effort).toBe('high');
+    });
+
+    it('sends Max on deep research', async () => {
+        await run({ investigateEnabled: true, effort: 'max' });
+        expect(sentUrl()).toMatch(/\/deep-research\/stream$/);
+        expect(sentPayload().effort).toBe('max');
+    });
+
+    it('leaves the field off at Medium and Extra, and when none was chosen', async () => {
+        const plain = async (options) => {
+            axios.post.mockReset();
+            await run(options);
+            return sentPayload();
+        };
+        expect(await plain({ filters: [], effort: 'medium' })).toEqual(await plain({ filters: [] }));
+        expect(await plain({ filters: [], effort: 'medium' })).not.toHaveProperty('effort');
+        expect(await plain({ investigateEnabled: true, effort: 'extra' })).toEqual(await plain({ investigateEnabled: true }));
+        expect(await plain({ investigateEnabled: true, effort: 'extra' })).not.toHaveProperty('effort');
+    });
+
+    it('reads the answer\'s row and level off the Saved frame', () => {
+        expect(frameToUpdate({ step: 'Saved', history_id: 42, message_id: 88, effort: 'max' }))
+            .toMatchObject({ type: 'saved', historyId: 42, messageId: 88, effort: 'max', invocationId: null });
+        expect(frameToUpdate({ step: 'Saved', history_id: 42, invocation_id: 'inv-1' }))
+            .toMatchObject({ messageId: null, effort: '', invocationId: 'inv-1' });
+    });
+
+    it('reads the level the agent resolved off the Complete frame', () => {
+        expect(frameToUpdate({ step: 'Complete', response: 'x', effort: 'high' }).effort).toBe('high');
+        // An agent from before efforts says nothing.
+        expect(frameToUpdate({ step: 'Complete', response: 'x' }).effort).toBe('');
+    });
+
+    it('never sends a level of the other pipeline', async () => {
+        await run({ investigateEnabled: true, effort: 'high' });
+        expect(sentPayload()).not.toHaveProperty('effort');
+        axios.post.mockReset();
+        await run({ filters: [], effort: 'max' });
         expect(sentPayload()).not.toHaveProperty('effort');
     });
 });
@@ -98,14 +153,37 @@ describe('attachments', () => {
         expect(sentPayload()).not.toHaveProperty('attachments');
     });
 
-    it('never sends them on Investigate, which does not read them', async () => {
-        await run({ investigateEnabled: true, attachments: ['a1b2'] });
+    it('sends them on Investigate too, which reads documents since 2026-11-02', async () => {
+        await run({ investigateEnabled: true, attachments: ['a1b2', ' c3d4 '] });
+        expect(sentUrl()).toMatch(/\/deep-research\/stream$/);
+        expect(sentPayload().attachments).toEqual(['a1b2', 'c3d4']);
+        axios.post.mockReset();
+        await run({ investigateEnabled: true, attachments: [] });
         expect(sentPayload()).not.toHaveProperty('attachments');
     });
 
     it('drops blanks and anything that is not an id', async () => {
         await run({ filters: [], attachments: ['', null, { id: 'x' }, 'ok'] });
         expect(sentPayload().attachments).toEqual(['ok']);
+    });
+
+    it("reads Investigate's documents-only refusal like any other", () => {
+        const error = {
+            response: {
+                status: 400,
+                data: {
+                    detail: {
+                        code: 'INVESTIGATE_DOCUMENTS_ONLY',
+                        message: 'Investigate reads documents (PDF, Word, text ...). Send images with an AI Chat question.',
+                    },
+                },
+            },
+        };
+        expect(refusalOf(error)).toMatchObject({
+            status: 400,
+            code: 'INVESTIGATE_DOCUMENTS_ONLY',
+            message: expect.stringContaining('Send images with an AI Chat question'),
+        });
     });
 
     it('reads an attachment refusal like any other', () => {
@@ -169,6 +247,26 @@ describe('a request refused before the stream opened', () => {
         });
     });
 
+    it('a dropped connection is not an error update: the caller recovers the run', async () => {
+        axios.post.mockRejectedValueOnce(Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' }));
+        const updates = [];
+        const thrown = await new LLMAgentService()
+            .chat('q', new AbortController(), (u) => updates.push(u), {})
+            .catch((e) => e);
+        expect(thrown.connectionLost).toBe(true);
+        expect(updates.filter((u) => u.type === 'error')).toHaveLength(0);
+    });
+
+    it('a server failure with an HTTP answer is still an error update', async () => {
+        axios.post.mockRejectedValueOnce(httpError(502, ''));
+        const updates = [];
+        const thrown = await new LLMAgentService()
+            .chat('q', new AbortController(), (u) => updates.push(u), {})
+            .catch((e) => e);
+        expect(thrown.connectionLost).toBeUndefined();
+        expect(updates.filter((u) => u.type === 'error')).toHaveLength(1);
+    });
+
     it('retries once after a second on CREDITS_BUSY, as the backend asks', async () => {
         axios.post
             .mockRejectedValueOnce(httpError(503, { detail: { code: 'CREDITS_BUSY' } }))
@@ -178,6 +276,38 @@ describe('a request refused before the stream opened', () => {
         expect(axios.post).toHaveBeenCalledTimes(2);
         expect(updates.filter((u) => u.type === 'error')).toHaveLength(0);
     }, 5000);
+
+    it('retries SERVER_BUSY (the backend is out of database connections) without showing an error', async () => {
+        const waits = [];
+        const timer = jest.spyOn(global, 'setTimeout').mockImplementation((fn, ms) => { waits.push(ms); fn(); return 0; });
+        try {
+            axios.post
+                .mockRejectedValueOnce(httpError(503, { detail: { code: 'SERVER_BUSY', message: 'busy' } }))
+                .mockRejectedValueOnce(httpError(503, { detail: { code: 'SERVER_BUSY', message: 'busy' } }))
+                .mockResolvedValueOnce({ data: '' });
+            const updates = [];
+            await new LLMAgentService().chat('q', new AbortController(), (u) => updates.push(u), {});
+            expect(axios.post).toHaveBeenCalledTimes(3);
+            expect(waits).toEqual([5000, 5000]);
+            expect(updates.filter((u) => u.type === 'error')).toHaveLength(0);
+        } finally {
+            timer.mockRestore();
+        }
+    });
+
+    it('shows SERVER_BUSY once its retries are spent', async () => {
+        const timer = jest.spyOn(global, 'setTimeout').mockImplementation((fn) => { fn(); return 0; });
+        try {
+            axios.post.mockRejectedValue(httpError(503, { detail: { code: 'SERVER_BUSY', message: 'GLKB is busy right now. Please try again in a moment.' } }));
+            const updates = [];
+            await expect(new LLMAgentService().chat('q', new AbortController(), (u) => updates.push(u), {})).rejects.toThrow();
+            expect(axios.post).toHaveBeenCalledTimes(4);
+            expect(updates.filter((u) => u.type === 'error')[0].error).toBe('GLKB is busy right now. Please try again in a moment.');
+        } finally {
+            axios.post.mockReset();
+            timer.mockRestore();
+        }
+    });
 
     it('does not retry any other refusal', async () => {
         axios.post.mockRejectedValueOnce(httpError(429, { detail: { code: 'INSUFFICIENT_CREDITS' } }));
@@ -265,6 +395,35 @@ describe('investigate (deep research)', () => {
  * absent, so every alias after the first was unreachable unless the first happened to be there.
  * That is why naming the right field was not enough on its own.
  */
+describe('"Run a full investigation" (force_full_research)', () => {
+    // glkb-agent docs/investigate-followup-routing.md: the same question again, and the agent
+    // skips its follow-up router. Investigate only, and absent unless asked for.
+    it('is sent on the investigate path when the turn asks for it', async () => {
+        await run({ investigateEnabled: true, forceFullResearch: true, serviceTier: 'advanced' });
+        expect(sentUrl()).toBe('/api/v1/deep-research/stream');
+        expect(sentPayload().force_full_research).toBe(true);
+        expect(sentPayload().service_tier).toBe('advanced');
+    });
+
+    it('is absent from every other Investigate turn', async () => {
+        await run({ investigateEnabled: true });
+        expect(sentPayload()).not.toHaveProperty('force_full_research');
+        axios.post.mockReset();
+        await run({ investigateEnabled: true, forceFullResearch: false });
+        expect(sentPayload()).not.toHaveProperty('force_full_research');
+        axios.post.mockReset();
+        // Only a real `true` — a queue entry restored from storage could hold anything.
+        await run({ investigateEnabled: true, forceFullResearch: 'yes' });
+        expect(sentPayload()).not.toHaveProperty('force_full_research');
+    });
+
+    it('is never sent to chat', async () => {
+        await run({ forceFullResearch: true, filters: [] });
+        expect(sentUrl()).toBe('/api/v1/new-llm-agent/stream');
+        expect(sentPayload()).not.toHaveProperty('force_full_research');
+    });
+});
+
 describe('funnel metrics from an agent frame', () => {
     it('reads Cited from cited_provisional', () => {
         expect(extractFunnelMetrics({ cited_provisional: 17 }).cited).toBe(17);

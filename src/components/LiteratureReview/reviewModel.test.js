@@ -1,9 +1,10 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import {
-    countWords, expandCitation, linkCitations, minutesLeft, parseReview, reviewAudit, stageFill,
+    countWords, expandCitation, linkCitations, locateSelection, minutesLeft, parseReview, proseWords, reviewAudit,
+    stageFill,
 } from './reviewModel';
 import ReviewDocument from './ReviewDocument';
 
@@ -92,89 +93,195 @@ describe('ReviewDocument', () => {
         if (value != null) fireEvent.change(el, { target: { value } });
         fireEvent.submit(el.closest('form'));
     };
+    /* Selects the page's text from `from` to `to` (each found in a paragraph's text nodes, so a selection
+       may run over a citation pill), as the reader would with the mouse, and waits for the toolbar. */
+    const textAt = (text, end = false) => {
+        const walker = document.createTreeWalker(document.querySelector('.lr-document'), NodeFilter.SHOW_TEXT);
+        let node = walker.nextNode();
+        while (node) {
+            const i = node.data.indexOf(text);
+            if (i >= 0 && node.parentElement.closest('.lr-para > p') && !node.parentElement.closest('.lr-cite')) {
+                return [node, end ? i + text.length : i];
+            }
+            node = walker.nextNode();
+        }
+        throw new Error(`no text "${text}"`);
+    };
+    const select = async (from, to = from) => {
+        const range = document.createRange();
+        range.setStart(...textAt(from));
+        range.setEnd(...textAt(to, true));
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        fireEvent.mouseDown(document.querySelector('.lr-document'));
+        fireEvent.mouseUp(document);
+        return screen.findByRole('toolbar', { name: 'Selection actions' });
+    };
+    const tool = (toolbar, name) => within(toolbar).getByRole('button', { name });
 
-    it('rewrites a paragraph the way the reader says, revises it, and replaces it only when accepted', async () => {
-        const first = 'Disrupting p53 raises resistance to some agents in selected models [1, 2], and a CRISPR screen in AML cell lines found TP53 loss among its hits [1].';
-        const second = 'A CRISPR screen in AML cell lines found TP53 loss among its hits [1], and disrupting p53 raises resistance in selected models [1, 2].';
+    it('offers the four actions over a selection in a paragraph, and none without one', async () => {
+        render(<ReviewDocument markdown={REVIEW} onParagraph={jest.fn()} onAccept={jest.fn()} />);
+        expect(screen.queryByRole('toolbar', { name: 'Selection actions' })).toBeNull();
+        expect(screen.getByText(/Select text to ask about it/)).toBeInTheDocument();
+        const toolbar = await select('a CRISPR screen');
+        expect(within(toolbar).getAllByRole('button').map((b) => b.textContent))
+            .toEqual(['Ask', 'Rewrite', 'Shorten', 'Add evidence']);
+        // Escape puts it away.
+        fireEvent.keyUp(document, { key: 'Escape' });
+        expect(screen.queryByRole('toolbar', { name: 'Selection actions' })).toBeNull();
+    });
+
+    it('rewrites only the selected text the way the reader says, and replaces it only when accepted', async () => {
+        const spliced = FIRST.replace('In AML cell lines a CRISPR screen identified TP53 loss among the hits [1].',
+                                      'A CRISPR screen in AML cell lines found TP53 loss [1].');
         const onParagraph = jest.fn()
-            .mockResolvedValueOnce({ action: 'rewrite', paragraph: first })
-            .mockResolvedValueOnce({ action: 'rewrite', paragraph: second });
+            .mockResolvedValueOnce({ action: 'rewrite', paragraph: spliced,
+                                     selection: 'In AML cell lines a CRISPR screen identified TP53 loss among the hits [1]',
+                                     replacement: 'A CRISPR screen in AML cell lines found TP53 loss [1]' });
         const onAccept = jest.fn(() => Promise.resolve());
         render(<ReviewDocument markdown={REVIEW} onParagraph={onParagraph} onAccept={onAccept} />);
 
-        fireEvent.click(screen.getAllByRole('button', { name: 'Rewrite' })[0]);
+        // From "In AML" over the end of "hits" -- the citation after it goes with the clause it ends.
+        fireEvent.click(tool(await select('In AML', 'among the hits'), 'Rewrite'));
         expect(onParagraph).not.toHaveBeenCalled();
-        send(box(/How should it change\?/), 'more concise');
-        expect(onParagraph).toHaveBeenLastCalledWith('rewrite', FIRST, 'more concise', []);
-        expect(await screen.findByText('Suggested rewrite')).toBeInTheDocument();
         const panel = screen.getByRole('region', { name: 'Rewrite' });
-        expect(panel).toHaveTextContent('“more concise”');
-        expect(panel).toHaveTextContent('Disrupting p53 raises resistance');
-
-        // Not quite: a revision sends the earlier direction and the suggestion it produced.
-        expect(screen.getByRole('button', { name: 'Revise' })).toBeDisabled();
-        send(box(/Not quite\?/), 'lead with the screen');
-        expect(onParagraph).toHaveBeenLastCalledWith('rewrite', FIRST, 'lead with the screen',
-            [{ question: 'more concise', answer: first }]);
-        expect(await screen.findByText('Suggested rewrite · revision 2')).toBeInTheDocument();
-        expect(panel).toHaveTextContent('“more concise” → “lead with the screen”');
+        expect(panel).toHaveTextContent('Selected text only');
+        expect(screen.getByRole('button', { name: 'Rewrite', pressed: true })).toBeInTheDocument();
+        send(box(/How should it change\?/), 'plainer');
+        const selection = 'In AML cell lines a CRISPR screen identified TP53 loss among the hits [1]';
+        expect(onParagraph).toHaveBeenLastCalledWith('rewrite', FIRST, 'plainer', [],
+                                                     { text: selection, start: FIRST.indexOf(selection) });
+        expect(await screen.findByText(/^Proposed · 3 fewer words$/)).toBeInTheDocument();
+        expect(panel).toHaveTextContent('A CRISPR screen in AML cell lines found TP53 loss');
         expect(onAccept).not.toHaveBeenCalled();
 
-        fireEvent.click(screen.getByRole('button', { name: 'Replace paragraph' }));
-        expect(onAccept).toHaveBeenCalledWith(FIRST, { action: 'rewrite', paragraph: second });
+        fireEvent.click(screen.getByRole('button', { name: 'Replace selection' }));
+        expect(onAccept).toHaveBeenCalledWith(FIRST, expect.objectContaining({ paragraph: spliced }));
         await waitFor(() => expect(screen.queryByRole('region', { name: 'Rewrite' })).toBeNull());
+        expect(screen.getByText(/^Edited/)).toBeInTheDocument();
     });
 
-    it('runs an edit with no direction when the box is left empty', async () => {
+    it('a revision after "Try again" sends the earlier direction and the suggestion it produced', async () => {
+        const first = 'Disrupting p53 raises resistance to some agents in selected models [1, 2], and a CRISPR screen in AML cell lines found TP53 loss among its hits [1].';
+        const onParagraph = jest.fn()
+            .mockResolvedValueOnce({ action: 'rewrite', paragraph: first })
+            .mockResolvedValueOnce({ action: 'rewrite', paragraph: first.replace('Disrupting', 'Removing') });
+        render(<ReviewDocument markdown={REVIEW} onParagraph={onParagraph} onAccept={jest.fn()} />);
+        // All of the paragraph selected: the action works on the paragraph, as before.
+        fireEvent.click(tool(await select('Deliberate p53', 'among the hits'), 'Rewrite'));
+        expect(screen.getByRole('region', { name: 'Rewrite' })).toHaveTextContent('This paragraph only');
+        send(box(/How should it change\?/), 'more concise');
+        expect(onParagraph).toHaveBeenLastCalledWith('rewrite', FIRST, 'more concise', [], null);
+        fireEvent.click(await screen.findByRole('button', { name: 'Try again' }));
+        send(box(/How should it change\?/), 'lead with the screen');
+        expect(onParagraph).toHaveBeenLastCalledWith('rewrite', FIRST, 'lead with the screen',
+            [{ question: 'more concise', answer: first }], null);
+        expect(await screen.findByRole('button', { name: 'Replace paragraph' })).toBeInTheDocument();
+    });
+
+    it('Shorten and Add evidence run at once on the selection, with no direction', async () => {
         const onParagraph = jest.fn(() => Promise.resolve({ action: 'evidence', paragraph: FIRST, new_references: [], message: 'None of the papers in reach clearly supports this paragraph.' }));
         render(<ReviewDocument markdown={REVIEW} onParagraph={onParagraph} onAccept={jest.fn()} />);
-        fireEvent.click(screen.getAllByRole('button', { name: 'Add evidence' })[0]);
-        fireEvent.click(screen.getByRole('button', { name: 'Find evidence' }));
-        expect(onParagraph).toHaveBeenCalledWith('evidence', FIRST, '', []);
+        fireEvent.click(tool(await select('CRISPR screen'), 'Add evidence'));
+        expect(onParagraph).toHaveBeenCalledWith('evidence', FIRST, '', [], { text: 'CRISPR screen', start: FIRST.indexOf('CRISPR screen') });
         expect(await screen.findByText('None of the papers in reach clearly supports this paragraph.')).toBeInTheDocument();
-        expect(box(/Look for something else/)).toBeInTheDocument();
+        // Try again opens the box for a direction, with the evidence action's own words.
+        fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+        expect(box(/What evidence\?/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Find evidence' })).toBeInTheDocument();
     });
 
-    it('answers a question about a paragraph in place, and follow-ups see the earlier answers', async () => {
+    it('answers a question about the selected text in place, and a follow-up sees the earlier answer', async () => {
         const onParagraph = jest.fn()
-            .mockResolvedValueOnce({ action: 'ask', answer: 'Only in selected models [1].' })
-            .mockResolvedValueOnce({ action: 'ask', answer: 'Cisplatin [2].' });
+            .mockResolvedValueOnce({ action: 'ask', answer: 'Only in selected models [3].' })
+            .mockResolvedValueOnce({ action: 'ask', answer: 'Cisplatin [4].' });
         render(<ReviewDocument markdown={REVIEW} onParagraph={onParagraph} onAccept={jest.fn()} />);
-        fireEvent.click(screen.getAllByRole('button', { name: 'Ask' })[1]);
-        expect(screen.getByRole('button', { name: 'Ask', pressed: true })).toBeInTheDocument();
-        const ask = box('Ask anything about this paragraph…');
-        send(ask, 'Is it uniform?');
-        expect(onParagraph).toHaveBeenCalledWith('ask', expect.stringContaining('sensitization instead [3–4]'), 'Is it uniform?', []);
+        // A selection over a citation pill: the pill's own text is not the paragraph's.
+        fireEvent.click(tool(await select('Other settings', 'so the effect'), 'Ask'));
+        const para = 'Other settings show sensitization instead [3–4], so the effect is not uniform across models and drugs.';
+        send(box('Ask about the selected text…'), 'Is it uniform?');
+        expect(onParagraph).toHaveBeenCalledWith('ask', para, 'Is it uniform?', [],
+                                                 { text: 'Other settings show sensitization instead [3–4], so the effect', start: 0 });
         const panel = screen.getByRole('region', { name: 'Ask' });
         await waitFor(() => expect(panel).toHaveTextContent('Only in selected models'));
-        expect(panel).toHaveTextContent('Is it uniform?');
+        expect(panel).toHaveTextContent('“Is it uniform?”');
 
-        send(box('Ask a follow-up…'), 'Which drug?');
-        expect(onParagraph).toHaveBeenLastCalledWith('ask', expect.any(String), 'Which drug?',
-            [{ question: 'Is it uniform?', answer: 'Only in selected models [1].' }]);
+        fireEvent.click(screen.getByRole('button', { name: 'Ask a follow-up' }));
+        send(box('Ask about the selected text…'), 'Which drug?');
+        expect(onParagraph).toHaveBeenLastCalledWith('ask', para, 'Which drug?',
+            [{ question: 'Is it uniform?', answer: 'Only in selected models [3].' }], expect.any(Object));
         await waitFor(() => expect(panel).toHaveTextContent('Cisplatin'));
-        expect(panel).toHaveTextContent('Only in selected models');
     });
 
-    it('does not send while an input method is composing', () => {
+    it('an Ask with nothing typed asks the first suggestion; a suggestion runs as its action', async () => {
         const onParagraph = jest.fn(() => new Promise(() => {}));
         render(<ReviewDocument markdown={REVIEW} onParagraph={onParagraph} onAccept={jest.fn()} />);
-        fireEvent.click(screen.getAllByRole('button', { name: 'Shorten' })[0]);
-        const el = box(/What should stay/);
-        fireEvent.change(el, { target: { value: '保留 AML' } });
-        fireEvent.keyDown(el, { key: 'Enter', isComposing: true });
-        expect(onParagraph).not.toHaveBeenCalled();
-        fireEvent.keyDown(el, { key: 'Enter' });
-        expect(onParagraph).toHaveBeenCalledWith('shorten', FIRST, '保留 AML', []);
+        fireEvent.click(tool(await select('CRISPR screen'), 'Ask'));
+        send(box('Ask about the selected text…'));
+        expect(onParagraph).toHaveBeenLastCalledWith('ask', FIRST, 'What is the strongest evidence here?', [], expect.any(Object));
+        expect(screen.getByRole('status')).toHaveTextContent('Reading the cited sources…');
+    });
+
+    it('a rewrite suggestion "More concise" shortens', async () => {
+        const onParagraph = jest.fn(() => new Promise(() => {}));
+        render(<ReviewDocument markdown={REVIEW} onParagraph={onParagraph} onAccept={jest.fn()} />);
+        fireEvent.click(tool(await select('CRISPR screen'), 'Rewrite'));
+        fireEvent.click(screen.getByRole('button', { name: 'More concise' }));
+        expect(onParagraph).toHaveBeenLastCalledWith('shorten', FIRST, '', [], expect.any(Object));
     });
 
     it("says why an action failed, in the service's words, and keeps what was typed", async () => {
         const onParagraph = jest.fn(() => Promise.reject({ response: { data: { detail: 'Could not rewrite this paragraph.' } } }));
         render(<ReviewDocument markdown={REVIEW} onParagraph={onParagraph} onAccept={jest.fn()} />);
-        fireEvent.click(screen.getAllByRole('button', { name: 'Shorten' })[0]);
-        send(box(/What should stay/), 'about 20 words');
+        fireEvent.click(tool(await select('CRISPR screen'), 'Rewrite'));
+        send(box(/How should it change\?/), 'about 20 words');
         expect(await screen.findByText('Could not rewrite this paragraph.')).toBeInTheDocument();
-        expect(box(/What should stay/)).toHaveValue('about 20 words');
+        expect(box(/How should it change\?/)).toHaveValue('about 20 words');
+    });
+
+    it('puts the last accepted edit back with Undo', async () => {
+        const onParagraph = jest.fn(() => Promise.resolve({ action: 'shorten', paragraph: 'Shorter [1].', selection: 'x', replacement: 'Shorter [1]' }));
+        const onUndo = jest.fn(() => Promise.resolve());
+        render(<ReviewDocument markdown={REVIEW} onParagraph={onParagraph} onAccept={() => Promise.resolve()} onUndo={onUndo} />);
+        fireEvent.click(tool(await select('CRISPR screen'), 'Shorten'));
+        fireEvent.click(await screen.findByRole('button', { name: 'Replace selection' }));
+        const undo = await screen.findByRole('button', { name: 'Undo' });
+        await act(async () => { fireEvent.click(undo); });
+        expect(onUndo).toHaveBeenCalled();
+        expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
+    });
+});
+
+describe('selecting text', () => {
+    const SRC = 'Deliberate *p53* disruption increases resistance [1, 2]. In AML a screen found TP53 loss [1].';
+
+    it('finds the selection in the markdown, over citations and emphasis, to whole words', () => {
+        // The page shows "p53" without its asterisks, and the pill instead of [1, 2].
+        expect(locateSelection(SRC, 'Deliberate ', 'p53 disruption increases resistance ')).toEqual(
+            { text: '*p53* disruption increases resistance [1, 2]', start: 11, whole: false },
+        );
+        // Half a word is widened to the word.
+        expect(locateSelection(SRC, 'Deliberate p53 disruption increases resistance . In AML a scr', 'een fou'))
+            .toEqual({ text: 'screen found', start: SRC.indexOf('screen found'), whole: false });
+        // All of it is the paragraph.
+        expect(locateSelection(SRC, '', SRC.replace(/\[[\d, ]+\]/g, '').replace(/\*/g, '')).whole).toBe(true);
+    });
+
+    it('takes the repeated phrase the reader selected, not the first one', () => {
+        const src = 'The screen [1] was small. A second screen [2] was large.';
+        const found = locateSelection(src, 'The screen  was small. A second ', 'screen');
+        expect(found.start).toBe(src.lastIndexOf('screen'));
+        expect(found.text).toBe('screen [2]');
+    });
+
+    it('is null when the selection is not in the paragraph', () => {
+        expect(locateSelection(SRC, '', 'not here at all')).toBeNull();
+        expect(locateSelection(SRC, '', '   ')).toBeNull();
+    });
+
+    it('counts prose words without the citations', () => {
+        expect(proseWords('A claim [1, 2] and another [3].')).toBe(4);
     });
 });
 

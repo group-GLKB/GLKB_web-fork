@@ -907,3 +907,269 @@ a.settings-row-action {
         min-width: 0;
     }
 }
+
+/* ---------------------------------------------------------------- money (Figma 244:5280)
+   Balance and Additional Credits carry their figure under the label in h3, brand blue. */
+.settings-row-figure {
+    align-items: flex-end;
+}
+
+.settings-figure {
+    margin-top: 4px;
+    font-family: 'Geist', sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 32px;
+    color: var(--color-brand-primary);
+    white-space: nowrap;
+}
+
+.billing-modal {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    width: min(368px, calc(100vw - 32px));
+    max-width: none;
+    padding: var(--space-6);
+    border-radius: var(--radius-4);
+    outline: none;
+}
+
+.billing-leaving {
+    width: min(400px, calc(100vw - 32px));
+    gap: var(--space-2);
+}
+
+.billing-history {
+    width: min(480px, calc(100vw - 32px));
+    gap: var(--space-4);
+}
+
+.billing-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+
+.billing-modal-title {
+    margin: 0;
+    font-family: 'Geist', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 26px;
+    color: var(--color-text-primary);
+}
+
+.billing-modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-right: -4px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-2);
+    background: none;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+}
+
+.billing-modal-close:hover {
+    background: var(--color-background-subtle);
+    color: var(--color-text-primary);
+}
+
+.billing-modal-close svg {
+    width: 20px;
+    height: 20px;
+}
+
+.billing-segments {
+    display: flex;
+    align-items: center;
+    height: 32px;
+    padding: 2px;
+    border: var(--border-width-hairline) solid var(--color-border-default);
+    border-radius: 6px;
+    background: var(--color-background-subtle);
+}
+
+.billing-segment {
+    flex: 1 0 0;
+    height: 100%;
+    padding: 4px 6px;
+    border: var(--border-width-hairline) solid transparent;
+    border-radius: var(--radius-1);
+    background: none;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.billing-segment:hover {
+    color: var(--color-text-primary);
+}
+
+.billing-segment.is-active {
+    border-color: var(--color-border-default);
+    background: var(--color-background-surface);
+    font-weight: 600;
+    color: var(--color-brand-primary);
+}
+
+.billing-custom {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-top: calc(var(--space-4) * -1);
+}
+
+.billing-input {
+    width: 100%;
+    height: 48px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-3);
+    background: var(--color-background-surface);
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--color-text-primary);
+    outline: none;
+}
+
+.billing-input:focus {
+    border-color: var(--color-brand-primary);
+}
+
+.billing-input.is-invalid {
+    border-color: var(--color-status-error-text);
+}
+
+.billing-field-error {
+    margin: 0;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--color-status-error-text);
+}
+
+.billing-total-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-4);
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    line-height: 22px;
+}
+
+.billing-total {
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+.billing-left {
+    color: var(--color-text-tertiary);
+    text-align: right;
+}
+
+.billing-left.is-short {
+    color: var(--color-status-error-text);
+}
+
+.billing-rule {
+    height: 1px;
+    background: var(--color-border-default);
+}
+
+.billing-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-3);
+}
+
+.billing-leaving .billing-actions {
+    margin-top: var(--space-4);
+}
+
+.billing-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: var(--radius-2);
+    background: var(--color-background-muted);
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 18px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.billing-btn:hover {
+    background: var(--color-background-normal);
+}
+
+.billing-btn.is-primary {
+    background: var(--color-brand-primary);
+    color: var(--color-text-inverse);
+}
+
+.billing-btn.is-primary:hover {
+    background: var(--color-blue-600);
+}
+
+.billing-btn:disabled,
+.billing-btn.is-primary:disabled {
+    background: var(--color-background-normal);
+    color: var(--color-grey-400);
+    cursor: not-allowed;
+}
+
+.billing-text {
+    margin: 0;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--color-text-tertiary);
+}
+
+.billing-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--color-text-secondary);
+}
+
+.billing-table th {
+    padding: 0 0 12px;
+    border-bottom: 1px solid var(--color-border-strong);
+    font-weight: 600;
+    text-align: left;
+    color: var(--color-text-primary);
+}
+
+.billing-table td {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--color-border-default);
+}
+
+.billing-table tr:last-child td {
+    border-bottom: none;
+}
+
+.billing-email {
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
